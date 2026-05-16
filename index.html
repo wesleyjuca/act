@@ -375,8 +375,15 @@ function filtrar(){
   });
   renderTable();
 }
-function sortBy(f){if(sortField===f)sortAsc=!sortAsc;else{sortField=f;sortAsc=true;}
-  document.querySelectorAll('thead th').forEach(th=>{th.classList.remove('sorted');th.textContent=th.textContent.replace(/ [↑↓]/,'');});
+function sortBy(f){
+  if(sortField===f)sortAsc=!sortAsc;else{sortField=f;sortAsc=true;}
+  document.querySelectorAll('thead th').forEach(th=>{
+    th.classList.remove('sorted');
+    th.removeAttribute('aria-sort');
+    th.textContent=th.textContent.replace(/ [↑↓]/,'');
+  });
+  const activeEl=document.querySelector(`thead th[onclick="sortBy('${f}')"]`);
+  if(activeEl){activeEl.classList.add('sorted');activeEl.setAttribute('aria-sort',sortAsc?'ascending':'descending');activeEl.textContent+=sortAsc?' ↑':' ↓';}
   filtrar();
 }
 function popularFiltroAno(){

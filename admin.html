@@ -221,7 +221,6 @@ tbody tr.row-sel td{background:#e8f7eb;}
     <button class="btn-login" onclick="doLogin()">Entrar no painel</button>
     <p class="login-hint">
       Acesso restrito à Assessoria Jurídica da SEMA/AC<br>
-      Senha padrão: <strong>SEMA@2026</strong> — altere após o primeiro acesso<br>
       Em caso de dúvidas: sema.gabin@gmail.com
     </p>
   </div>
@@ -568,12 +567,14 @@ tbody tr.row-sel td{background:#e8f7eb;}
 
 <script>
 // ── SEGURANÇA — SHA-256 ────────────────────────────────────────────────────────
-// Hash SHA-256 de "SEMA@2026" — substitua pelo hash da sua senha:
-// Para gerar: abra o console do Chrome e execute:
-//   crypto.subtle.digest('SHA-256',new TextEncoder().encode('SUA_SENHA'))
-//   .then(b=>console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))
-const SENHA_HASH = 'b3c7e4a5f8d2109ab6e5c3f1a0d7b4e8c9f2a1b5d8e3c6f0a7b4d1e9c2f5a8b3';
-// ^ Este é um hash placeholder. Substitua pelo hash real de "SEMA@2026" em produção.
+// Hash SHA-256 de "SEMA@2026" (gerado via: echo -n "SEMA@2026" | sha256sum)
+// Prioridade: SEMA_CONFIG.senhaHash (injetado pelo CI/CD) > constante local
+const _SENHA_HASH_LOCAL = 'ec2a985f5a4af70e1974f5c3fa0e5fd0e5397b5a73d411c9c054204d1f6b75d5';
+function getSenhaHash() {
+  const cfg = (typeof SEMA_CONFIG !== 'undefined') ? SEMA_CONFIG : {};
+  const h = cfg.senhaHash || '';
+  return (h && !h.startsWith('%%')) ? h : _SENHA_HASH_LOCAL;
+}
 
 async function hashSenha(senha){
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(senha));
@@ -613,11 +614,9 @@ function countChars(el,max,cntId){const n=el.value.length;const cnt=document.get
 async function doLogin(){
   const v=document.getElementById('pwd-input').value;
   const h=await hashSenha(v);
-  const storedHash=sessionStorage.getItem('sema_pwd_hash')||SENHA_HASH;
+  const storedHash=sessionStorage.getItem('sema_pwd_hash')||getSenhaHash();
   const err=document.getElementById('login-err');
-  // Accept if hash matches stored OR if plaintext matches default (fallback for first use)
-  if(h===storedHash||v==='SEMA@2026'){
-    if(v==='SEMA@2026') sessionStorage.setItem('sema_pwd_hash',SENHA_HASH);
+  if(h===storedHash){
     sessionStorage.setItem('sema_auth','1');
     document.getElementById('login-screen').style.display='none';
     const app=document.getElementById('app');
@@ -948,7 +947,7 @@ function initSync() {
   });
 
   SYNC.on('status', updateSyncStatus);
-  SYNC.on('data',   recs => { dados = recs; popularFiltros(); renderTable(); updateKPIs(); });
+  SYNC.on('data',   recs => { if (recs.length > 0) { dados = recs; popularFiltros(); renderTable(); updateKPIs(); } });
   SYNC.on('log',    entry => appendLog(entry));
   SYNC.on('error',  err => {
     appendLog({ level: 'error', msg: err.message, iso: new Date().toLocaleTimeString('pt-BR') });
@@ -1046,13 +1045,14 @@ function updateConflict() {
   SYNC.updateConfig({ conflictMode: val });
 }
 
-// Override salvar/excluir para usar SYNC quando disponível
+// Integra SYNC nas operações de salvar/excluir
 const _origSalvar = salvar;
 window.salvar = async function() {
+  const idxAntes = editIdx;
   _origSalvar();
-  if (SYNC && dados.length) {
-    const last = dados[dados.length - 1];
-    if (last) await SYNC.save(last).catch(e => SYNC.log('error', 'Falha ao push: ' + e.message));
+  if (SYNC) {
+    const rec = idxAntes !== null ? dados[idxAntes] : dados[dados.length - 1];
+    if (rec) await SYNC.save(rec).catch(e => SYNC.log('error', 'Falha ao push: ' + e.message));
   }
 };
 
@@ -1064,10 +1064,6 @@ window.confirmarDel = async function() {
     await SYNC.remove(r.tipo, r.num).catch(e => SYNC.log('error', 'Falha ao deletar remoto: ' + e.message));
   }
 };
-
-function escHtml(s) {
-  return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){['modal-form','modal-import','modal-del'].forEach(id=>document.getElementById(id).classList.remove('open'));}});
 window.addEventListener('DOMContentLoaded',()=>{document.getElementById('pwd-input')?.focus();initSync();});

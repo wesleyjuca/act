@@ -1,46 +1,33 @@
-/**
- * SEMA/AC — Configuração do Sistema
- * Edite este arquivo com suas credenciais após o deploy do Apps Script.
- *
- * ATENÇÃO: SYNC_TOKEN deve ser uma string aleatória longa (>= 32 chars).
- * Nunca comite este arquivo com valores reais no GitHub público.
- * Use GitHub Secrets para CI/CD e substitua via sed no workflow.
- */
-
 const SEMA_CONFIG = {
 
-  // ── APPS SCRIPT ────────────────────────────────────────────────────────────
-  // URL gerada após "Implantar como aplicativo da Web" no Google Apps Script
-  // Formato: https://script.google.com/macros/s/AKfy.../exec
-  appsScriptUrl: '%%APPS_SCRIPT_URL%%',
+  // URL do Google Apps Script (Web App implantado)
+  appsScriptUrl: 'https://script.google.com/macros/s/AKfycbyOfzikgP8I5PCQ2WoQQzbiG6KQoQJeR2BBFyG2vsFf1LIbvdrwFIGhhJhFxmqR4-2O/exec',
 
-  // Token secreto compartilhado entre este frontend e o Apps Script
-  // Configure também em: Apps Script → Propriedades do Projeto → SYNC_TOKEN
+  // Token para operações de escrita (admin → Sheets)
+  // Configure o Secret SYNC_TOKEN no GitHub para habilitar o painel admin
   syncToken: '%%SYNC_TOKEN%%',
 
-  // ── SYNC ───────────────────────────────────────────────────────────────────
-  interval:     300_000,   // ms entre syncs automáticos (0 = somente manual)
-  retryMax:     3,         // tentativas em caso de falha
-  retryDelay:   2_000,     // delay base entre tentativas (ms)
+  // Sync automático
+  interval:     300_000,   // 5 min entre syncs (0 = somente manual)
+  retryMax:     3,
+  retryDelay:   2_000,
   conflictMode: 'newest',  // 'newest' | 'local' | 'remote'
 
-  // ── PLANILHA ───────────────────────────────────────────────────────────────
-  sheet:        'DADOS_PÚBLICOS',
+  // Aba da planilha
+  sheet: 'DADOS_PÚBLICOS',
 
-  // ── CACHE ──────────────────────────────────────────────────────────────────
-  cacheKey:     'sema_tct_cache',
-  logKey:       'sema_tct_logs',
-  logMax:       100,
+  // Cache
+  cacheKey: 'sema_tct_cache',
+  logKey:   'sema_tct_logs',
+  logMax:   100,
 
-  // ── ADMIN ──────────────────────────────────────────────────────────────────
   // Hash SHA-256 da senha admin (padrão: SEMA@2026)
-  // Gere o hash: console → await crypto.subtle.digest('SHA-256', new TextEncoder().encode('SUA_SENHA'))
-  // .then(b => console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))
+  // Sobrescrito pelo Secret SENHA_HASH no CI/CD se configurado
   senhaHash: '%%SENHA_HASH%%',
 
-  // ── URLs ───────────────────────────────────────────────────────────────────
-  publicUrl:  '%%PUBLIC_URL%%',   // URL do painel público (GitHub Pages)
-  adminUrl:   '%%ADMIN_URL%%',    // URL do painel admin
+  // URLs do painel
+  publicUrl: 'https://wesleyjuca.github.io/act/',
+  adminUrl:  'https://wesleyjuca.github.io/act/admin.html',
 
 };
 
