@@ -101,6 +101,14 @@ class SEMASync {
   /** Retorna todos os registros (cache local) */
   getAll() { return [...this._records]; }
 
+  /** Inicializa _records com dados externos para garantir merge correto no próximo sync */
+  loadAll(records) {
+    this._records = records.map(r => ({ ...r, _ts: r._ts || Date.now() }));
+    this._saveCache(this._records);
+    this.log('info', `${records.length} registros carregados no sync local`);
+  }
+
+
   /** Salva um registro (atualiza cache local + push remoto se token configurado) */
   async save(record) {
     this._validateRecord(record);
