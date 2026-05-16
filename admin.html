@@ -586,12 +586,45 @@ let dados=[], filtrados=[], sortField='termino', sortAsc=true;
 let editIdx=null, delIdx=null, pendImport=null, undoData=null, undoTimer=null;
 let selSet=new Set();
 
-// ── DEMO DATA ─────────────────────────────────────────────────────────────────
+// ── DADOS INICIAIS (extraídos da planilha oficial) ────────────────────────────
 const DEMO=[
-  {tipo:'ACT',num:'49/2025',ano:2025,objeto:'Apoio técnico e científico para implementação da política ambiental institucional no âmbito do TJAC.',inst:'Tribunal de Justiça do Acre – TJAC',esfera:'Estadual',inicio:'2025-08-08',termino:'2027-08-08',area:'Gestão ambiental',link:'',obs:'',sei:'0007444-12.2025.8.01.0000',resp:'Wesley Jucá',statusInt:'Assinado / Vigente',alerta:'',notas:'Acompanhar prazo de renovação.'},
-  {tipo:'PROT',num:'01/2024',ano:2024,objeto:'Monitoramento integrado do desmatamento e queimadas no estado do Acre.',inst:'Instituto Nacional de Pesquisas Espaciais – INPE / MCTI',esfera:'Federal',inicio:'2024-03-15',termino:'2026-03-15',area:'Monitoramento ambiental',link:'',obs:'',sei:'0003120-44.2024.8.01.0000',resp:'Ana Lima',statusInt:'Assinado / Vigente',alerta:'RENOVAR — 37 dias restantes',notas:'Contato com INPE para renovação antecipada.'},
-  {tipo:'ACT',num:'02/2026',ano:2026,objeto:'Cooperação técnica para desenvolvimento da terceira fase do ZEE-AC.',inst:'Universidade Federal do Acre – UFAC',esfera:'Estadual',inicio:'2026-02-20',termino:'2028-02-20',area:'ZEE / Ordenamento territorial',link:'',obs:'',sei:'0001045-88.2026.8.01.0000',resp:'Carlos Menezes',statusInt:'Assinado / Vigente',alerta:'',notas:'ZEE fase III — monitorar entregáveis.'},
-  {tipo:'ACT',num:'07/2026',ano:2026,objeto:'Ações conjuntas de recuperação de áreas degradadas na região do Juruá.',inst:'Prefeitura Municipal de Cruzeiro do Sul',esfera:'Municipal',inicio:'2026-02-12',termino:'2026-08-12',area:'Recuperação de áreas degradadas',link:'',obs:'',sei:'0005771-81.2026.8.01.0000',resp:'Wesley Jucá',statusInt:'Assinado / Vigente',alerta:'RENOVAR EM BREVE',notas:''},
+  // 2021
+  {tipo:'ACT',num:'01/2021',ano:2021,objeto:'Cooperação técnica para implementação de ações ambientais no Município de Jordão',inst:'Prefeitura Municipal de Jordão',esfera:'Municipal',inicio:'2021-01-01',termino:'2023-12-31',area:'Gestão ambiental',link:'',obs:'Não possui extrato de publicação nos autos',sei:'0820.009813.00122/2021-21',resp:'',statusInt:'Vencido',alerta:'',notas:''},
+  {tipo:'ACT',num:'02/2021',ano:2021,objeto:'Cooperação técnica para implementação de ações ambientais no Município de Senador Guiomard',inst:'Prefeitura Municipal de Senador Guiomard',esfera:'Municipal',inicio:'2021-01-01',termino:'2023-12-31',area:'Gestão ambiental',link:'',obs:'Não possui extrato de publicação nos autos',sei:'0820.009813.00122/2021-21',resp:'',statusInt:'Vencido',alerta:'',notas:''},
+  // 2022
+  {tipo:'ACT',num:'01/2022',ano:2022,objeto:'Cooperação técnica para gestão ambiental integrada entre SEMA e IMAC',inst:'Instituto de Meio Ambiente do Acre – IMAC',esfera:'Estadual',inicio:'2022-01-01',termino:'2022-12-31',area:'Gestão ambiental',link:'',obs:'DOE Nº 13.214',sei:'0820.009813.00014/2022-30',resp:'',statusInt:'Vencido',alerta:'',notas:''},
+  {tipo:'ACT',num:'02/2022',ano:2022,objeto:'Cooperação técnica para implementação de ações ambientais no Município de Sena Madureira',inst:'Prefeitura Municipal de Sena Madureira',esfera:'Municipal',inicio:'2022-01-01',termino:'2023-12-31',area:'Gestão ambiental',link:'',obs:'Processo na Div. de Patrimônio sem assinatura da prefeitura',sei:'0820.009813.00111/2022-22',resp:'',statusInt:'Vencido',alerta:'',notas:''},
+  // 2023
+  {tipo:'ACT',num:'01/2023',ano:2023,objeto:'Cooperação técnica para conservação, proteção da biodiversidade e implementação de programas ambientais',inst:'Conservation International do Brasil',esfera:'Privado',inicio:'2023-01-01',termino:'2024-04-30',area:'Biodiversidade',link:'',obs:'DOE Nº 13.667',sei:'0820.009813.00037/2023-25',resp:'Claudio Cavalcante',statusInt:'Vencido',alerta:'',notas:''},
+  {tipo:'ACT',num:'02/2023',ano:2023,objeto:'Cooperação técnica entre CBMAC e FGV para desenvolvimento de projetos de pesquisa e capacitação',inst:'Fundação Getúlio Vargas – FGV / CBMAC',esfera:'Federal',inicio:'2023-01-01',termino:'2025-02-17',area:'Pesquisa e inovação',link:'',obs:'DOE Nº 13.717',sei:'0820.013300.00019/2023-73',resp:'',statusInt:'Vencido',alerta:'',notas:''},
+  {tipo:'ACT',num:'03/2023',ano:2023,objeto:'Cooperação técnica para monitoramento e proteção ambiental por meio de sistemas de vigilância',inst:'CENSIPAM – Centro Gestor e Operacional do SIPAM/MD',esfera:'Federal',inicio:'2023-01-01',termino:'2025-05-15',area:'Monitoramento ambiental',link:'',obs:'DOU Nº 92/2020',sei:'0820.017129.00009/2023-45',resp:'',statusInt:'Vencido',alerta:'',notas:''},
+  {tipo:'ACT',num:'04/2023',ano:2023,objeto:'Cooperação técnica para pesquisa, desenvolvimento e inovação em tecnologias agropecuárias e ambientais',inst:'EMBRAPA',esfera:'Federal',inicio:'2023-01-01',termino:'2026-04-18',area:'Pesquisa e inovação',link:'',obs:'DOU Nº 77/2024',sei:'0820.008309.00061/2023-92',resp:'',statusInt:'Assinado / Vigente',alerta:'',notas:''},
+  {tipo:'ACT',num:'05/2023',ano:2023,objeto:'Cooperação técnica para monitoramento hidrometeorológico e climático no estado do Acre',inst:'INMET – Instituto Nacional de Meteorologia',esfera:'Federal',inicio:'2023-01-01',termino:'2029-10-16',area:'Monitoramento ambiental',link:'',obs:'DOU Nº 202/2024',sei:'0820.009800.00524/2023-09',resp:'',statusInt:'Assinado / Vigente',alerta:'',notas:''},
+  {tipo:'ACT',num:'06/2023',ano:2023,objeto:'Cooperação técnica para monitoramento e gestão dos recursos hídricos do estado do Acre',inst:'ANA – Agência Nacional de Águas e Saneamento Básico',esfera:'Federal',inicio:'2023-01-01',termino:'2030-01-15',area:'Monitoramento ambiental',link:'',obs:'DOU Nº 22/2025',sei:'0820.009800.00612/2023-01',resp:'Edvaldo de Araújo Paiva (titular) / Ylza Marluce Silva de Lima (suplente)',statusInt:'Assinado / Vigente',alerta:'',notas:''},
+  {tipo:'ACT',num:'07/2023',ano:2023,objeto:'Cooperação técnica para o Projeto ASL Fase 2 em parceria com FGV',inst:'Fundação Getúlio Vargas – FGV (ASL Fase 2)',esfera:'Federal',inicio:'2023-01-01',termino:'',area:'Pesquisa e inovação',link:'',obs:'',sei:'0820.009800.00495/2023-77',resp:'',statusInt:'Aguardando Assinaturas',alerta:'',notas:''},
+  {tipo:'ACT',num:'08/2023',ano:2023,objeto:'Cooperação técnica para conservação da Amazônia e implementação de projetos de sustentabilidade ambiental',inst:'WWF-Brasil',esfera:'Privado',inicio:'2023-01-01',termino:'',area:'Biodiversidade',link:'',obs:'',sei:'0820.013300.00023/2023-31',resp:'',statusInt:'Em Tratativas',alerta:'',notas:''},
+  {tipo:'ACT',num:'09/2023',ano:2023,objeto:'Cooperação técnica entre SEMA, MPAC e UFAC para ações de proteção e gestão ambiental',inst:'MPAC / UFAC',esfera:'Estadual',inicio:'2023-01-01',termino:'',area:'Gestão ambiental',link:'',obs:'',sei:'0820.009800.00582/2023-24',resp:'Ylza Lima',statusInt:'Aguardando Assinaturas',alerta:'',notas:''},
+  {tipo:'ACT',num:'10/2023',ano:2023,objeto:'Cooperação técnica para o Programa de Estagiários entre SEMA e UFAC',inst:'UFAC – Universidade Federal do Acre (Estagiários)',esfera:'Estadual',inicio:'2023-01-01',termino:'',area:'Educação ambiental',link:'',obs:'',sei:'0820.017145.00001/2023-62',resp:'',statusInt:'Publicado',alerta:'',notas:''},
+  {tipo:'ACT',num:'11/2023',ano:2023,objeto:'Cooperação técnica para desenvolvimento de inteligência territorial e geoespacial',inst:'Centro de Inteligência Territorial',esfera:'Privado',inicio:'2023-01-01',termino:'',area:'ZEE / Ordenamento territorial',link:'',obs:'',sei:'0820.013300.00023/2023-31',resp:'',statusInt:'Em Tratativas',alerta:'',notas:''},
+  // 2024
+  {tipo:'ACT',num:'01/2024',ano:2024,objeto:'Cooperação técnica entre SEMA e IAPEN para ações de educação e recuperação ambiental',inst:'IAPEN – Instituto de Administração Penitenciária do Acre',esfera:'Estadual',inicio:'2024-01-01',termino:'2027-10-03',area:'Educação ambiental',link:'',obs:'DOE Nº 14.127',sei:'4005.014144.00040/2024-36',resp:'',statusInt:'Assinado / Vigente',alerta:'',notas:''},
+  {tipo:'ACT',num:'02/2024',ano:2024,objeto:'Cooperação técnica para conservação e desenvolvimento sustentável da Amazônia',inst:'FAS – Fundação Amazônia Sustentável',esfera:'Privado',inicio:'2024-01-01',termino:'2024-11-30',area:'Biodiversidade',link:'',obs:'DOE Nº 13.865',sei:'0820.009800.00408/2024-62',resp:'André Schatz Pellicciotti',statusInt:'Vencido',alerta:'RENOVAÇÃO PENDENTE',notas:''},
+  {tipo:'ACT',num:'03/2024',ano:2024,objeto:'Cooperação técnica para implementação do Programa Áreas Protegidas da Amazônia – ARPA',inst:'FUNBIO / MMA / ARPA',esfera:'Federal',inicio:'2024-01-01',termino:'2027-03-07',area:'Biodiversidade',link:'',obs:'DOU Nº 44/2023',sei:'0820.013318.00100/2024-27',resp:'',statusInt:'Assinado / Vigente',alerta:'',notas:''},
+  {tipo:'ACT',num:'04/2024',ano:2024,objeto:'Cooperação técnica entre SEMA e IMC para gestão ambiental e conservação',inst:'IMC – Instituto de Mudanças Climáticas e Regulação de Serviços Ambientais',esfera:'Estadual',inicio:'2024-01-01',termino:'2028-10-23',area:'Gestão ambiental',link:'',obs:'DOE Nº 13.964',sei:'0820.016260.00018/2024-94',resp:'',statusInt:'Assinado / Vigente',alerta:'',notas:''},
+  {tipo:'ACT',num:'05/2024',ano:2024,objeto:'Cooperação técnica entre SEMA, IMC, IMAC, CBMAC e CEPDEC para defesa civil e gestão ambiental integrada',inst:'IMC / IMAC / CBMAC / CEPDEC',esfera:'Estadual',inicio:'2024-01-01',termino:'2028-12-31',area:'Gestão ambiental',link:'',obs:'DOE Nº 13.798',sei:'0820.013305.00034/2024-06',resp:'',statusInt:'Assinado / Vigente',alerta:'',notas:''},
+  {tipo:'ACT',num:'06/2024',ano:2024,objeto:'Cooperação técnica para ações de regularização fundiária e ordenamento territorial',inst:'INCRA – Instituto Nacional de Colonização e Reforma Agrária',esfera:'Federal',inicio:'2024-01-01',termino:'2030-02-21',area:'ZEE / Ordenamento territorial',link:'',obs:'DOU Nº 42/2025',sei:'0820.015573.00015/2024-19',resp:'Cláudio Roberto da Silva Cavalcante / Silvia Maria Machado Uszacki',statusInt:'Assinado / Vigente',alerta:'',notas:''},
+  {tipo:'ACT',num:'07/2024',ano:2024,objeto:'Cooperação técnica entre SEMA e DERACRE para recuperação e conservação de áreas degradadas ao longo de rodovias',inst:'DERACRE – Departamento de Estradas de Rodagem do Acre',esfera:'Estadual',inicio:'2024-01-01',termino:'',area:'Recuperação de áreas degradadas',link:'',obs:'DOE Nº 13.944',sei:'0820.008313.00035/2024-31',resp:'',statusInt:'Assinado / Vigente',alerta:'',notas:'Vigência condicionada ao prazo final do convênio 890830/2019'},
+  {tipo:'ACT',num:'08/2024',ano:2024,objeto:'Cooperação técnica entre SEMA, SEOP e SANEACRE para ações integradas de saneamento e meio ambiente',inst:'SEOP / SANEACRE',esfera:'Estadual',inicio:'2024-01-01',termino:'',area:'Gestão ambiental',link:'',obs:'',sei:'0820.008313.00032/2024-05',resp:'',statusInt:'Em Tratativas',alerta:'',notas:''},
+  {tipo:'ACT',num:'09/2024',ano:2024,objeto:'Cooperação técnica entre SEMA, SEOP, AMAC e SANEACRE para ações ambientais urbanas integradas',inst:'SEOP / AMAC / SANEACRE',esfera:'Estadual',inicio:'2024-01-01',termino:'',area:'Gestão ambiental',link:'',obs:'',sei:'4016.011925.00055/2024-35',resp:'',statusInt:'Aguardando Assinaturas',alerta:'',notas:''},
+  {tipo:'ACT',num:'10/2024',ano:2024,objeto:'Cooperação técnica para pesquisa em biologia e ciências ambientais entre SEMA e UFAC/DBIO',inst:'UFAC – Departamento de Biologia (DBIO)',esfera:'Estadual',inicio:'2024-01-01',termino:'',area:'Pesquisa e inovação',link:'',obs:'',sei:'0820.013314.00052/2024-71',resp:'',statusInt:'Em Tratativas',alerta:'',notas:''},
+  {tipo:'ACT',num:'11/2024',ano:2024,objeto:'Cooperação técnica entre SEMA e FUNTAC para pesquisa, inovação e capacitação ambiental',inst:'FUNTAC – Fundação de Tecnologia do Acre',esfera:'Estadual',inicio:'2024-01-01',termino:'2028-07-07',area:'Pesquisa e inovação',link:'',obs:'DOE Nº 14.090',sei:'0043.006514.00058/2024-56',resp:'',statusInt:'Assinado / Vigente',alerta:'',notas:''},
+  // 2025
+  {tipo:'ACT',num:'01/2025',ano:2025,objeto:'Cooperação técnica entre SEMA e Instituto Semeia para gestão de unidades de conservação',inst:'Instituto Semeia',esfera:'Privado',inicio:'2025-01-01',termino:'2027-06-06',area:'Biodiversidade',link:'',obs:'',sei:'0820.006046.00058/2025-15',resp:'',statusInt:'Assinado / Vigente',alerta:'',notas:''},
+  {tipo:'ACT',num:'02/2025',ano:2025,objeto:'Cooperação técnica entre SEMA e SEPI para proteção e valorização dos povos indígenas e meio ambiente',inst:'SEPI – Secretaria de Estado dos Povos Indígenas',esfera:'Estadual',inicio:'2025-01-01',termino:'2027-12-31',area:'Gestão ambiental',link:'',obs:'DOE Nº 14.022',sei:'0820.017140.00003/2025-18',resp:'',statusInt:'Assinado / Vigente',alerta:'',notas:''},
+  {tipo:'ACT',num:'03/2025',ano:2025,objeto:'Cooperação técnica entre SEMA e IDAF para fiscalização e controle ambiental integrado',inst:'IDAF – Instituto de Defesa Agropecuária e Florestal do Acre',esfera:'Estadual',inicio:'2025-01-01',termino:'2026-05-20',area:'Gestão ambiental',link:'',obs:'DOE Nº 14.065',sei:'0820.017144.00018/2025-82',resp:'',statusInt:'Assinado / Vigente',alerta:'VENCE EM BREVE',notas:''},
+  {tipo:'ACT',num:'04/2025',ano:2025,objeto:'Cooperação técnica entre SEMA e Instituto Semeia para gestão compartilhada de unidades de conservação',inst:'Instituto Semeia',esfera:'Privado',inicio:'2025-01-01',termino:'2028-05-07',area:'Biodiversidade',link:'',obs:'DOE Nº 14.263',sei:'0820.008313.00024/2025-31',resp:'',statusInt:'Assinado / Vigente',alerta:'',notas:''},
+  // 2026
+  {tipo:'ACT',num:'01/2026',ano:2026,objeto:'Cooperação técnica entre SEMA e CBMAC para ações integradas de combate a incêndios e desastres ambientais',inst:'CBMAC – Corpo de Bombeiros Militar do Acre',esfera:'Estadual',inicio:'2026-01-30',termino:'2031-01-30',area:'Gestão ambiental',link:'',obs:'DOE Nº 14.198',sei:'0820.017137.00001/2026-13',resp:'',statusInt:'Assinado / Vigente',alerta:'',notas:''},
 ];
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
@@ -623,7 +656,9 @@ async function doLogin(){
     app.style.display='flex';
     document.getElementById('h-date').textContent=
       new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
-    dados=[...DEMO];
+    // Inicia com dados locais; SYNC (já inicializado) substituirá ao buscar do Sheets
+    dados=SYNC?[...SYNC.getAll()||DEMO]:[...DEMO];
+    if(!dados.length)dados=[...DEMO];
     popularFiltros();
     renderTable();
     updateKPIs();
@@ -638,12 +673,13 @@ function doLogout(){
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('pwd-input').value='';
 }
-// Restore session
+// Restore session (SYNC já estará inicializado pelo DOMContentLoaded)
 if(sessionStorage.getItem('sema_auth')==='1'){
   window.addEventListener('DOMContentLoaded',()=>{
     document.getElementById('login-screen').style.display='none';
     const app=document.getElementById('app'); app.style.display='flex';
     document.getElementById('h-date').textContent=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
+    // Inicia com dados locais; SYNC substituirá ao conectar com Sheets
     dados=[...DEMO]; popularFiltros(); renderTable(); updateKPIs();
   });
 }
@@ -743,7 +779,22 @@ function limparFiltros(){['busca','f-tipo','f-status','f-ano','f-resp'].forEach(
 function toggleSel(ri){selSet.has(ri)?selSet.delete(ri):selSet.add(ri);updateBulkBar();renderTable();}
 function toggleSelectAll(){const all=document.getElementById('sel-all').checked;filtrados.forEach(r=>{const ri=dados.indexOf(r);all?selSet.add(ri):selSet.delete(ri);});renderTable();}
 function updateBulkBar(){const n=selSet.size;const bar=document.getElementById('bulk-bar');bar.classList.toggle('hidden',n===0);if(n>0)document.getElementById('bulk-count').textContent=`${n} selecionado${n>1?'s':''}`;}
-function excluirSelecionados(){if(!selSet.size)return;if(!confirm(`Excluir ${selSet.size} registro(s)? Esta ação pode ser desfeita.`))return;undoData=[...dados];[...selSet].sort((a,b)=>b-a).forEach(i=>dados.splice(i,1));selSet.clear();popularFiltros();renderTable();updateKPIs();mostrarUndo(`${undoData.length-dados.length} registro(s) excluído(s)`);}
+async function excluirSelecionados(){
+  if(!selSet.size)return;
+  if(!confirm(`Excluir ${selSet.size} registro(s)? Esta ação pode ser desfeita.`))return;
+  undoData=[...dados];
+  const paraRemover=[...selSet].map(i=>dados[i]).filter(Boolean);
+  [...selSet].sort((a,b)=>b-a).forEach(i=>dados.splice(i,1));
+  selSet.clear();popularFiltros();renderTable();updateKPIs();
+  mostrarUndo(`${paraRemover.length} registro(s) excluído(s)`);
+  if(SYNC){
+    for(const r of paraRemover){
+      SYNC.remove(r.tipo,r.num).catch(e=>{
+        if(typeof appendLog==='function')appendLog({level:'warn',msg:`Remoção Sheets ${r.num}: `+e.message,iso:new Date().toLocaleTimeString('pt-BR')});
+      });
+    }
+  }
+}
 function exportarSelecionados(){const sel=dados.filter((_,i)=>selSet.has(i));if(!sel.length){alert('Nenhum registro selecionado.');return;}exportarXLSX(sel,'SEMA_TCT_Selecionados');}
 
 // ── FORM ───────────────────────────────────────────────────────────────────────
@@ -768,18 +819,18 @@ function validarDatas(){
   if(i&&t&&t<=i){errT.classList.add('show');inpT.classList.add('ferr');}
   else{errT.classList.remove('show');inpT.classList.remove('ferr');}
 }
-function salvar(){
+async function salvar(){
   let ok=true;
-  const required={tipo2:'err-tipo',num:'err-num',objeto:'err-obj',inst:'err-inst',inicio:'err-inicio'};
+  const required={tipo2:'err-tipo',num:'err-num',objeto:'err-obj',inst:'err-inst'};
   Object.entries(required).forEach(([fid,eid])=>{
     const el=document.getElementById('f-'+fid);
     const err=document.getElementById(eid);
-    if(!el.value.trim()){el.classList.add('ferr');err.classList.add('show');ok=false;}
-    else{el.classList.remove('ferr');err.classList.remove('show');}
+    if(!el||!el.value.trim()){if(el)el.classList.add('ferr');if(err)err.classList.add('show');ok=false;}
+    else{el.classList.remove('ferr');if(err)err.classList.remove('show');}
   });
   const ini=document.getElementById('f-inicio').value;
   const ter=document.getElementById('f-termino').value;
-  if(ini&&ter&&ter<=ini){document.getElementById('err-termino').classList.add('show');document.getElementById('f-termino').classList.add('ferr');ok=false;}
+  if(ini&&ter&&ter<=ini){document.getElementById('err-termino')?.classList.add('show');document.getElementById('f-termino')?.classList.add('ferr');ok=false;}
   if(!ok)return;
   const rec={
     tipo:document.getElementById('f-tipo2').value,
@@ -799,13 +850,20 @@ function salvar(){
     alerta:document.getElementById('f-alerta').value.trim(),
     notas:document.getElementById('f-notas').value.trim(),
   };
-  // Duplicate check on new
   if(editIdx===null){
     const dup=dados.find(d=>d.num===rec.num&&d.tipo===rec.tipo);
     if(dup&&!confirm(`Já existe um ${rec.tipo} ${rec.num}. Deseja adicionar mesmo assim?`))return;
   }
-  if(editIdx!==null)dados[editIdx]=rec;else dados.push(rec);
+  // Atualiza state local imediatamente
+  const idxAtual=editIdx;
+  if(idxAtual!==null)dados[idxAtual]=rec;else dados.push(rec);
   closeForm();popularFiltros();renderTable();updateKPIs();
+  // Push assíncrono ao Sheets (fire-and-forget — UI já foi atualizada)
+  if(SYNC){
+    SYNC.save(rec).catch(e=>{
+      if(typeof appendLog==='function')appendLog({level:'warn',msg:'Push Sheets: '+e.message,iso:new Date().toLocaleTimeString('pt-BR')});
+    });
+  }
 }
 
 // ── DELETE + UNDO ──────────────────────────────────────────────────────────────
@@ -815,12 +873,18 @@ function confirmarDel(){
   if(delIdx===null)return;
   undoData=[...dados];
   const r=dados[delIdx];
+  const tipoNum={tipo:r.tipo,num:r.num};
   dados.splice(delIdx,1);
-  delIdx=null;
   document.getElementById('modal-del').classList.remove('open');
   selSet.delete(delIdx);
+  delIdx=null;
   popularFiltros();renderTable();updateKPIs();
-  mostrarUndo(`Registro "${r.tipo} ${r.num}" excluído`);
+  mostrarUndo(`Registro "${tipoNum.tipo} ${tipoNum.num}" excluído`);
+  if(SYNC){
+    SYNC.remove(tipoNum.tipo,tipoNum.num).catch(e=>{
+      if(typeof appendLog==='function')appendLog({level:'warn',msg:'Remoção Sheets: '+e.message,iso:new Date().toLocaleTimeString('pt-BR')});
+    });
+  }
 }
 function mostrarUndo(msg){
   const bar=document.getElementById('undo-bar');
@@ -947,7 +1011,14 @@ function initSync() {
   });
 
   SYNC.on('status', updateSyncStatus);
-  SYNC.on('data',   recs => { if (recs.length > 0) { dados = recs; popularFiltros(); renderTable(); updateKPIs(); } });
+  // 'data' só é emitido em syncs completos (não em saves locais)
+  // Dados remotos do Sheets substituem o estado local quando há registros
+  SYNC.on('data', recs => {
+    if (recs.length > 0) {
+      dados = [...recs];
+      popularFiltros(); renderTable(); updateKPIs();
+    }
+  });
   SYNC.on('log',    entry => appendLog(entry));
   SYNC.on('error',  err => {
     appendLog({ level: 'error', msg: err.message, iso: new Date().toLocaleTimeString('pt-BR') });
@@ -1045,28 +1116,13 @@ function updateConflict() {
   SYNC.updateConfig({ conflictMode: val });
 }
 
-// Integra SYNC nas operações de salvar/excluir
-const _origSalvar = salvar;
-window.salvar = async function() {
-  const idxAntes = editIdx;
-  _origSalvar();
-  if (SYNC) {
-    const rec = idxAntes !== null ? dados[idxAntes] : dados[dados.length - 1];
-    if (rec) await SYNC.save(rec).catch(e => SYNC.log('error', 'Falha ao push: ' + e.message));
-  }
-};
-
-const _origConfirmarDel = confirmarDel;
-window.confirmarDel = async function() {
-  const r = delIdx !== null ? dados[delIdx] : null;
-  _origConfirmarDel();
-  if (SYNC && r) {
-    await SYNC.remove(r.tipo, r.num).catch(e => SYNC.log('error', 'Falha ao deletar remoto: ' + e.message));
-  }
-};
-
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){['modal-form','modal-import','modal-del'].forEach(id=>document.getElementById(id).classList.remove('open'));}});
-window.addEventListener('DOMContentLoaded',()=>{document.getElementById('pwd-input')?.focus();initSync();});
+
+window.addEventListener('DOMContentLoaded',()=>{
+  // Inicia SYNC antes de tudo — fundamental para carregar dados do Sheets
+  initSync();
+  document.getElementById('pwd-input')?.focus();
+});
 </script>
 </body>
 </html>

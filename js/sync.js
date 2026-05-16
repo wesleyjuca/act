@@ -101,7 +101,7 @@ class SEMASync {
   /** Retorna todos os registros (cache local) */
   getAll() { return [...this._records]; }
 
-  /** Salva um registro (local + marca dirty para push) */
+  /** Salva um registro (atualiza cache local + push remoto se token configurado) */
   async save(record) {
     this._validateRecord(record);
     const idx = this._records.findIndex(
@@ -116,12 +116,18 @@ class SEMASync {
       this._dirty.add(this._records.length - 1);
     }
     this._saveCache(this._records);
-    this._emit('data', this._records);
-    this.log('info', `Salvo: ${record.tipo} ${record.num}`);
-    // Push imediato se URL configurada
-    if (this.cfg.appsScriptUrl) {
-      await this._pushSingle(record);
-      this._dirty.delete(idx >= 0 ? idx : this._records.length - 1);
+    this.log('info', `Salvo localmente: ${record.tipo} ${record.num}`);
+    // Push imediato ao Sheets se token configurado
+    if (this.cfg.appsScriptUrl && this._hasToken()) {
+      try {
+        await this._pushSingle(record);
+        this._dirty.delete(idx >= 0 ? idx : this._records.length - 1);
+        this.log('ok', `Sincronizado com Sheets: ${record.tipo} ${record.num}`);
+      } catch(e) {
+        this.log('warn', `Push falhou (tentará na próxima sync): ${e.message}`);
+      }
+    } else if (!this._hasToken()) {
+      this.log('warn', 'SYNC_TOKEN não configurado — salvo apenas localmente');
     }
   }
 
@@ -129,14 +135,19 @@ class SEMASync {
   async remove(tipo, num) {
     const idx = this._records.findIndex(r => r.tipo === tipo && r.num === num);
     if (idx < 0) return false;
-    const rec = this._records[idx];
     this._records.splice(idx, 1);
     this._dirty.clear();
     this._saveCache(this._records);
-    this._emit('data', this._records);
-    this.log('info', `Removido: ${tipo} ${num}`);
-    if (this.cfg.appsScriptUrl) {
-      await this._deleteRemote(tipo, num);
+    this.log('info', `Removido localmente: ${tipo} ${num}`);
+    if (this.cfg.appsScriptUrl && this._hasToken()) {
+      try {
+        await this._deleteRemote(tipo, num);
+        this.log('ok', `Removido do Sheets: ${tipo} ${num}`);
+      } catch(e) {
+        this.log('warn', `Remoção remota falhou: ${e.message}`);
+      }
+    } else if (!this._hasToken()) {
+      this.log('warn', 'SYNC_TOKEN não configurado — removido apenas localmente');
     }
     return true;
   }
@@ -186,19 +197,27 @@ class SEMASync {
     return (json.records || []).map(rec => ({ ...rec, _source: 'remote' }));
   }
 
+  _hasToken() {
+    return !!(this.cfg.syncToken && !this.cfg.syncToken.startsWith('%%'));
+  }
+
   async _pushDirty(records, dirtyIdx) {
-    if (!this.cfg.appsScriptUrl || !this.cfg.syncToken) return;
+    if (!this.cfg.appsScriptUrl || !this._hasToken()) return;
     const toSend = dirtyIdx.map(i => records[i]).filter(Boolean);
     await this._post({ action: 'upsertBatch', sheet: this.cfg.sheet, records: toSend });
   }
 
   async _pushSingle(record) {
-    if (!this.cfg.appsScriptUrl || !this.cfg.syncToken) return;
+    if (!this.cfg.appsScriptUrl || !this._hasToken()) {
+      throw new Error('Token de sincronização não configurado (Secret SYNC_TOKEN no GitHub)');
+    }
     await this._post({ action: 'upsert', sheet: this.cfg.sheet, record });
   }
 
   async _deleteRemote(tipo, num) {
-    if (!this.cfg.appsScriptUrl || !this.cfg.syncToken) return;
+    if (!this.cfg.appsScriptUrl || !this._hasToken()) {
+      throw new Error('Token de sincronização não configurado (Secret SYNC_TOKEN no GitHub)');
+    }
     await this._post({ action: 'delete', sheet: this.cfg.sheet, tipo, num });
   }
 
