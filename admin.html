@@ -364,6 +364,7 @@ tbody tr.row-sel td{background:#e8f7eb;}
         <span class="section-title">🔄 Sincronização com Google Sheets</span>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn btn-g" onclick="doManualSync()" id="btn-sync" aria-label="Sincronizar agora">⟳ Sync manual</button>
+          <button class="btn btn-o" onclick="publicarTudo()" id="btn-publicar" aria-label="Publicar todos os registros no Google Sheets">☁ Publicar tudo no Sheets</button>
           <button class="btn btn-o" onclick="clearLogs()" aria-label="Limpar logs">🗑 Limpar logs</button>
         </div>
       </div>
@@ -659,6 +660,7 @@ async function doLogin(){
     // Inicia com dados locais; SYNC (já inicializado) substituirá ao buscar do Sheets
     dados=SYNC?[...SYNC.getAll()||DEMO]:[...DEMO];
     if(!dados.length)dados=[...DEMO];
+    if(SYNC) SYNC.loadAll(dados);
     popularFiltros();
     renderTable();
     updateKPIs();
@@ -680,7 +682,9 @@ if(sessionStorage.getItem('sema_auth')==='1'){
     const app=document.getElementById('app'); app.style.display='flex';
     document.getElementById('h-date').textContent=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
     // Inicia com dados locais; SYNC substituirá ao conectar com Sheets
-    dados=[...DEMO]; popularFiltros(); renderTable(); updateKPIs();
+    dados=[...DEMO];
+    if(SYNC) SYNC.loadAll(dados);
+    popularFiltros(); renderTable(); updateKPIs();
   });
 }
 
@@ -1034,6 +1038,8 @@ function initSync() {
     urlStatus.textContent = '⚠ URL do Apps Script não configurada — modo demo';
   }
 
+  // Seed SYNC with any dados already in memory (session restore populates dados before initSync)
+  if (dados.length > 0) SYNC.loadAll(dados);
   SYNC.start();
   // Atualizar painel de status a cada segundo
   setInterval(refreshSyncDashboard, 1000);
@@ -1092,9 +1098,33 @@ async function doManualSync() {
   const result = await SYNC.sync();
   if (btn) { btn.disabled = false; btn.textContent = '⟳ Sync manual'; }
   if (result.ok) {
-    dados = SYNC.getAll();
+    const synced = SYNC.getAll();
+    if (synced.length > 0) dados = synced;
     popularFiltros(); renderTable(); updateKPIs();
   }
+}
+
+async function publicarTudo() {
+  if (!SYNC) return;
+  if (!SYNC._hasToken()) {
+    alert('SYNC_TOKEN não configurado.\n\nPara publicar no Sheets:\n1. Abra o Apps Script Editor\n2. Execute setupSyncToken()\n3. Copie o token gerado\n4. Adicione como Secret SYNC_TOKEN no GitHub (Settings → Secrets → Actions)\n5. Faça um novo deploy via GitHub Actions');
+    return;
+  }
+  const btn = document.getElementById('btn-publicar');
+  if (btn) { btn.disabled = true; btn.textContent = '☁ Publicando…'; }
+  let ok = 0, err = 0;
+  for (const rec of dados) {
+    try {
+      await SYNC.save(rec);
+      ok++;
+    } catch(e) {
+      err++;
+      appendLog({ level: 'warn', msg: `Falha ao publicar ${rec.tipo} ${rec.num}: ${e.message}`, iso: new Date().toLocaleTimeString('pt-BR') });
+    }
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '☁ Publicar tudo no Sheets'; }
+  appendLog({ level: ok > 0 ? 'ok' : 'error', msg: `Publicação concluída: ${ok} enviados, ${err} erros`, iso: new Date().toLocaleTimeString('pt-BR') });
+  alert(`Publicação concluída:\n✅ ${ok} registros enviados ao Google Sheets\n${err > 0 ? '❌ ' + err + ' erros (ver log)' : ''}`);
 }
 
 function clearLogs() {
