@@ -1,0 +1,82 @@
+name: Deploy SEMA TCT → GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:      # deploy manual pelo GitHub UI
+
+permissions:
+  contents: read
+  pages:    write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  # ── BUILD ────────────────────────────────────────────────────────────────────
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Injetar configurações via Secrets
+        env:
+          APPS_SCRIPT_URL: ${{ secrets.APPS_SCRIPT_URL }}
+          SYNC_TOKEN:      ${{ secrets.SYNC_TOKEN }}
+          SENHA_HASH:      ${{ secrets.SENHA_HASH }}
+          PUBLIC_URL:      ${{ secrets.PUBLIC_URL }}
+          ADMIN_URL:       ${{ secrets.ADMIN_URL }}
+        run: |
+          # Substitui placeholders em config.js com os valores dos Secrets
+          sed -i "s|%%APPS_SCRIPT_URL%%|${APPS_SCRIPT_URL}|g" js/config.js
+          sed -i "s|%%SYNC_TOKEN%%|${SYNC_TOKEN}|g"           js/config.js
+          sed -i "s|%%SENHA_HASH%%|${SENHA_HASH}|g"           js/config.js
+          sed -i "s|%%PUBLIC_URL%%|${PUBLIC_URL}|g"            js/config.js
+          sed -i "s|%%ADMIN_URL%%|${ADMIN_URL}|g"             js/config.js
+
+          echo "✅ config.js configurado"
+          # Verifica que nenhum placeholder ficou vazio
+          grep -c '%%' js/config.js && echo "⚠ Placeholders não substituídos!" || echo "✅ Sem placeholders residuais"
+
+      - name: Validar arquivos HTML
+        run: |
+          for f in index.html admin.html; do
+            if [ -f "$f" ]; then
+              echo "✅ $f encontrado ($(wc -c < $f) bytes)"
+            else
+              echo "❌ $f ausente" && exit 1
+            fi
+          done
+          echo "✅ Validação concluída"
+
+      - name: Configurar GitHub Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'   # raiz do repositório
+
+  # ── DEPLOY ───────────────────────────────────────────────────────────────────
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url:  ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy para GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Sumário do deploy
+        run: |
+          echo "## 🚀 Deploy concluído" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | URL |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-----|" >> $GITHUB_STEP_SUMMARY
+          echo "| Painel público | ${{ steps.deployment.outputs.page_url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Painel admin   | ${{ steps.deployment.outputs.page_url }}admin.html |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit         | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
