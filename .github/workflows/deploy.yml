@@ -1,0 +1,91 @@
+name: Deploy SEMA TCT → GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages:    write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verificar Secrets obrigatórios
+        env:
+          APPS_SCRIPT_URL: ${{ secrets.APPS_SCRIPT_URL }}
+          SYNC_TOKEN:      ${{ secrets.SYNC_TOKEN }}
+          SENHA_HASH:      ${{ secrets.SENHA_HASH }}
+        run: |
+          MISSING=0
+          [ -z "$APPS_SCRIPT_URL" ] && echo "❌ Secret APPS_SCRIPT_URL não configurado" && MISSING=1
+          [ -z "$SYNC_TOKEN" ]      && echo "❌ Secret SYNC_TOKEN não configurado"      && MISSING=1
+          [ -z "$SENHA_HASH" ]      && echo "❌ Secret SENHA_HASH não configurado"      && MISSING=1
+          [ $MISSING -eq 1 ] && echo "Configure os Secrets em: Settings → Secrets and variables → Actions" && exit 1
+          echo "✅ Todos os Secrets obrigatórios presentes"
+
+      - name: Injetar Secrets em js/config.js
+        env:
+          APPS_SCRIPT_URL: ${{ secrets.APPS_SCRIPT_URL }}
+          SYNC_TOKEN:      ${{ secrets.SYNC_TOKEN }}
+          SENHA_HASH:      ${{ secrets.SENHA_HASH }}
+          PUBLIC_URL:      ${{ secrets.PUBLIC_URL }}
+          ADMIN_URL:       ${{ secrets.ADMIN_URL }}
+        run: |
+          sed -i "s|%%APPS_SCRIPT_URL%%|${APPS_SCRIPT_URL}|g" js/config.js
+          sed -i "s|%%SYNC_TOKEN%%|${SYNC_TOKEN}|g"           js/config.js
+          sed -i "s|%%SENHA_HASH%%|${SENHA_HASH}|g"           js/config.js
+          sed -i "s|%%PUBLIC_URL%%|${PUBLIC_URL}|g"           js/config.js
+          sed -i "s|%%ADMIN_URL%%|${ADMIN_URL}|g"             js/config.js
+
+          if grep -q '%%' js/config.js; then
+            echo "⚠ Placeholders residuais em config.js — verifique os Secrets"
+            grep '%%' js/config.js
+          else
+            echo "✅ js/config.js configurado sem placeholders residuais"
+          fi
+
+      - name: Validar arquivos HTML
+        run: |
+          for f in index.html admin.html; do
+            [ -f "$f" ] && echo "✅ $f ($(wc -c < $f) bytes)" || { echo "❌ $f ausente"; exit 1; }
+          done
+          echo "✅ Validação HTML concluída"
+
+      - name: Configurar GitHub Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url:  ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy para GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Sumário do deploy
+        run: |
+          echo "## 🚀 Deploy concluído" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | URL |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-----|" >> $GITHUB_STEP_SUMMARY
+          echo "| Painel público | ${{ steps.deployment.outputs.page_url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Painel admin   | ${{ steps.deployment.outputs.page_url }}admin.html |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit         | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
