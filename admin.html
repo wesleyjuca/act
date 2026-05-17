@@ -660,7 +660,18 @@ async function doLogin(){
     // Inicia com dados locais; SYNC (já inicializado) substituirá ao buscar do Sheets
     dados=SYNC?[...SYNC.getAll()||DEMO]:[...DEMO];
     if(!dados.length)dados=[...DEMO];
-    if(SYNC) SYNC.loadAll(dados);
+    if(SYNC) {
+      SYNC.loadAll(dados);
+      // Auto-publicar se token configurado e Sheets parece vazia
+      if (SYNC._hasToken()) {
+        SYNC.sync().then(res => {
+          if ((!res.count || res.count === 0) && dados.length > 0) {
+            showToast('Sheets vazia — publicando registros automaticamente…', 'info', 5000);
+            setTimeout(publicarTudo, 1500);
+          }
+        }).catch(() => {});
+      }
+    }
     popularFiltros();
     renderTable();
     updateKPIs();
@@ -1107,7 +1118,7 @@ async function doManualSync() {
 async function publicarTudo() {
   if (!SYNC) return;
   if (!SYNC._hasToken()) {
-    alert('SYNC_TOKEN não configurado.\n\nPara publicar no Sheets:\n1. Abra o Apps Script Editor\n2. Execute setupSyncToken()\n3. Copie o token gerado\n4. Adicione como Secret SYNC_TOKEN no GitHub (Settings → Secrets → Actions)\n5. Faça um novo deploy via GitHub Actions');
+    alert('SYNC_TOKEN não configurado.\n\nContate o administrador do sistema.');
     return;
   }
   const btn = document.getElementById('btn-publicar');

@@ -305,6 +305,10 @@ function findLastRow(sheet) {
 }
 
 function validateToken(token) {
+  // Token gerado em 2026-05-17 — rotacionar editando esta constante e js/config.js
+  const HARDCODED_TOKEN = '3f033d20-e310-47b4-889d-8e73d87b4c35';
+  if (token && token === HARDCODED_TOKEN) return true;
+  // Fallback: PropertiesService (caso configurado via setupSyncToken())
   const stored = PropertiesService.getScriptProperties().getProperty('SYNC_TOKEN');
   return stored && token && token === stored;
 }
