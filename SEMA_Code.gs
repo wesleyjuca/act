@@ -28,6 +28,30 @@ const SHEET_INTERNO = 'DADOS_INTERNOS';
 const SHEET_HIST    = 'HISTÓRICO_ADITIVOS';
 const SHEET_LOG     = 'SYNC_LOG';
 
+// Mapeamento explícito de cabeçalhos da planilha → chaves do frontend
+// Evita depender de normalização frágil por regex
+const HEADER_MAP = {
+  'tipo': 'tipo', 'type': 'tipo',
+  'num': 'num', 'numero': 'num', 'número': 'num',
+  'ano': 'ano', 'year': 'ano',
+  'objeto': 'objeto', 'obj': 'objeto', 'object': 'objeto',
+  'inst': 'inst', 'instituicao': 'inst', 'instituição': 'inst', 'institution': 'inst',
+  'esfera': 'esfera', 'sphere': 'esfera',
+  'inicio': 'inicio', 'início': 'inicio', 'data_inicio': 'inicio', 'start': 'inicio',
+  'termino': 'termino', 'término': 'termino', 'data_termino': 'termino', 'end': 'termino',
+  'area': 'area', 'área': 'area',
+  'status': 'status', 'situacao': 'status',
+  'diasrestantes': 'diasRestantes', 'dias_restantes': 'diasRestantes',
+  'linkdoc': 'link', 'link_doc': 'link', 'link': 'link',
+  'linksei': 'linkSei', 'link_sei': 'linkSei',
+  'obs': 'obs', 'observacoes': 'obs', 'observações': 'obs',
+  'sei': 'sei',
+  'resp': 'resp', 'responsavel': 'resp', 'responsável': 'resp',
+  'statusint': 'statusInt', 'status_int': 'statusInt', 'situacao_interna': 'statusInt',
+  'alerta': 'alerta',
+  'notas': 'notas', 'notes': 'notas',
+};
+
 const COL_PUB = [
   'tipo','num','ano','objeto','inst','esfera',
   'inicio','termino','area','status','diasRestantes',
@@ -63,7 +87,16 @@ function doPost(e) {
   try {
     const body = JSON.parse(e.postData.contents);
     if (!validateToken(body.token)) {
+      logError('auth', 'Token inválido — acesso negado em ' + new Date().toISOString());
       return jsonResponse({ error: 'Token inválido' }, 403);
+    }
+    // Rate limiting simples: max 30 req/min por prefixo de token
+    const cache = CacheService.getScriptCache();
+    const rlKey = 'rl_' + String(body.token || '').slice(0, 12);
+    const rlCount = parseInt(cache.get(rlKey) || '0') + 1;
+    cache.put(rlKey, String(rlCount), 60);
+    if (rlCount > 30) {
+      return jsonResponse({ error: 'rate_limit', message: 'Muitas requisições. Aguarde 1 minuto.' }, 429);
     }
     let result;
     switch (body.action) {
@@ -91,9 +124,12 @@ function handleList(params) {
   const data  = sheet.getDataRange().getValues();
   if (data.length < 3) return { records: [], count: 0 };
 
-  const headers = data[1].map(h => String(h).trim().toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, ''));
+  const headers = data[1].map(h => {
+    const normalized = String(h).trim().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+    return HEADER_MAP[normalized] || HEADER_MAP[String(h).trim().toLowerCase()] || normalized;
+  });
 
   const records = [];
   for (let i = 2; i < data.length; i++) {
@@ -187,19 +223,23 @@ function handleUpsert(record, sheetName) {
     }
   }
 
+  // Timestamp server-side garante resolução correta de conflitos
+  record._ts_server = Date.now();
+  if (!record._ts) record._ts = record._ts_server;
+
   const rowValues = buildRowValues(record, sheetName);
 
   if (targetRow > 0) {
     // Atualizar linha existente
     sheet.getRange(targetRow, 1, 1, rowValues.length).setValues([rowValues]);
     logInfo('upsert', `Atualizado: ${record.tipo} ${record.num} (linha ${targetRow})`);
-    return { ok: true, action: 'updated', row: targetRow };
+    return { ok: true, action: 'updated', row: targetRow, _ts_server: record._ts_server };
   } else {
     // Inserir nova linha (após último registro preenchido)
     const lastRow = findLastRow(sheet);
     sheet.getRange(lastRow + 1, 1, 1, rowValues.length).setValues([rowValues]);
     logInfo('upsert', `Inserido: ${record.tipo} ${record.num} (linha ${lastRow + 1})`);
-    return { ok: true, action: 'inserted', row: lastRow + 1 };
+    return { ok: true, action: 'inserted', row: lastRow + 1, _ts_server: record._ts_server };
   }
 }
 

@@ -1,6 +1,6 @@
 /**
  * SEMA/AC — Módulo de Sincronização Central
- * Painel de Termos de Cooperação Técnica v3
+ * Painel de Termos de Cooperação Técnica v4
  *
  * Arquitetura:
  *   Admin  ──POST──▶  Apps Script Web App  ──▶  Google Sheets
@@ -19,26 +19,31 @@ const SYNC_DEFAULTS = {
   interval:      300_000,     // 5 min em ms (0 = apenas manual)
   retryMax:      3,
   retryDelay:    2_000,
+  retryDelayMax: 10_000,      // cap máximo de backoff
   cacheKey:      'sema_tct_cache',
   logKey:        'sema_tct_logs',
   logMax:        100,
   conflictMode:  'newest',    // 'newest' | 'local' | 'remote'
   sheet:         'DADOS_PÚBLICOS',
+  debounceMs:    800,         // debounce de push por registro
 };
 
 // ─── CLASSE PRINCIPAL ─────────────────────────────────────────────────────────
 class SEMASync {
   constructor(cfg = {}) {
-    this.cfg        = { ...SYNC_DEFAULTS, ...cfg };
-    this._records   = [];        // estado local em memória
-    this._dirty     = new Set(); // índices modificados localmente
-    this._logs      = this._loadLogs();
-    this._listeners = [];        // callbacks de mudança
-    this._timer     = null;
-    this._status    = 'idle';    // idle|syncing|error|ok
-    this._lastSync  = null;
-    this._errCount  = 0;
-    this._retries   = 0;
+    this.cfg            = { ...SYNC_DEFAULTS, ...cfg };
+    this._records       = [];        // estado local em memória
+    this._dirty         = new Set(); // índices modificados localmente
+    this._logs          = this._loadLogs();
+    this._listeners     = [];        // callbacks de mudança
+    this._timer         = null;
+    this._status        = 'idle';    // idle|syncing|error|ok|offline
+    this._lastSync      = null;
+    this._errCount      = 0;
+    this._retries       = 0;
+    this._debounce      = new Map(); // debounce timers por chave de registro
+    this._onlineHandler = null;
+    this._offlineHandler= null;
   }
 
   // ─── API PÚBLICA ─────────────────────────────────────────────────────────
@@ -47,6 +52,22 @@ class SEMASync {
   start() {
     this._loadCache();
     this._emit('status', this._status);
+
+    // Detecção de online/offline
+    if (typeof window !== 'undefined') {
+      this._onlineHandler = () => {
+        this.log('info', 'Conexão restaurada — iniciando sync');
+        this._setStatus('idle');
+        this.sync();
+      };
+      this._offlineHandler = () => {
+        this.log('warn', 'Dispositivo offline — syncs suspensos');
+        this._setStatus('offline');
+      };
+      window.addEventListener('online',  this._onlineHandler);
+      window.addEventListener('offline', this._offlineHandler);
+    }
+
     if (this.cfg.interval > 0) {
       this._timer = setInterval(() => this.sync(), this.cfg.interval);
     }
@@ -56,6 +77,10 @@ class SEMASync {
   /** Para sync automático */
   stop() {
     if (this._timer) { clearInterval(this._timer); this._timer = null; }
+    if (typeof window !== 'undefined') {
+      if (this._onlineHandler)  window.removeEventListener('online',  this._onlineHandler);
+      if (this._offlineHandler) window.removeEventListener('offline', this._offlineHandler);
+    }
     this.log('info', 'Auto-sync parado');
   }
 
@@ -64,6 +89,12 @@ class SEMASync {
     if (this._status === 'syncing') {
       this.log('warn', 'Sync já em andamento, ignorando chamada duplicada');
       return { ok: false, reason: 'already_syncing' };
+    }
+    // Verificar offline antes de tentar
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      this.log('warn', 'Dispositivo offline — sync cancelado');
+      this._setStatus('offline');
+      return { ok: false, reason: 'offline' };
     }
     this._setStatus('syncing');
     try {
@@ -89,8 +120,9 @@ class SEMASync {
       this.log('error', `Sync falhou: ${err.message}`);
       if (this._retries < this.cfg.retryMax) {
         this._retries++;
-        this.log('warn', `Retry ${this._retries}/${this.cfg.retryMax} em ${this.cfg.retryDelay / 1000}s`);
-        await this._delay(this.cfg.retryDelay * this._retries);
+        const delay = Math.min(this.cfg.retryDelay * this._retries, this.cfg.retryDelayMax);
+        this.log('warn', `Retry ${this._retries}/${this.cfg.retryMax} em ${delay / 1000}s`);
+        await this._delay(delay);
         return this.sync();
       }
       this._emit('error', err);
@@ -108,8 +140,7 @@ class SEMASync {
     this.log('info', `${records.length} registros carregados no sync local`);
   }
 
-
-  /** Salva um registro (atualiza cache local + push remoto se token configurado) */
+  /** Salva um registro (cache local imediato + push remoto com debounce) */
   async save(record) {
     this._validateRecord(record);
     const idx = this._records.findIndex(
@@ -125,15 +156,21 @@ class SEMASync {
     }
     this._saveCache(this._records);
     this.log('info', `Salvo localmente: ${record.tipo} ${record.num}`);
-    // Push imediato ao Sheets se token configurado
+
+    // Push remoto com debounce (evita múltiplas requisições rápidas)
     if (this.cfg.appsScriptUrl && this._hasToken()) {
-      try {
-        await this._pushSingle(record);
-        this._dirty.delete(idx >= 0 ? idx : this._records.length - 1);
-        this.log('ok', `Sincronizado com Sheets: ${record.tipo} ${record.num}`);
-      } catch(e) {
-        this.log('warn', `Push falhou (tentará na próxima sync): ${e.message}`);
-      }
+      const key = `${record.tipo}|${record.num}`;
+      if (this._debounce.has(key)) clearTimeout(this._debounce.get(key));
+      this._debounce.set(key, setTimeout(async () => {
+        this._debounce.delete(key);
+        try {
+          await this._pushSingle(record);
+          this._dirty.delete(idx >= 0 ? idx : this._records.length - 1);
+          this.log('ok', `Sincronizado com Sheets: ${record.tipo} ${record.num}`);
+        } catch(e) {
+          this.log('warn', `Push falhou (tentará na próxima sync): ${e.message}`);
+        }
+      }, this.cfg.debounceMs));
     } else if (!this._hasToken()) {
       this.log('warn', 'SYNC_TOKEN não configurado — salvo apenas localmente');
     }
@@ -176,6 +213,7 @@ class SEMASync {
       dirty:     this._dirty.size,
       connected: !!this.cfg.appsScriptUrl,
       interval:  this.cfg.interval,
+      online:    typeof navigator !== 'undefined' ? navigator.onLine : true,
     };
   }
 
@@ -193,7 +231,6 @@ class SEMASync {
 
   async _fetchRemote() {
     if (!this.cfg.appsScriptUrl) {
-      // Sem URL: retorna cache ou array vazio
       this.log('warn', 'appsScriptUrl não configurado — usando cache local');
       return this._records.length ? this._records : [];
     }
@@ -264,7 +301,6 @@ class SEMASync {
     for (const l of local) {
       const k = `${l.tipo}|${l.num}`;
       if (!map.has(k)) {
-        // Novo local — inclui
         map.set(k, { ...l, _source: 'local_new' });
       } else {
         const rem = map.get(k);
@@ -317,7 +353,7 @@ class SEMASync {
       if (!raw) return;
       const { ts, records } = JSON.parse(raw);
       const age = Date.now() - ts;
-      if (age < 3_600_000 && records?.length) {   // cache válido por 1h
+      if (age < 900_000 && records?.length) {   // cache válido por 15 min
         this._records = records;
         this.log('info', `Cache restaurado: ${records.length} registros (${Math.round(age/1000)}s atrás)`);
         this._emit('data', records);
@@ -342,7 +378,7 @@ class SEMASync {
     this._emit('log', entry);
     if (level === 'error') console.error(`[SEMA Sync] ${msg}`);
     else if (level === 'warn') console.warn(`[SEMA Sync] ${msg}`);
-    else console.log(`[SEMA Sync] [${level}] ${msg}`);
+    // Suprimir logs verbose em produção (apenas error/warn)
   }
 
   _saveLogs() {

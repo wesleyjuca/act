@@ -12,8 +12,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23095C18'/><text x='50%25' y='62%25' font-size='18' font-weight='900' fill='%231FAD35' text-anchor='middle' font-family='Arial'>S</text></svg>">
 <script src="js/config.js"></script>
 <script src="js/sync.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<!-- jspdf e qrcode carregados sob demanda para não bloquear a renderização -->
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--g:#1FAD35;--gd:#095C18;--gm:#0F7A21;--gl:#E8F7EB;--gb:#6DCA7E;
@@ -147,6 +146,18 @@ tbody td{padding:11px 13px;border-bottom:1px solid #f0f0f0;color:var(--tx);verti
 .footer-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;
   justify-content:space-between;gap:16px;flex-wrap:wrap;}
 .footer-text{font-size:11px;color:rgba(255,255,255,.55);line-height:1.7;}
+@media(max-width:900px){
+  .col-esfera,.col-area{display:none;}
+  .tbl-scroll::after{content:'← deslize para ver mais →';display:block;text-align:center;font-size:10px;color:var(--tx2);padding:6px;background:#f8f8f8;border-top:1px solid #f0f0f0;}
+}
+@media(max-width:600px){
+  .kpi-grid{grid-template-columns:1fr 1fr!important;}
+  .charts-row{grid-template-columns:1fr!important;}
+  .toolbar{flex-direction:column;align-items:stretch;}
+  .toolbar input,.toolbar select{width:100%!important;min-width:unset!important;}
+  .header-inner{flex-direction:column;gap:8px;padding:10px 16px;}
+  .subbar-inner{flex-direction:column;gap:4px;}
+}
 @media print{.site-header,.toolbar,.subbar,.site-footer,.notice,.charts-row,.loading-wrap,
   .modal-bd{display:none !important;}
   .tbl-wrap{border:1px solid #ccc !important;}body{background:#fff !important;}}
@@ -229,10 +240,10 @@ tbody td{padding:11px 13px;border-bottom:1px solid #f0f0f0;color:var(--tx);verti
           <th onclick="sortBy('num')">Nº</th>
           <th>Objeto</th>
           <th onclick="sortBy('inst')">Instituição</th>
-          <th onclick="sortBy('esfera')">Esfera</th>
+          <th onclick="sortBy('esfera')" class="col-esfera">Esfera</th>
           <th onclick="sortBy('inicio')">Início</th>
           <th onclick="sortBy('termino')" class="sorted">Término ↑</th>
-          <th>Área</th>
+          <th class="col-area">Área</th>
           <th onclick="sortBy('status')">Status</th>
           <th>Doc.</th>
         </tr></thead>
@@ -308,9 +319,11 @@ const DEMO_RECORDS = [
 SYNC.on('status', s => {
   const dot   = document.getElementById('sync-dot');
   const label = document.getElementById('sync-label');
-  const cls   = { ok:'dot-ok', error:'dot-err', syncing:'dot-sync', idle:'dot-sync' };
-  dot.className = 'live-dot ' + (cls[s] || 'dot-sync');
-  label.textContent = { ok:'Sincronizado', error:'Erro de sync', syncing:'Sincronizando…', idle:'Aguardando' }[s] || s;
+  const offline = typeof navigator !== 'undefined' && !navigator.onLine;
+  const effectiveStatus = offline ? 'offline' : s;
+  const cls   = { ok:'dot-ok', error:'dot-err', syncing:'dot-sync', idle:'dot-sync', offline:'dot-err' };
+  dot.className = 'live-dot ' + (cls[effectiveStatus] || 'dot-sync');
+  label.textContent = { ok:'Sincronizado', error:'Erro de sync', syncing:'Sincronizando…', idle:'Aguardando', offline:'Offline' }[effectiveStatus] || effectiveStatus;
 });
 
 SYNC.on('data', recs => {
@@ -453,10 +466,10 @@ function renderTable(){
       <td style="font-weight:700;">${hl(num,q)}</td>
       <td style="max-width:260px;font-size:11px;">${hl(obj,q)}</td>
       <td style="font-size:11px;">${hl(inst,q)}</td>
-      <td style="font-size:11px;">${esc(esf)}</td>
+      <td class="col-esfera" style="font-size:11px;">${esc(esf)}</td>
       <td style="white-space:nowrap;">${fmtDate(ini)}</td>
       <td style="white-space:nowrap;">${fmtDate(ter)}</td>
-      <td><span class="area-tag">${esc(area)}</span></td>
+      <td class="col-area"><span class="area-tag">${esc(area)}</span></td>
       <td><span class="st ${st.cls}">${esc(st.label)}</span></td>
       <td>${link?`<a href="${esc(link)}" target="_blank" rel="noopener noreferrer" style="color:var(--g);font-size:17px;text-decoration:none;" onclick="event.stopPropagation()" aria-label="Documento">↓</a>`:'—'}</td>
     </tr>`;
@@ -494,12 +507,16 @@ function openModal(idx){
       <div class="qr-caption">Aponte a câmera para acessar este instrumento no painel público</div>
     </div>`;
   document.getElementById('modal').classList.add('open');
-  setTimeout(()=>{
+  setTimeout(async()=>{
     const el=document.getElementById('qr-container');
-    if(el&&typeof QRCode!=='undefined'){
+    if(!el)return;
+    if(typeof QRCode==='undefined'){
+      await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);}).catch(()=>null);
+    }
+    if(typeof QRCode!=='undefined'){
       el.innerHTML='';
       try{new QRCode(el,{text:window.location.href,width:96,height:96,colorDark:'#095C18',colorLight:'#ffffff'});}
-      catch(_){el.innerHTML='<div style="font-size:10px;color:var(--tx2);">QR indisponível neste ambiente</div>';}
+      catch(_){el.innerHTML='<div style="font-size:10px;color:var(--tx2);">QR indisponível</div>';}
     }
   },100);
 }
@@ -517,8 +534,11 @@ function exportCSV(){
   a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
   a.download=`SEMA_TCT_${new Date().toISOString().slice(0,10)}.csv`;a.click();
 }
-function exportPDF(){
-  if(!window.jspdf){alert('Biblioteca PDF não carregada.');return;}
+async function exportPDF(){
+  if(!window.jspdf){
+    await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);}).catch(()=>null);
+    if(!window.jspdf){alert('Biblioteca PDF indisponível.');return;}
+  }
   const{jsPDF}=window.jspdf;const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
   const W=297;
   doc.setFillColor(9,92,24);doc.rect(0,0,W,22,'F');

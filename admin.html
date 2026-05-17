@@ -189,11 +189,36 @@ tbody tr.row-sel td{background:#e8f7eb;}
   .tbl-wrap{border:1px solid #ccc!important;}body{background:#fff!important;}}
 .skip-link{position:absolute;top:-100px;left:8px;background:var(--gd);color:#fff;padding:8px 14px;border-radius:0 0 6px 6px;font-size:12px;font-weight:700;transition:top .15s;z-index:9999;text-decoration:none;}
 .skip-link:focus{top:0;}
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;padding:12px 18px;border-radius:8px;font-size:13px;font-weight:600;z-index:99999;max-width:380px;box-shadow:0 4px 16px rgba(0,0,0,.18);animation:toastIn .2s ease;pointer-events:none;}
+.toast-ok{background:var(--okl);color:var(--ok);border:1px solid var(--gb);}
+.toast-err{background:var(--rl);color:var(--r);border:1px solid var(--r);}
+.toast-warn{background:var(--al);color:var(--a);border:1px solid var(--a);}
+.toast-info{background:#e3f2fd;color:#1565C0;border:1px solid #90caf9;}
+@keyframes toastIn{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}
+/* Session warn */
+.session-warn{display:none;position:fixed;top:0;left:0;right:0;z-index:9998;background:#b07d00;color:#fff;font-size:12px;font-weight:600;padding:8px 20px;align-items:center;justify-content:space-between;gap:12px;}
+.session-warn button{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;padding:4px 12px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;}
+/* Mobile */
+@media(max-width:900px){
+  .int-col,.sei-cell,.resp-cell,thead th.int-col{display:none!important;}
+  .tbl-scroll{-webkit-overflow-scrolling:touch;}
+  .tbl-scroll::after{content:'← deslize para ver mais →';display:block;text-align:center;font-size:10px;color:var(--tx2);padding:6px;background:#f8f8f8;}
+}
+@media(max-width:600px){
+  .kpi-grid{grid-template-columns:1fr 1fr!important;}
+  .toolbar{flex-direction:column;}
+  .toolbar input,.toolbar select{width:100%;}
+}
 </style>
 </head>
 <body>
 
 <a href="#main-content" class="skip-link">Pular para o conteúdo principal</a>
+<div id="session-warn" class="session-warn" role="alert">
+  <span></span>
+  <button onclick="_resetActivity();document.getElementById('session-warn').style.display='none';">Manter sessão</button>
+</div>
 <!-- ══ LOGIN ══════════════════════════════════════════════════════════════════ -->
 <div id="login-screen" role="main" aria-label="Tela de login">
   <div class="login-card">
@@ -645,13 +670,54 @@ function hl(text,q){if(!q)return escHtml(text);const re=new RegExp('('+q.replace
 function countChars(el,max,cntId){const n=el.value.length;const cnt=document.getElementById(cntId);if(cnt){cnt.textContent=`${n}/${max}`;cnt.style.color=n>max?'var(--r)':'var(--tx2)';}}
 
 // ── LOGIN / LOGOUT ─────────────────────────────────────────────────────────────
+let _loginAttempts = 0, _loginLockUntil = 0;
+let _lastActivity = Date.now();
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 min
+
+function _resetActivity(){ _lastActivity = Date.now(); }
+['keydown','click','mousemove','touchstart'].forEach(e =>
+  document.addEventListener(e, _resetActivity, { passive: true }));
+
+function _initSessionTimer(){
+  setInterval(()=>{
+    if(sessionStorage.getItem('sema_auth')!=='1') return;
+    const idle = Date.now() - _lastActivity;
+    const remaining = SESSION_TIMEOUT_MS - idle;
+    // Aviso 5 min antes
+    const warnEl = document.getElementById('session-warn');
+    if(warnEl){
+      if(remaining < 5*60*1000 && remaining > 0){
+        warnEl.style.display='flex';
+        warnEl.querySelector('span').textContent =
+          `Sessão expira em ${Math.ceil(remaining/60000)} min por inatividade.`;
+      } else {
+        warnEl.style.display='none';
+      }
+    }
+    if(remaining <= 0){
+      doLogout();
+      alert('Sessão encerrada por inatividade (30 min). Faça login novamente.');
+    }
+  }, 30_000);
+}
+
 async function doLogin(){
+  // Rate limiting: bloquear após 3 tentativas por 30s
+  if(Date.now() < _loginLockUntil){
+    const s = Math.ceil((_loginLockUntil - Date.now())/1000);
+    const err=document.getElementById('login-err');
+    err.textContent=`Muitas tentativas. Aguarde ${s}s.`;
+    err.style.display='block';
+    return;
+  }
   const v=document.getElementById('pwd-input').value;
   const h=await hashSenha(v);
   const storedHash=sessionStorage.getItem('sema_pwd_hash')||getSenhaHash();
   const err=document.getElementById('login-err');
   if(h===storedHash){
+    _loginAttempts = 0;
     sessionStorage.setItem('sema_auth','1');
+    _lastActivity = Date.now();
     document.getElementById('login-screen').style.display='none';
     const app=document.getElementById('app');
     app.style.display='flex';
@@ -665,8 +731,16 @@ async function doLogin(){
     renderTable();
     updateKPIs();
   } else {
+    _loginAttempts++;
+    if(_loginAttempts >= 3){
+      _loginLockUntil = Date.now() + 30_000;
+      _loginAttempts = 0;
+      err.textContent='Muitas tentativas incorretas. Aguarde 30s.';
+    } else {
+      err.textContent=`Senha incorreta (${_loginAttempts}/3).`;
+    }
     err.style.display='block';
-    setTimeout(()=>err.style.display='none',3000);
+    setTimeout(()=>err.style.display='none',4000);
   }
 }
 function doLogout(){
@@ -748,8 +822,9 @@ function renderTable(){
   });
   const tbody=document.getElementById('tbody');
   if(!filtrados.length){tbody.innerHTML=`<tr><td colspan="14" class="no-data">Nenhum registro encontrado.</td></tr>`;document.getElementById('tbl-count').textContent='0';return;}
+  const _idxMap=new Map(dados.map((r,i)=>[`${r.tipo}|${r.num}`,i]));
   tbody.innerHTML=filtrados.map((r,fi)=>{
-    const ri=dados.indexOf(r);
+    const ri=_idxMap.get(`${r.tipo}|${r.num}`)??dados.indexOf(r);
     const st=calcStatus(r.termino);
     const sel=selSet.has(ri);
     const diasCor=st.dias===null?'':st.dias<0?'color:var(--r);font-weight:700':st.dias<=30?'color:#880e4f;font-weight:700':st.dias<=90?'color:var(--a);font-weight:700':'color:var(--ok);font-weight:700';
@@ -781,7 +856,7 @@ function limparFiltros(){['busca','f-tipo','f-status','f-ano','f-resp'].forEach(
 
 // ── SELEÇÃO ────────────────────────────────────────────────────────────────────
 function toggleSel(ri){selSet.has(ri)?selSet.delete(ri):selSet.add(ri);updateBulkBar();renderTable();}
-function toggleSelectAll(){const all=document.getElementById('sel-all').checked;filtrados.forEach(r=>{const ri=dados.indexOf(r);all?selSet.add(ri):selSet.delete(ri);});renderTable();}
+function toggleSelectAll(){const all=document.getElementById('sel-all').checked;const m=new Map(dados.map((r,i)=>[`${r.tipo}|${r.num}`,i]));filtrados.forEach(r=>{const ri=m.get(`${r.tipo}|${r.num}`)??dados.indexOf(r);all?selSet.add(ri):selSet.delete(ri);});renderTable();}
 function updateBulkBar(){const n=selSet.size;const bar=document.getElementById('bulk-bar');bar.classList.toggle('hidden',n===0);if(n>0)document.getElementById('bulk-count').textContent=`${n} selecionado${n>1?'s':''}`;}
 async function excluirSelecionados(){
   if(!selSet.size)return;
@@ -835,6 +910,12 @@ async function salvar(){
   const ini=document.getElementById('f-inicio').value;
   const ter=document.getElementById('f-termino').value;
   if(ini&&ter&&ter<=ini){document.getElementById('err-termino')?.classList.add('show');document.getElementById('f-termino')?.classList.add('ferr');ok=false;}
+  const linkVal=document.getElementById('f-link').value.trim();
+  if(linkVal&&!/^https?:\/\//i.test(linkVal)){
+    showToast('URL inválida. Use https:// ou deixe em branco.','warn');
+    document.getElementById('f-link')?.classList.add('ferr');
+    ok=false;
+  } else { document.getElementById('f-link')?.classList.remove('ferr'); }
   if(!ok)return;
   const rec={
     tipo:document.getElementById('f-tipo2').value,
@@ -846,7 +927,7 @@ async function salvar(){
     inicio:document.getElementById('f-inicio').value,
     termino:document.getElementById('f-termino').value,
     area:document.getElementById('f-area').value,
-    link:document.getElementById('f-link').value.trim(),
+    link:(()=>{const l=document.getElementById('f-link').value.trim();return(!l||/^https?:\/\//i.test(l))?l:'';})(),
     obs:document.getElementById('f-obs').value.trim(),
     sei:document.getElementById('f-sei').value.trim(),
     resp:document.getElementById('f-resp2').value.trim(),
@@ -862,11 +943,15 @@ async function salvar(){
   const idxAtual=editIdx;
   if(idxAtual!==null)dados[idxAtual]=rec;else dados.push(rec);
   closeForm();popularFiltros();renderTable();updateKPIs();
+  showToast(`${rec.tipo} ${rec.num} salvo localmente.`,'ok',2500);
   // Push assíncrono ao Sheets (fire-and-forget — UI já foi atualizada)
   if(SYNC){
-    SYNC.save(rec).catch(e=>{
-      if(typeof appendLog==='function')appendLog({level:'warn',msg:'Push Sheets: '+e.message,iso:new Date().toLocaleTimeString('pt-BR')});
-    });
+    SYNC.save(rec)
+      .then(()=>showToast(`${rec.tipo} ${rec.num} sincronizado com Sheets.`,'ok'))
+      .catch(e=>{
+        showToast('Salvo localmente. Sheets será atualizado no próximo sync.','warn');
+        if(typeof appendLog==='function')appendLog({level:'warn',msg:'Push Sheets: '+e.message,iso:new Date().toLocaleTimeString('pt-BR')});
+      });
   }
 }
 
@@ -931,9 +1016,9 @@ function processFile(file){
     const dups=pendImport.filter(r=>dados.some(d=>d.num===r.num&&d.tipo===r.tipo));
     const prev=document.getElementById('import-prev');
     prev.style.display='block';
-    prev.innerHTML=`✓ <strong>${file.name}</strong> lido com sucesso — <strong>${pendImport.length} registros</strong> na aba DADOS_PÚBLICOS.`;
+    prev.innerHTML=`✓ <strong>${escHtml(file.name)}</strong> lido com sucesso — <strong>${pendImport.length} registros</strong> na aba DADOS_PÚBLICOS.`;
     const warn=document.getElementById('import-warn');
-    if(dups.length){warn.style.display='block';warn.innerHTML=`⚠ ${dups.length} registro(s) duplicado(s) detectado(s): ${dups.map(r=>`${r.tipo} ${r.num}`).join(', ')}. Ao confirmar, os existentes serão mantidos e os novos adicionados apenas se diferentes.`;}
+    if(dups.length){warn.style.display='block';warn.innerHTML=`⚠ ${dups.length} registro(s) duplicado(s) detectado(s): ${dups.map(r=>`${escHtml(r.tipo)} ${escHtml(r.num)}`).join(', ')}. Ao confirmar, os existentes serão mantidos e os novos adicionados apenas se diferentes.`;}
     else{warn.style.display='none';}
     document.getElementById('btn-import-ok').style.display='inline-flex';
   }catch(err){alert('Erro ao processar a planilha: '+err.message);console.error(err);}};
@@ -1048,12 +1133,14 @@ function initSync() {
 function updateSyncStatus(s) {
   const el = document.getElementById('sd-status');
   if (!el) return;
-  const labels = { ok:'✅ Sincronizado', error:'❌ Erro', syncing:'🔄 Sincronizando…', idle:'⏸ Aguardando' };
-  const colors = { ok:'var(--ok)', error:'var(--r)', syncing:'var(--a)', idle:'var(--tx2)' };
-  el.textContent = labels[s] || s;
-  el.style.color = colors[s] || 'var(--tx)';
+  const offline = typeof navigator !== 'undefined' && !navigator.onLine;
+  const labels = { ok:'✅ Sincronizado', error:'❌ Erro', syncing:'🔄 Sincronizando…', idle:'⏸ Aguardando', offline:'📵 Offline' };
+  const colors = { ok:'var(--ok)', error:'var(--r)', syncing:'var(--a)', idle:'var(--tx2)', offline:'var(--r)' };
+  const effectiveStatus = offline ? 'offline' : s;
+  el.textContent = labels[effectiveStatus] || effectiveStatus;
+  el.style.color = colors[effectiveStatus] || 'var(--tx)';
   const btn = document.getElementById('btn-sync');
-  if (btn) btn.disabled = s === 'syncing';
+  if (btn) btn.disabled = s === 'syncing' || offline;
 }
 
 function refreshSyncDashboard() {
@@ -1079,8 +1166,8 @@ function appendLog(entry) {
   const levelCls = { ok:'ll-ok', info:'ll-info', warn:'ll-warn', error:'ll-error' }[entry.level] || 'll-info';
   const div = document.createElement('div');
   div.className = 'log-line';
-  div.innerHTML = `<span class="log-ts">${entry.iso || ''}</span>
-    <span class="log-lvl ${levelCls}">${(entry.level||'').toUpperCase()}</span>
+  div.innerHTML = `<span class="log-ts">${escHtml(entry.iso || '')}</span>
+    <span class="log-lvl ${escHtml(levelCls)}">${escHtml((entry.level||'').toUpperCase())}</span>
     <span class="log-msg">${escHtml(entry.msg || '')}</span>`;
   // Prepend para mostrar mais recentes primeiro
   container.insertBefore(div, container.firstChild);
@@ -1148,9 +1235,20 @@ function updateConflict() {
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){['modal-form','modal-import','modal-del'].forEach(id=>document.getElementById(id).classList.remove('open'));}});
 
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+function showToast(msg, type='info', duration=3500) {
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.setAttribute('role','status');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(), 350); }, duration);
+}
+
 window.addEventListener('DOMContentLoaded',()=>{
   // Inicia SYNC antes de tudo — fundamental para carregar dados do Sheets
   initSync();
+  _initSessionTimer();
   document.getElementById('pwd-input')?.focus();
 });
 </script>

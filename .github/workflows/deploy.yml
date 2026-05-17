@@ -38,12 +38,28 @@ jobs:
 
           echo "✅ js/config.js configurado"
 
-      - name: Validar arquivos HTML
+      - name: Verificar injeção de secrets e status da configuração
         run: |
-          for f in index.html admin.html; do
+          echo "### Status da configuração:"
+          if grep -q '%%SYNC_TOKEN%%' js/config.js; then
+            echo "⚠️  SYNC_TOKEN não injetado — admin funcionará em modo somente-leitura"
+            echo "   → Configure o Secret SYNC_TOKEN em Settings → Secrets → Actions"
+          else
+            echo "✅ SYNC_TOKEN injetado com sucesso"
+          fi
+          if grep -q '%%SENHA_HASH%%' js/config.js; then
+            echo "ℹ️  SENHA_HASH não injetado — usando hash padrão (SEMA@2026)"
+            echo "   → Configure o Secret SENHA_HASH para usar senha personalizada"
+          else
+            echo "✅ SENHA_HASH injetado com sucesso"
+          fi
+
+      - name: Validar arquivos HTML e JS
+        run: |
+          for f in index.html admin.html js/config.js js/sync.js; do
             [ -f "$f" ] && echo "✅ $f ($(wc -c < $f) bytes)" || { echo "❌ $f ausente"; exit 1; }
           done
-          echo "✅ Validação HTML concluída"
+          echo "✅ Validação concluída"
 
       - name: Configurar GitHub Pages
         uses: actions/configure-pages@v4
