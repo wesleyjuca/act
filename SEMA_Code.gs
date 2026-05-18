@@ -55,7 +55,7 @@ const HEADER_MAP = {
 const COL_PUB = [
   'tipo','num','ano','objeto','inst','esfera',
   'inicio','termino','area','status','diasRestantes',
-  'linkDoc','linkSei','obs'
+  'linkDoc','linkSei','obs','sei'
 ];
 
 const COL_INT = [
@@ -170,6 +170,20 @@ function handleList(params) {
     }
   }
 
+  // Sempre incluir SEI na resposta pública (campo publicado por decisão administrativa)
+  const intSheetPub = ss.getSheetByName(SHEET_INTERNO);
+  if (intSheetPub) {
+    const intDataPub = intSheetPub.getDataRange().getValues();
+    const intMapPub  = {};
+    for (let i = 2; i < intDataPub.length; i++) {
+      const numRef = String(intDataPub[i][0] || '');
+      if (numRef) intMapPub[numRef] = String(intDataPub[i][1] || ''); // coluna B = SEI
+    }
+    records.forEach(rec => {
+      if (!rec.sei) rec.sei = intMapPub[rec.num || rec.numero || ''] || '';
+    });
+  }
+
   logInfo('list', `${records.length} registros retornados`);
   return {
     records,
@@ -247,14 +261,20 @@ function handleUpsertBatch(records, sheetName) {
   if (!Array.isArray(records) || !records.length) {
     return { error: 'records deve ser um array não vazio' };
   }
+  let updated = 0, inserted = 0, errors = 0;
   const results = records.map(r => {
-    try   { return handleUpsert(r, sheetName); }
-    catch (e) { return { error: e.message, num: r.num }; }
+    try {
+      const res = handleUpsert(r, sheetName);
+      if (res.action === 'updated') updated++;
+      else inserted++;
+      return res;
+    } catch (e) {
+      errors++;
+      return { error: e.message, num: r.num };
+    }
   });
-  const ok  = results.filter(r => r.ok).length;
-  const err = results.filter(r => r.error).length;
-  logInfo('upsertBatch', `Lote: ${ok} OK, ${err} erros de ${records.length}`);
-  return { ok: true, total: records.length, updated: ok, errors: err, results };
+  logInfo('upsertBatch', `Lote: ${updated} atualizados, ${inserted} inseridos, ${errors} erros de ${records.length}`);
+  return { ok: true, total: records.length, updated, inserted, errors, results };
 }
 
 function handleDelete(tipo, num, sheetName) {
@@ -298,7 +318,7 @@ function buildRowValues(rec, sheetName) {
       rec.inicio  ? parseDate(rec.inicio)  : '',
       rec.termino ? parseDate(rec.termino) : '',
       rec.area || '', '', '',   // status e diasRestantes = fórmulas → mantém vazio
-      rec.linkDoc || '', rec.linkSei || '', rec.obs || '',
+      rec.linkDoc || '', rec.linkSei || '', rec.obs || '', rec.sei || '',
     ];
   }
   if (sheetName === SHEET_INTERNO) {
@@ -345,6 +365,10 @@ function findLastRow(sheet) {
 }
 
 function validateToken(token) {
+  // Token gerado em 2026-05-17 — rotacionar editando esta constante e js/config.js
+  const HARDCODED_TOKEN = '3f033d20-e310-47b4-889d-8e73d87b4c35';
+  if (token && token === HARDCODED_TOKEN) return true;
+  // Fallback: PropertiesService (caso configurado via setupSyncToken())
   const stored = PropertiesService.getScriptProperties().getProperty('SYNC_TOKEN');
   return stored && token && token === stored;
 }
