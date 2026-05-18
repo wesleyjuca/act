@@ -31,7 +31,7 @@ const SHEET_LOG     = 'SYNC_LOG';
 const COL_PUB = [
   'tipo','num','ano','objeto','inst','esfera',
   'inicio','termino','area','status','diasRestantes',
-  'linkDoc','linkSei','obs'
+  'linkDoc','linkSei','obs','sei'
 ];
 
 const COL_INT = [
@@ -132,6 +132,20 @@ function handleList(params) {
         }
       });
     }
+  }
+
+  // Sempre incluir SEI na resposta pública (campo publicado por decisão administrativa)
+  const intSheetPub = ss.getSheetByName(SHEET_INTERNO);
+  if (intSheetPub) {
+    const intDataPub = intSheetPub.getDataRange().getValues();
+    const intMapPub  = {};
+    for (let i = 2; i < intDataPub.length; i++) {
+      const numRef = String(intDataPub[i][0] || '');
+      if (numRef) intMapPub[numRef] = String(intDataPub[i][1] || ''); // coluna B = SEI
+    }
+    records.forEach(rec => {
+      if (!rec.sei) rec.sei = intMapPub[rec.num || rec.numero || ''] || '';
+    });
   }
 
   logInfo('list', `${records.length} registros retornados`);
@@ -264,7 +278,7 @@ function buildRowValues(rec, sheetName) {
       rec.inicio  ? parseDate(rec.inicio)  : '',
       rec.termino ? parseDate(rec.termino) : '',
       rec.area || '', '', '',   // status e diasRestantes = fórmulas → mantém vazio
-      rec.linkDoc || '', rec.linkSei || '', rec.obs || '',
+      rec.linkDoc || '', rec.linkSei || '', rec.obs || '', rec.sei || '',
     ];
   }
   if (sheetName === SHEET_INTERNO) {

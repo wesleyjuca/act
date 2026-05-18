@@ -54,6 +54,7 @@ main{max-width:1200px;margin:0 auto;padding:24px;flex:1;width:100%;}
   padding:11px 16px;display:flex;align-items:center;gap:10px;margin-bottom:16px;display:none;}
 .error-bar.show{display:flex;}
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
+@media(max-width:900px){.col-sei-pub{display:none;}}
 @media(max-width:700px){.kpi-grid{grid-template-columns:1fr 1fr;}}
 .kpi{background:#fff;border-radius:10px;border:1px solid var(--bdr);padding:15px 17px;
   position:relative;overflow:hidden;}
@@ -234,6 +235,7 @@ tbody td{padding:11px 13px;border-bottom:1px solid #f0f0f0;color:var(--tx);verti
           <th onclick="sortBy('termino')" class="sorted">Término ↑</th>
           <th>Área</th>
           <th onclick="sortBy('status')">Status</th>
+          <th class="col-sei-pub" onclick="sortBy('sei')" title="Número SEI">SEI</th>
           <th>Doc.</th>
         </tr></thead>
         <tbody id="tbody" aria-live="polite"></tbody>
@@ -445,13 +447,14 @@ function limpar(){['busca','f-tipo','f-status','f-area','f-ano'].forEach(id=>{co
 function renderTable(){
   const q=document.getElementById('busca').value.trim();
   const tbody=document.getElementById('tbody');
-  if(!filtered.length){tbody.innerHTML=`<tr><td colspan="10" class="no-data">Nenhum registro encontrado.</td></tr>`;document.getElementById('tbl-count').textContent='0';return;}
+  if(!filtered.length){tbody.innerHTML=`<tr><td colspan="11" class="no-data">Nenhum registro encontrado.</td></tr>`;document.getElementById('tbl-count').textContent='0';return;}
   tbody.innerHTML=filtered.map((r,i)=>{
     const idx=allRecs.indexOf(r);const st=calcSt(getVal(r,'termino'));
     const tipo=getVal(r,'tipo');const num=getVal(r,'num')||getVal(r,'numero');
     const obj=getVal(r,'objeto');const inst=getVal(r,'inst')||getVal(r,'instituicao_parceira');
     const esf=getVal(r,'esfera');const ini=getVal(r,'inicio');const ter=getVal(r,'termino');
     const area=getVal(r,'area');const link=getVal(r,'link_doc')||getVal(r,'linkDoc')||getVal(r,'link');
+    const sei=getVal(r,'sei');
     return`<tr tabindex="0" onclick="openModal(${idx})" onkeydown="if(event.key==='Enter')openModal(${idx})"
       aria-label="${esc(tipo)} ${esc(num)} — ${esc(inst)} — ${esc(st.label)}">
       <td><span class="tipo-tag">${hl(tipo,q)}</span></td>
@@ -463,6 +466,7 @@ function renderTable(){
       <td style="white-space:nowrap;">${fmtDate(ter)}</td>
       <td><span class="area-tag">${esc(area)}</span></td>
       <td><span class="st ${st.cls}">${esc(st.label)}</span></td>
+      <td class="col-sei-pub" style="font-size:10px;white-space:nowrap;">${esc(sei)||'—'}</td>
       <td>${link?`<a href="${esc(link)}" target="_blank" rel="noopener noreferrer" style="color:var(--g);font-size:17px;text-decoration:none;" onclick="event.stopPropagation()" aria-label="Documento">↓</a>`:'—'}</td>
     </tr>`;
   }).join('');
