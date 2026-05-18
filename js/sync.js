@@ -267,14 +267,10 @@ class SEMASync {
   }
 
   async _post(body) {
-    // URLSearchParams → application/x-www-form-urlencoded → simple request sem preflight CORS
-    // Body preservado mesmo com o redirect 302 que o GAS usa para entrega de resposta
-    const params = new URLSearchParams({
-      data: JSON.stringify({ ...body, token: this.cfg.syncToken }),
-    });
+    // Sem Content-Type → navegador envia text/plain;charset=UTF-8 → simple CORS request sem preflight
     const r = await this._fetchWithTimeout(this.cfg.appsScriptUrl, {
       method: 'POST',
-      body: params,
+      body: JSON.stringify({ ...body, token: this.cfg.syncToken }),
     });
     if (!r.ok) throw new Error(`POST HTTP ${r.status}`);
     const json = await r.json();

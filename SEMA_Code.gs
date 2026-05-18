@@ -85,11 +85,22 @@ function doGet(e) {
 // ── POST HANDLER ──────────────────────────────────────────────────────────────
 function doPost(e) {
   try {
-    // Suporta application/x-www-form-urlencoded (e.parameter.data) e JSON puro (e.postData.contents)
-    const raw = (e.parameter && e.parameter.data) ? e.parameter.data : e.postData.contents;
+    // Suporta plain JSON (text/plain) e application/x-www-form-urlencoded
+    // Nota: e.parameter NÃO é populado pelo body POST no GAS — usar e.postData
+    let raw = '';
+    if (e.postData) {
+      const ct = String(e.postData.type || '').toLowerCase();
+      if (ct.indexOf('x-www-form-urlencoded') !== -1) {
+        const contents = String(e.postData.contents || '');
+        const m = contents.match(/(?:^|&)data=([^&]*)/);
+        raw = m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : '';
+      } else {
+        raw = String(e.postData.contents || '');
+      }
+    }
     const body = JSON.parse(raw);
     if (!validateToken(body.token)) {
-      logError('auth', 'Token inválido — acesso negado em ' + new Date().toISOString());
+      logError('auth', 'Token inválido em ' + new Date().toISOString());
       return jsonResponse({ error: 'Token inválido' }, 403);
     }
     // Rate limiting simples: max 30 req/min por prefixo de token
