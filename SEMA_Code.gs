@@ -85,7 +85,9 @@ function doGet(e) {
 // ── POST HANDLER ──────────────────────────────────────────────────────────────
 function doPost(e) {
   try {
-    const body = JSON.parse(e.postData.contents);
+    // Suporta application/x-www-form-urlencoded (e.parameter.data) e JSON puro (e.postData.contents)
+    const raw = (e.parameter && e.parameter.data) ? e.parameter.data : e.postData.contents;
+    const body = JSON.parse(raw);
     if (!validateToken(body.token)) {
       logError('auth', 'Token inválido — acesso negado em ' + new Date().toISOString());
       return jsonResponse({ error: 'Token inválido' }, 403);
