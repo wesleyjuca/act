@@ -1,7 +1,7 @@
 const SEMA_CONFIG = {
 
   // URL do Google Apps Script (Web App implantado)
-  appsScriptUrl: 'https://script.google.com/macros/s/AKfycbyOfzikgP8I5PCQ2WoQQzbiG6KQoQJeR2BBFyG2vsFf1LIbvdrwFIGhhJhFxmqR4-2O/exec',
+  appsScriptUrl: 'https://script.google.com/macros/s/AKfycbyyW4logP6kQZ84If5LlLgaQlbUsNhSaHY44uUXJlVugbuFZJ5SrFm0aIosAqxJdxLt/exec',
 
   // Token para operações de escrita (admin → Sheets)
   // Configure o Secret SYNC_TOKEN no GitHub para habilitar o painel admin
