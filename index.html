@@ -314,7 +314,14 @@ SYNC.on('status', s => {
 });
 
 SYNC.on('data', recs => {
-  allRecs = recs.length > 0 ? recs : DEMO_RECORDS;
+  // Usar dados do Sheets se houver; manter DEMO apenas se Sheets nunca retornou nada
+  if (recs.length > 0) {
+    allRecs = recs;
+    document.getElementById('tbl-src').textContent = 'Fonte: Google Sheets';
+  } else if (allRecs.length === 0) {
+    allRecs = DEMO_RECORDS;
+    document.getElementById('tbl-src').textContent = 'Fonte: Dados locais (Sheets vazia)';
+  }
   document.getElementById('loading').classList.add('hidden');
   popularFiltroAno();
   filtrar();
@@ -323,8 +330,6 @@ SYNC.on('data', recs => {
   const ts = SYNC.getStatus().lastSync;
   if (ts) document.getElementById('sync-ts').textContent =
     'Última sync: ' + ts.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  const src = recs.length > 0 ? 'Google Sheets' : 'Dados locais (Sheets ainda vazia)';
-  document.getElementById('tbl-src').textContent = `Fonte: ${src}`;
 });
 
 SYNC.on('error', e => {

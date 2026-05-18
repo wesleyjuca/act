@@ -365,6 +365,7 @@ tbody tr.row-sel td{background:#e8f7eb;}
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn btn-g" onclick="doManualSync()" id="btn-sync" aria-label="Sincronizar agora">⟳ Sync manual</button>
           <button class="btn btn-o" onclick="publicarTudo()" id="btn-publicar" aria-label="Publicar todos os registros no Google Sheets">☁ Publicar tudo no Sheets</button>
+          <button class="btn btn-s" onclick="testarConexao()" id="btn-testar" aria-label="Testar conexão com Apps Script">🔌 Testar Conexão</button>
           <button class="btn btn-o" onclick="clearLogs()" aria-label="Limpar logs">🗑 Limpar logs</button>
         </div>
       </div>
@@ -665,7 +666,7 @@ async function doLogin(){
       // Auto-publicar se token configurado e Sheets parece vazia
       if (SYNC._hasToken()) {
         SYNC.sync().then(res => {
-          if ((!res.count || res.count === 0) && dados.length > 0) {
+          if (res.ok && res.count === 0 && dados.length > 0) {
             showToast('Sheets vazia — publicando registros automaticamente…', 'info', 5000);
             setTimeout(publicarTudo, 1500);
           }
@@ -759,8 +760,9 @@ function renderTable(){
   });
   const tbody=document.getElementById('tbody');
   if(!filtrados.length){tbody.innerHTML=`<tr><td colspan="14" class="no-data">Nenhum registro encontrado.</td></tr>`;document.getElementById('tbl-count').textContent='0';return;}
+  const _idxMap=new Map(dados.map((r,i)=>[`${r.tipo}|${r.num}`,i]));
   tbody.innerHTML=filtrados.map((r,fi)=>{
-    const ri=dados.indexOf(r);
+    const ri=_idxMap.get(`${r.tipo}|${r.num}`)??dados.indexOf(r);
     const st=calcStatus(r.termino);
     const sel=selSet.has(ri);
     const diasCor=st.dias===null?'':st.dias<0?'color:var(--r);font-weight:700':st.dias<=30?'color:#880e4f;font-weight:700':st.dias<=90?'color:var(--a);font-weight:700':'color:var(--ok);font-weight:700';
@@ -1021,7 +1023,7 @@ function initSync() {
   const cfg = (typeof SEMA_CONFIG !== 'undefined') ? SEMA_CONFIG : {};
   SYNC = new SEMASync({
     ...cfg,
-    interval: cfg.interval || 300000,
+    interval: 300_000,    // admin: 5 min (público usa 60s via config.js)
     logMax: 100,
   });
 
@@ -1121,21 +1123,28 @@ async function publicarTudo() {
     alert('SYNC_TOKEN não configurado.\n\nContate o administrador do sistema.');
     return;
   }
+  if (publicarTudo._running) return;
+  publicarTudo._running = true;
   const btn = document.getElementById('btn-publicar');
   if (btn) { btn.disabled = true; btn.textContent = '☁ Publicando…'; }
-  let ok = 0, err = 0;
-  for (const rec of dados) {
-    try {
-      await SYNC.save(rec);
-      ok++;
-    } catch(e) {
-      err++;
-      appendLog({ level: 'warn', msg: `Falha ao publicar ${rec.tipo} ${rec.num}: ${e.message}`, iso: new Date().toLocaleTimeString('pt-BR') });
-    }
+  try {
+    showToast(`Enviando ${dados.length} registros para o Sheets…`, 'info', 4000);
+    const res = await SYNC._post({
+      action: 'upsertBatch',
+      sheet: SYNC.cfg.sheet,
+      records: dados,
+    });
+    if (res.error) throw new Error(res.error);
+    const msg = `Publicação concluída: ${res.updated || 0} atualizados, ${res.inserted || 0} inseridos${res.errors > 0 ? ', ' + res.errors + ' erros' : ''}`;
+    appendLog({ level: res.errors > 0 ? 'warn' : 'ok', msg, iso: new Date().toLocaleTimeString('pt-BR') });
+    showToast(`✅ ${dados.length} registros publicados no Sheets`, 'ok');
+  } catch(e) {
+    appendLog({ level: 'error', msg: `Publicação falhou: ${e.message}`, iso: new Date().toLocaleTimeString('pt-BR') });
+    showToast(`❌ Falha ao publicar: ${e.message}`, 'err');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '☁ Publicar tudo no Sheets'; }
+    publicarTudo._running = false;
   }
-  if (btn) { btn.disabled = false; btn.textContent = '☁ Publicar tudo no Sheets'; }
-  appendLog({ level: ok > 0 ? 'ok' : 'error', msg: `Publicação concluída: ${ok} enviados, ${err} erros`, iso: new Date().toLocaleTimeString('pt-BR') });
-  alert(`Publicação concluída:\n✅ ${ok} registros enviados ao Google Sheets\n${err > 0 ? '❌ ' + err + ' erros (ver log)' : ''}`);
 }
 
 function clearLogs() {
@@ -1143,6 +1152,32 @@ function clearLogs() {
   if (container) { container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--tx2);">Log limpo.</div>'; }
   const countEl = document.getElementById('sd-log-count');
   if (countEl) countEl.textContent = '0 eventos';
+}
+
+async function testarConexao() {
+  if (!SYNC || !SYNC.cfg.appsScriptUrl) {
+    showToast('URL do Apps Script não configurada', 'err'); return;
+  }
+  const btn = document.getElementById('btn-testar');
+  btn.disabled = true; btn.textContent = '🔌 Testando…';
+  const t0 = Date.now();
+  try {
+    const r = await fetch(`${SYNC.cfg.appsScriptUrl}?action=status`);
+    const json = await r.json();
+    const ms = Date.now() - t0;
+    if (json.ok) {
+      showToast(`✅ Conectado: ${json.name} · ${ms}ms`, 'ok', 5000);
+      appendLog({ level: 'ok', msg: `Conexão OK — planilha: "${json.name}", sheets: [${(json.sheets||[]).join(', ')}] (${ms}ms)`, iso: new Date().toLocaleTimeString('pt-BR') });
+    } else {
+      showToast('⚠ Resposta inesperada do servidor', 'warn', 4000);
+      appendLog({ level: 'warn', msg: `Status inesperado: ${JSON.stringify(json)}`, iso: new Date().toLocaleTimeString('pt-BR') });
+    }
+  } catch(e) {
+    showToast(`❌ Sem conexão: ${e.message}`, 'err', 5000);
+    appendLog({ level: 'error', msg: `Falha de conexão ao Apps Script: ${e.message}`, iso: new Date().toLocaleTimeString('pt-BR') });
+  } finally {
+    btn.disabled = false; btn.textContent = '🔌 Testar Conexão';
+  }
 }
 
 function updateInterval() {

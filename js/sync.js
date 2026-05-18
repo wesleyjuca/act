@@ -229,9 +229,9 @@ class SEMASync {
   }
 
   async _post(body) {
+    // Sem Content-Type: application/json — evita preflight CORS (OPTIONS) que Apps Script não responde
     const r = await this._fetchWithTimeout(this.cfg.appsScriptUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...body, token: this.cfg.syncToken }),
     });
     if (!r.ok) throw new Error(`POST HTTP ${r.status}`);

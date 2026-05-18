@@ -207,14 +207,20 @@ function handleUpsertBatch(records, sheetName) {
   if (!Array.isArray(records) || !records.length) {
     return { error: 'records deve ser um array não vazio' };
   }
+  let updated = 0, inserted = 0, errors = 0;
   const results = records.map(r => {
-    try   { return handleUpsert(r, sheetName); }
-    catch (e) { return { error: e.message, num: r.num }; }
+    try {
+      const res = handleUpsert(r, sheetName);
+      if (res.action === 'updated') updated++;
+      else inserted++;
+      return res;
+    } catch (e) {
+      errors++;
+      return { error: e.message, num: r.num };
+    }
   });
-  const ok  = results.filter(r => r.ok).length;
-  const err = results.filter(r => r.error).length;
-  logInfo('upsertBatch', `Lote: ${ok} OK, ${err} erros de ${records.length}`);
-  return { ok: true, total: records.length, updated: ok, errors: err, results };
+  logInfo('upsertBatch', `Lote: ${updated} atualizados, ${inserted} inseridos, ${errors} erros de ${records.length}`);
+  return { ok: true, total: records.length, updated, inserted, errors, results };
 }
 
 function handleDelete(tipo, num, sheetName) {

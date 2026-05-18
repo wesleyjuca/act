@@ -8,7 +8,7 @@ const SEMA_CONFIG = {
   syncToken: '3f033d20-e310-47b4-889d-8e73d87b4c35',
 
   // Sync automático
-  interval:     300_000,   // 5 min entre syncs (0 = somente manual)
+  interval:     60_000,    // 1 min entre syncs — painel público (admin sobrescreve para 5 min)
   retryMax:     3,
   retryDelay:   2_000,
   conflictMode: 'newest',  // 'newest' | 'local' | 'remote'
