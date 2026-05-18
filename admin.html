@@ -987,8 +987,9 @@ function alertarSelecionados(){
 
 // ── EXPORTAR ───────────────────────────────────────────────────────────────────
 function exportarXLSX(rows,fname){try{
+  const str=v=>String(v??'');
   const header=['Tipo','Número','Objeto','Instituição','Esfera','Início','Término','Área','Status','Dias','SEI (interno)','Responsável','Situação','Alerta','Notas'];
-  const data=rows.map(r=>{const s=calcStatus(r.termino);return[r.tipo,r.num,r.objeto,r.inst,r.esfera,fmtDate(r.inicio),fmtDate(r.termino),r.area,s.label,s.dias??'',r.sei,r.resp,r.statusInt,r.alerta,r.notas];});
+  const data=rows.map(r=>{const s=calcStatus(r.termino);return[str(r.tipo),str(r.num),str(r.objeto),str(r.inst),str(r.esfera),str(fmtDate(r.inicio)),str(fmtDate(r.termino)),str(r.area),str(s.label),s.dias??'',str(r.sei),str(r.resp),str(r.statusInt),str(r.alerta),str(r.notas)];});
   const ws=XLSX.utils.aoa_to_sheet([header,...data]);
   ws['!cols']=[8,10,50,30,12,12,12,22,14,8,28,18,20,20,36].map(w=>({wch:w}));
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,'TCT_Admin',ws);
