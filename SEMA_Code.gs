@@ -370,16 +370,16 @@ function parseDate(str) {
 
 function findLastRow(sheet) {
   const vals = sheet.getRange('B:B').getValues();
-  let last = 2;
+  let last = 2;  // linha 2 (header) — dados iniciam na linha 3
   for (let i = 2; i < vals.length; i++) {
-    if (vals[i][0] !== '') last = i;
+    if (vals[i][0] !== '') last = i + 1;  // índice 0-based → número de linha 1-based
   }
   return last;
 }
 
 function validateToken(token) {
   // Token gerado em 2026-05-17 — rotacionar editando esta constante e js/config.js
-  const HARDCODED_TOKEN = '3f033d20-e310-47b4-889d-8e73d87b4c35';
+  const HARDCODED_TOKEN = '520f32d0-d3ce-47f5-93de-2f36ab930c58-9c48918d-14ab-4aad-95aa-670fcbe0a39e';
   if (token && token === HARDCODED_TOKEN) return true;
   // Fallback: PropertiesService (caso configurado via setupSyncToken())
   const stored = PropertiesService.getScriptProperties().getProperty('SYNC_TOKEN');
