@@ -180,8 +180,14 @@ class SEMASync {
   async remove(tipo, num) {
     const idx = this._records.findIndex(r => r.tipo === tipo && r.num === num);
     if (idx < 0) return false;
+    // Ajustar dirty: remover este índice e decrementar os posteriores
+    const newDirty = new Set();
+    for (const i of this._dirty) {
+      if (i < idx) newDirty.add(i);
+      else if (i > idx) newDirty.add(i - 1);
+    }
+    this._dirty = newDirty;
     this._records.splice(idx, 1);
-    this._dirty.clear();
     this._saveCache(this._records);
     this.log('info', `Removido localmente: ${tipo} ${num}`);
     if (this.cfg.appsScriptUrl && this._hasToken()) {
@@ -353,9 +359,13 @@ class SEMASync {
       if (!raw) return;
       const { ts, records } = JSON.parse(raw);
       const age = Date.now() - ts;
-      if (age < 900_000 && records?.length) {   // cache válido por 15 min
+      if (records?.length) {
         this._records = records;
-        this.log('info', `Cache restaurado: ${records.length} registros (${Math.round(age/1000)}s atrás)`);
+        if (age < 900_000) {
+          this.log('info', `Cache restaurado: ${records.length} registros (${Math.round(age/1000)}s atrás)`);
+        } else {
+          this.log('warn', `Cache expirado (${Math.round(age/60000)}min) — usando como fallback offline`);
+        }
         this._emit('data', records);
       }
     } catch (_) {}

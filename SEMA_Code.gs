@@ -274,20 +274,46 @@ function handleUpsertBatch(records, sheetName) {
   if (!Array.isArray(records) || !records.length) {
     return { error: 'records deve ser um array não vazio' };
   }
+  sheetName = sheetName || SHEET_DADOS;
+  const ss    = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(sheetName);
+  if (!sheet) return { error: `Aba '${sheetName}' não encontrada` };
+
+  // Leitura única: construir mapa tipo+num → linha 1-based
+  const data   = sheet.getDataRange().getValues();
+  const rowMap = new Map();
+  for (let i = 2; i < data.length; i++) {
+    if (data[i][1]) rowMap.set(`${data[i][0]}|${data[i][1]}`, i + 1);
+  }
+
   let updated = 0, inserted = 0, errors = 0;
-  const results = records.map(r => {
+  const toInsert = [];
+
+  for (const r of records) {
     try {
-      const res = handleUpsert(r, sheetName);
-      if (res.action === 'updated') updated++;
-      else inserted++;
-      return res;
-    } catch (e) {
-      errors++;
-      return { error: e.message, num: r.num };
-    }
-  });
+      if (!r || !r.tipo || !r.num) { errors++; continue; }
+      r._ts_server = Date.now();
+      if (!r._ts) r._ts = r._ts_server;
+      const rowValues = buildRowValues(r, sheetName);
+      const key = `${r.tipo}|${r.num}`;
+      if (rowMap.has(key)) {
+        sheet.getRange(rowMap.get(key), 1, 1, rowValues.length).setValues([rowValues]);
+        updated++;
+      } else {
+        toInsert.push(rowValues);
+      }
+    } catch (e) { errors++; }
+  }
+
+  // Inserção em lote: uma única chamada ao Sheets
+  if (toInsert.length > 0) {
+    const lastRow = Math.max(sheet.getLastRow(), 2);
+    sheet.getRange(lastRow + 1, 1, toInsert.length, toInsert[0].length).setValues(toInsert);
+    inserted = toInsert.length;
+  }
+
   logInfo('upsertBatch', `Lote: ${updated} atualizados, ${inserted} inseridos, ${errors} erros de ${records.length}`);
-  return { ok: true, total: records.length, updated, inserted, errors, results };
+  return { ok: true, total: records.length, updated, inserted, errors };
 }
 
 function handleDelete(tipo, num, sheetName) {
@@ -369,12 +395,7 @@ function parseDate(str) {
 }
 
 function findLastRow(sheet) {
-  const vals = sheet.getRange('B:B').getValues();
-  let last = 2;  // linha 2 (header) — dados iniciam na linha 3
-  for (let i = 2; i < vals.length; i++) {
-    if (vals[i][0] !== '') last = i + 1;  // índice 0-based → número de linha 1-based
-  }
-  return last;
+  return Math.max(sheet.getLastRow(), 2);
 }
 
 function validateToken(token) {

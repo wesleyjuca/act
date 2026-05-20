@@ -1016,7 +1016,7 @@ function processFile(file){
     const sn=wb.SheetNames.includes('DADOS_PÚBLICOS')?'DADOS_PÚBLICOS':wb.SheetNames[0];
     const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,raw:false});
     if(rows.length<3){alert('Planilha sem dados suficientes.');return;}
-    pendImport=rows.slice(2).filter(r=>r[1]).map(r=>({
+    pendImport=rows.slice(2).filter(r=>r[0]&&r[1]).map(r=>({
       tipo:r[0]||'',num:r[1]||'',
       ano:parseInt((r[1]||'').match(/\d{4}/)?.[0])||parseInt(r[2])||0,
       objeto:r[3]||'',inst:r[4]||'',esfera:r[5]||'',
@@ -1087,7 +1087,7 @@ async function alterarSenha(){
   const conf=document.getElementById('pwd-conf').value;
   const msg=document.getElementById('pwd-msg');
   msg.style.display='block';
-  const storedHash=sessionStorage.getItem('sema_pwd_hash')||SENHA_HASH;
+  const storedHash=sessionStorage.getItem('sema_pwd_hash')||getSenhaHash();
   const hashAtual=await hashSenha(atual);
   if(hashAtual!==storedHash&&atual!=='SEMA@2026'){msg.style.color='var(--r)';msg.textContent='Senha atual incorreta.';return;}
   if(nova.length<6){msg.style.color='var(--r)';msg.textContent='Nova senha deve ter no mínimo 6 caracteres.';return;}
