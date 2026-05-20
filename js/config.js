@@ -8,10 +8,11 @@ const SEMA_CONFIG = {
   syncToken: '520f32d0-d3ce-47f5-93de-2f36ab930c58-9c48918d-14ab-4aad-95aa-670fcbe0a39e',
 
   // Sync automático
-  interval:     60_000,    // 1 min entre syncs — painel público (admin sobrescreve para 5 min)
-  retryMax:     3,
-  retryDelay:   2_000,
-  conflictMode: 'newest',  // 'newest' | 'local' | 'remote'
+  interval:      60_000,    // 1 min entre syncs — painel público (admin sobrescreve para 5 min)
+  retryMax:      3,
+  retryDelay:    2_000,
+  retryDelayMax: 10_000,    // cap de backoff exponencial
+  conflictMode: 'newest',   // 'newest' | 'local' | 'remote'
 
   // Aba da planilha
   sheet: 'DADOS_PÚBLICOS',

@@ -98,11 +98,18 @@ class SEMASync {
     }
     this._setStatus('syncing');
     try {
+      // Capturar chaves dirty ANTES do merge para evitar mismatch de índices
+      const dirtyKeys = new Set(
+        [...this._dirty].map(i => {
+          const r = this._records[i];
+          return r ? `${r.tipo}|${r.num}` : null;
+        }).filter(Boolean)
+      );
       const remote = await this._fetchRemote();
       const merged = this._merge(this._records, remote);
-      const dirty  = [...this._dirty];
-      if (dirty.length > 0) {
-        await this._pushDirty(merged, dirty);
+      if (dirtyKeys.size > 0) {
+        const toSend = merged.filter(r => dirtyKeys.has(`${r.tipo}|${r.num}`));
+        if (toSend.length > 0) await this._pushDirtyRecords(toSend);
       }
       this._records = merged;
       this._dirty.clear();
@@ -112,8 +119,8 @@ class SEMASync {
       this._retries  = 0;
       this._setStatus('ok');
       this._emit('data', merged);
-      this.log('ok', `Sync concluído — ${merged.length} registros · ${dirty.length} enviados`);
-      return { ok: true, count: merged.length, pushed: dirty.length };
+      this.log('ok', `Sync concluído — ${merged.length} registros · ${dirtyKeys.size} enviados`);
+      return { ok: true, count: merged.length, pushed: dirtyKeys.size };
     } catch (err) {
       this._errCount++;
       this._setStatus('error');
@@ -147,12 +154,15 @@ class SEMASync {
       r => r.tipo === record.tipo && r.num === record.num
     );
     record._ts = Date.now();
+    let finalIdx;
     if (idx >= 0) {
       this._records[idx] = record;
+      finalIdx = idx;
       this._dirty.add(idx);
     } else {
       this._records.push(record);
-      this._dirty.add(this._records.length - 1);
+      finalIdx = this._records.length - 1;
+      this._dirty.add(finalIdx);
     }
     this._saveCache(this._records);
     this.log('info', `Salvo localmente: ${record.tipo} ${record.num}`);
@@ -165,7 +175,7 @@ class SEMASync {
         this._debounce.delete(key);
         try {
           await this._pushSingle(record);
-          this._dirty.delete(idx >= 0 ? idx : this._records.length - 1);
+          this._dirty.delete(finalIdx);  // usa valor capturado no momento do save
           this.log('ok', `Sincronizado com Sheets: ${record.tipo} ${record.num}`);
         } catch(e) {
           this.log('warn', `Push falhou (tentará na próxima sync): ${e.message}`);
@@ -252,10 +262,9 @@ class SEMASync {
     return !!(this.cfg.syncToken && !this.cfg.syncToken.startsWith('%%'));
   }
 
-  async _pushDirty(records, dirtyIdx) {
+  async _pushDirtyRecords(records) {
     if (!this.cfg.appsScriptUrl || !this._hasToken()) return;
-    const toSend = dirtyIdx.map(i => records[i]).filter(Boolean);
-    await this._post({ action: 'upsertBatch', sheet: this.cfg.sheet, records: toSend });
+    await this._post({ action: 'upsertBatch', sheet: this.cfg.sheet, records });
   }
 
   async _pushSingle(record) {

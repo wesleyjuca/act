@@ -343,20 +343,20 @@ tbody tr.row-sel td{background:#e8f7eb;}
         <table aria-label="Termos de Cooperação — administração interna">
           <thead>
             <tr>
-              <th class="cb-cell"><input type="checkbox" id="sel-all" onchange="toggleSelectAll()" aria-label="Selecionar todos"/></th>
-              <th onclick="sortBy('tipo')">Tipo <span class="si">↕</span></th>
-              <th onclick="sortBy('num')">Nº <span class="si">↕</span></th>
-              <th>Objeto</th>
-              <th onclick="sortBy('inst')">Instituição <span class="si">↕</span></th>
-              <th onclick="sortBy('esfera')">Esfera <span class="si">↕</span></th>
-              <th onclick="sortBy('termino')" class="sorted">Término <span class="si">↑</span></th>
-              <th onclick="sortBy('status')">Status <span class="si">↕</span></th>
-              <th>Dias</th>
-              <th class="int-col" onclick="sortBy('sei')">SEI <span class="si">↕</span></th>
-              <th class="int-col" onclick="sortBy('resp')">Responsável <span class="si">↕</span></th>
-              <th class="int-col">Alerta</th>
-              <th class="int-col">Situação</th>
-              <th>Ações</th>
+              <th scope="col" class="cb-cell"><input type="checkbox" id="sel-all" onchange="toggleSelectAll()" aria-label="Selecionar todos"/></th>
+              <th scope="col" onclick="sortBy('tipo')">Tipo <span class="si">↕</span></th>
+              <th scope="col" onclick="sortBy('num')">Nº <span class="si">↕</span></th>
+              <th scope="col">Objeto</th>
+              <th scope="col" onclick="sortBy('inst')">Instituição <span class="si">↕</span></th>
+              <th scope="col" onclick="sortBy('esfera')">Esfera <span class="si">↕</span></th>
+              <th scope="col" onclick="sortBy('termino')" class="sorted">Término <span class="si">↑</span></th>
+              <th scope="col" onclick="sortBy('status')">Status <span class="si">↕</span></th>
+              <th scope="col">Dias</th>
+              <th scope="col" class="int-col" onclick="sortBy('sei')">SEI <span class="si">↕</span></th>
+              <th scope="col" class="int-col" onclick="sortBy('resp')">Responsável <span class="si">↕</span></th>
+              <th scope="col" class="int-col">Alerta</th>
+              <th scope="col" class="int-col">Situação</th>
+              <th scope="col">Ações</th>
             </tr>
           </thead>
           <tbody id="tbody" aria-live="polite"></tbody>
@@ -556,7 +556,7 @@ tbody tr.row-sel td{background:#e8f7eb;}
       <div class="import-zone" id="drop-zone" tabindex="0" role="button"
            aria-label="Clique ou arraste para importar planilha"
            onclick="document.getElementById('file-input').click()"
-           onkeydown="if(event.key==='Enter')document.getElementById('file-input').click()"
+           onkeydown="if(event.key==='Enter'||event.key===' ')document.getElementById('file-input').click()"
            ondragover="event.preventDefault();this.classList.add('drag')"
            ondragleave="this.classList.remove('drag')"
            ondrop="handleDrop(event)">
@@ -1089,7 +1089,7 @@ async function alterarSenha(){
   msg.style.display='block';
   const storedHash=sessionStorage.getItem('sema_pwd_hash')||getSenhaHash();
   const hashAtual=await hashSenha(atual);
-  if(hashAtual!==storedHash&&atual!=='SEMA@2026'){msg.style.color='var(--r)';msg.textContent='Senha atual incorreta.';return;}
+  if(hashAtual!==storedHash){msg.style.color='var(--r)';msg.textContent='Senha atual incorreta.';return;}
   if(nova.length<6){msg.style.color='var(--r)';msg.textContent='Nova senha deve ter no mínimo 6 caracteres.';return;}
   if(nova!==conf){msg.style.color='var(--r)';msg.textContent='As senhas não coincidem.';return;}
   const novoHash=await hashSenha(nova);

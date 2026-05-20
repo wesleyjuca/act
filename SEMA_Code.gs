@@ -98,7 +98,10 @@ function doPost(e) {
         raw = String(e.postData.contents || '');
       }
     }
-    const body = JSON.parse(raw);
+    if (!raw || !raw.trim()) return jsonResponse({ error: 'Corpo POST vazio ou ausente' });
+    let body;
+    try { body = JSON.parse(raw); }
+    catch (pe) { return jsonResponse({ error: 'JSON inválido: ' + pe.message }); }
     if (!validateToken(body.token)) {
       logError('auth', 'Token inválido em ' + new Date().toISOString());
       return jsonResponse({ error: 'Token inválido' }, 403);
@@ -159,43 +162,7 @@ function handleList(params) {
     records.push(rec);
   }
 
-  // Enrichment: também busca dados internos para usuário admin (flag)
-  const includeInternal = params.internal === '1';
-  if (includeInternal) {
-    const intSheet = ss.getSheetByName(SHEET_INTERNO);
-    if (intSheet) {
-      const intData = intSheet.getDataRange().getValues();
-      const intMap  = {};
-      for (let i = 2; i < intData.length; i++) {
-        const numRef = String(intData[i][0] || '');
-        if (numRef) intMap[numRef] = intData[i];
-      }
-      records.forEach(rec => {
-        const intRow = intMap[rec.numero || rec.num || ''];
-        if (intRow) {
-          rec.sei       = String(intRow[1] || '');
-          rec.resp      = String(intRow[2] || '');
-          rec.statusInt = String(intRow[3] || '');
-          rec.alerta    = String(intRow[9] || '');
-          rec.notas     = String(intRow[10] || '');
-        }
-      });
-    }
-  }
-
-  // Sempre incluir SEI na resposta pública (campo publicado por decisão administrativa)
-  const intSheetPub = ss.getSheetByName(SHEET_INTERNO);
-  if (intSheetPub) {
-    const intDataPub = intSheetPub.getDataRange().getValues();
-    const intMapPub  = {};
-    for (let i = 2; i < intDataPub.length; i++) {
-      const numRef = String(intDataPub[i][0] || '');
-      if (numRef) intMapPub[numRef] = String(intDataPub[i][1] || ''); // coluna B = SEI
-    }
-    records.forEach(rec => {
-      if (!rec.sei) rec.sei = intMapPub[rec.num || rec.numero || ''] || '';
-    });
-  }
+  enrichFromInternal(records, ss, params.internal === '1');
 
   logInfo('list', `${records.length} registros retornados`);
   return {
@@ -374,6 +341,30 @@ function buildRowValues(rec, sheetName) {
   return Object.values(rec);
 }
 
+// Enrich records from DADOS_INTERNOS with a single read
+// fullInternal=true also includes resp, statusInt, alerta, notas
+function enrichFromInternal(records, ss, fullInternal) {
+  const intSheet = ss.getSheetByName(SHEET_INTERNO);
+  if (!intSheet) return;
+  const intData = intSheet.getDataRange().getValues();
+  const intMap  = {};
+  for (let i = 2; i < intData.length; i++) {
+    const k = String(intData[i][0] || '').trim();
+    if (k) intMap[k] = intData[i];
+  }
+  records.forEach(rec => {
+    const row = intMap[(rec.num || rec.numero || '').trim()];
+    if (!row) return;
+    rec.sei = String(row[1] || '');
+    if (fullInternal) {
+      rec.resp      = String(row[2]  || '');
+      rec.statusInt = String(row[3]  || '');
+      rec.alerta    = String(row[9]  || '');
+      rec.notas     = String(row[10] || '');
+    }
+  });
+}
+
 function extractYear(num) {
   const m = String(num || '').match(/\/(\d{4})$/);
   return m ? parseInt(m[1]) : '';
@@ -391,7 +382,7 @@ function parseDate(str) {
     const [d, m, y] = str.split('/').map(Number);
     return new Date(y, m - 1, d);
   }
-  return str;
+  return '';
 }
 
 function findLastRow(sheet) {
@@ -416,7 +407,10 @@ function jsonResponse(data, code) {
 
 // ── LOG SHEET ─────────────────────────────────────────────────────────────────
 
+let _logSheet = null;  // cached per-execution to avoid repeated getSheetByName calls
+
 function ensureLogSheet() {
+  if (_logSheet) return _logSheet;
   const ss  = SpreadsheetApp.getActiveSpreadsheet();
   let log   = ss.getSheetByName(SHEET_LOG);
   if (!log) {
@@ -425,24 +419,19 @@ function ensureLogSheet() {
     log.getRange(1, 1, 1, 5).setFontWeight('bold')
        .setBackground('#095C18').setFontColor('#FFFFFF');
   }
-  return log;
+  _logSheet = log;
+  return _logSheet;
 }
 
 function logInfo(action, msg) {
   try {
-    ensureLogSheet();
-    const ss  = SpreadsheetApp.getActiveSpreadsheet();
-    const log = ss.getSheetByName(SHEET_LOG);
-    log.appendRow([new Date(), 'info', `[${action}] ${msg}`, 'api', '']);
+    ensureLogSheet().appendRow([new Date(), 'info', `[${action}] ${msg}`, 'api', '']);
   } catch (_) {}
 }
 
 function logError(action, msg) {
   try {
-    ensureLogSheet();
-    const ss  = SpreadsheetApp.getActiveSpreadsheet();
-    const log = ss.getSheetByName(SHEET_LOG);
-    log.appendRow([new Date(), 'error', `[${action}] ${msg}`, 'api', '']);
+    ensureLogSheet().appendRow([new Date(), 'error', `[${action}] ${msg}`, 'api', '']);
   } catch (_) {}
 }
 
@@ -478,6 +467,22 @@ function testGet() {
 
 function testStatus() {
   Logger.log(JSON.stringify(handleStatus(), null, 2));
+}
+
+function setupSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const create = (name, headers) => {
+    if (ss.getSheetByName(name)) return;
+    const sh = ss.insertSheet(name);
+    sh.appendRow(headers);
+    sh.getRange(1, 1, 1, headers.length)
+      .setFontWeight('bold').setBackground('#095C18').setFontColor('#FFFFFF');
+  };
+  create(SHEET_DADOS,   COL_PUB);
+  create(SHEET_INTERNO, COL_INT);
+  create(SHEET_HIST,    ['tipo','num','data','aditivo_num','descricao']);
+  ensureLogSheet();
+  logInfo('setup', 'Planilha inicializada');
 }
 
 function setupSyncToken() {
