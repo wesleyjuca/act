@@ -14,8 +14,8 @@
 
 // ─── CONFIG (sobrescrita por config.js) ───────────────────────────────────────
 const SYNC_DEFAULTS = {
-  appsScriptUrl: 'https://script.google.com/macros/s/AKfycbwxjyb3twqgso7q898sCoYqNM2wUWJal-8LMcJDTxY/dev',          // URL do Web App (doGet/doPost)
-  syncToken:     'f5a925ba-4c8d-4e2d-9b8c-eb61dc1a5aa0-dfbe6531-8c14-48c4-a09b-00a79696aa0b',          // Token secreto para operações de escrita
+  appsScriptUrl: '',          // URL do Web App (doGet/doPost) — definida em config.js
+  syncToken:     '',          // Token secreto para operações de escrita — definido em config.js
   interval:      300_000,     // 5 min em ms (0 = apenas manual)
   retryMax:      3,
   retryDelay:    2_000,
