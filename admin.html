@@ -354,7 +354,12 @@ tbody tr.row-sel td{background:#e8f7eb;}
       <div style="margin-left:auto;display:flex;gap:7px;flex-wrap:wrap;">
         <button class="btn btn-g" onclick="openForm()" aria-label="Novo instrumento">+ Novo</button>
         <button class="btn btn-y" onclick="openImport()" aria-label="Importar planilha Excel">↑ Importar</button>
-        <button class="btn btn-dk" onclick="exportarCompleto()" aria-label="Exportar relatório completo">↓ Exportar</button>
+        <div style="position:relative;display:inline-flex;">
+          <button class="btn btn-dk" onclick="exportarFiltrados()" aria-label="Exportar filtrado XLSX" title="Exportar registros visíveis (XLSX)">↓ XLSX</button>
+          <button class="btn btn-dk" style="padding:7px 8px;" onclick="exportarFiltradosCSV()" aria-label="Exportar filtrado CSV" title="Exportar registros visíveis (CSV)">CSV</button>
+          <button class="btn btn-dk" style="padding:7px 8px;" onclick="exportarFiltradosPDF()" aria-label="Exportar filtrado PDF" title="Exportar registros visíveis (PDF)">PDF</button>
+          <button class="btn btn-dk" style="padding:7px 8px;" onclick="baixarBackup()" aria-label="Backup JSON" title="Backup completo em JSON">⬇</button>
+        </div>
         <button class="btn btn-mail" onclick="enviarAlertaLote()" aria-label="Enviar alerta por e-mail para vencimentos">✉ Alertar</button>
         <button class="btn btn-o" onclick="limparFiltros()" aria-label="Limpar filtros">Limpar</button>
       </div>
@@ -364,14 +369,17 @@ tbody tr.row-sel td{background:#e8f7eb;}
     <div id="bulk-bar" class="bulk-bar hidden" role="toolbar" aria-label="Ações em lote">
       <span id="bulk-count">0 selecionados</span>
       <button class="btn btn-r" style="font-size:11px;" onclick="excluirSelecionados()" aria-label="Excluir selecionados">🗑 Excluir selecionados</button>
-      <button class="btn btn-dk" style="font-size:11px;" onclick="exportarSelecionados()" aria-label="Exportar selecionados">↓ Exportar selecionados</button>
+      <button class="btn btn-dk" style="font-size:11px;" onclick="exportarSelecionados()" aria-label="Exportar selecionados XLSX">↓ XLSX</button>
+      <button class="btn btn-dk" style="font-size:11px;" onclick="exportarSelecionadosCSV()" aria-label="Exportar selecionados CSV">CSV</button>
+      <button class="btn btn-dk" style="font-size:11px;" onclick="exportarSelecionadosPDF()" aria-label="Exportar selecionados PDF">PDF</button>
       <button class="btn btn-mail" style="font-size:11px;" onclick="alertarSelecionados()" aria-label="Enviar alerta para selecionados">✉ E-mail selecionados</button>
     </div>
 
     <!-- Undo bar -->
     <div id="undo-bar" class="undo-bar hidden" role="status" aria-live="polite">
       <span id="undo-msg">Registro excluído</span>
-      <button class="btn btn-y" style="font-size:11px;" onclick="desfazerExclusao()" aria-label="Desfazer exclusão">↩ Desfazer (<span id="undo-timer">5</span>s)</button>
+      <button id="btn-undo" class="btn btn-y" style="font-size:11px;" onclick="undo()" aria-label="Desfazer">↩ Desfazer (<span id="undo-timer">5</span>s)</button>
+      <button class="btn btn-o" style="font-size:11px;" onclick="redo()" aria-label="Refazer">↪ Refazer</button>
     </div>
 
     <!-- Table -->
@@ -658,9 +666,11 @@ tbody tr.row-sel td{background:#e8f7eb;}
       <tr><td>Del</td><td>Excluir registros selecionados</td></tr>
       <tr><td colspan="2" class="help-section">Import / Export</td></tr>
       <tr><td>Ctrl + I</td><td>Abrir importação de planilha</td></tr>
-      <tr><td>Ctrl + E</td><td>Exportar Excel (todos)</td></tr>
+      <tr><td>Ctrl + E</td><td>Exportar XLSX (filtrado)</td></tr>
       <tr><td colspan="2" class="help-section">Admin</td></tr>
       <tr><td>Ctrl + S</td><td>Salvar registro em edição</td></tr>
+      <tr><td>Ctrl + Z</td><td>Desfazer última ação</td></tr>
+      <tr><td>Ctrl + Y</td><td>Refazer</td></tr>
     </table>
     <p style="font-size:11px;color:var(--tx2);margin-top:14px;">☀/🌙 = alternar tema claro/escuro (botão no cabeçalho)</p>
   </div>
@@ -684,8 +694,29 @@ async function hashSenha(senha){
 
 // ── ESTADO ────────────────────────────────────────────────────────────────────
 let dados=[], filtrados=[], sortField='termino', sortAsc=true;
-let editIdx=null, delIdx=null, pendImport=null, undoData=null, undoTimer=null;
+let editIdx=null, delIdx=null, pendImport=null, undoTimer=null;
+let _undoStack=[], _redoStack=[];
 let selSet=new Set();
+let _editOriginal=null;
+
+function _autosave(){try{sessionStorage.setItem('sema_dados_cache',JSON.stringify(dados));}catch(_){}}
+function _pushUndo(){if(_undoStack.length>=10)_undoStack.shift();_undoStack.push(JSON.stringify(dados));_redoStack=[];_updateUndoBtn();}
+function _updateUndoBtn(){const b=document.getElementById('btn-undo');if(b)b.textContent=`↩ Desfazer${_undoStack.length>0?' ('+_undoStack.length+')':''}`;}
+function undo(){
+  if(!_undoStack.length)return;
+  _redoStack.push(JSON.stringify(dados));
+  dados=JSON.parse(_undoStack.pop());
+  clearInterval(undoTimer);document.getElementById('undo-bar').classList.add('hidden');
+  _autosave();popularFiltros();renderTable();updateKPIs();_updateUndoBtn();
+  showToast('Desfeito','ok',2000);
+}
+function redo(){
+  if(!_redoStack.length){showToast('Nada para refazer','warn',2000);return;}
+  _undoStack.push(JSON.stringify(dados));
+  dados=JSON.parse(_redoStack.pop());
+  _autosave();popularFiltros();renderTable();updateKPIs();_updateUndoBtn();
+  showToast('Refeito','ok',2000);
+}
 
 // ── DADOS INICIAIS (extraídos da planilha oficial) ────────────────────────────
 const DEMO=[
@@ -798,8 +829,10 @@ async function doLogin(){
     app.style.display='flex';
     document.getElementById('h-date').textContent=
       new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
-    // Inicia com dados locais; SYNC (já inicializado) substituirá ao buscar do Sheets
+    // Restaurar dados do autosave sessionStorage (sobrescreve DEMO, aguarda Sheets)
+    const _cached=sessionStorage.getItem('sema_dados_cache');
     dados=SYNC?[...SYNC.getAll()||DEMO]:[...DEMO];
+    if(_cached){try{const _c=JSON.parse(_cached);if(_c.length>0){dados=_c;showToast(`${_c.length} registros restaurados do autosave`,'ok',3000);}}catch(_){}}
     if(!dados.length)dados=[...DEMO];
     if(SYNC) {
       SYNC.loadAll(dados);
@@ -832,6 +865,8 @@ async function doLogin(){
 function doLogout(){
   sessionStorage.removeItem('sema_auth');
   sessionStorage.removeItem('sema_pwd_hash');
+  sessionStorage.removeItem('sema_dados_cache');
+  _undoStack=[];_redoStack=[];
   document.getElementById('app').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('pwd-input').value='';
@@ -891,7 +926,7 @@ function updateKPIs(){
   if(crit.length){
     strip.style.display='flex';
     document.getElementById('alert-text').textContent=`${s30} instrumento(s) vencendo em até 30 dias · ${exp} expirado(s) sem renovação`;
-    document.getElementById('alert-sub').textContent=crit.map(r=>`${r.tipo} ${r.num} — ${r.inst.split('–')[0].trim()} (${fmtDate(r.termino)})`).join(' · ');
+    document.getElementById('alert-sub').textContent=crit.map(r=>`${r.tipo} ${r.num} — ${(r.inst||'').split('–')[0].trim()} (${fmtDate(r.termino)})`).join(' · ');
   } else {strip.style.display='none';}
 }
 
@@ -943,7 +978,7 @@ function renderTable(){
       <td><span class="tipo-tag">${escHtml(r.tipo)}</span></td>
       <td style="font-weight:800;">${escHtml(r.num)}</td>
       <td style="max-width:240px;font-size:10.5px;">${escHtml(r.objeto)}</td>
-      <td style="font-size:10.5px;min-width:100px;">${hl(r.inst.split('–')[0].trim())}</td>
+      <td style="font-size:10.5px;min-width:100px;">${hl((r.inst||'').split('–')[0].trim())}</td>
       <td style="font-size:10.5px;">${escHtml(r.esfera)}</td>
       <td style="white-space:nowrap;">${fmtDate(r.termino)}</td>
       <td><span class="st ${st.cls}" role="status">${escHtml(st.label)}</span></td>
@@ -960,6 +995,13 @@ function renderTable(){
     </tr>`;
   }).join('');
   document.getElementById('tbl-count').textContent=`${filtrados.length} de ${dados.length} registros`;
+  // Sincronizar estado do checkbox de seleção total
+  const _selAll=document.getElementById('sel-all');
+  if(_selAll&&filtrados.length>0){
+    const _selCount=filtrados.filter(r=>selSet.has(_idxMap.get(`${r.tipo}|${r.num}`)??-1)).length;
+    _selAll.checked=_selCount===filtrados.length;
+    _selAll.indeterminate=_selCount>0&&_selCount<filtrados.length;
+  } else if(_selAll){_selAll.checked=false;_selAll.indeterminate=false;}
   updateBulkBar();
 }
 function limparFiltros(){['busca','f-tipo','f-status','f-ano','f-resp'].forEach(id=>{const el=document.getElementById(id);el&&(el.tagName==='INPUT'?el.value='':el.selectedIndex=0);});renderTable();}
@@ -971,7 +1013,7 @@ function updateBulkBar(){const n=selSet.size;const bar=document.getElementById('
 async function excluirSelecionados(){
   if(!selSet.size)return;
   showConfirm(`Excluir ${selSet.size} registro(s)? Você pode desfazer em seguida.`,'Confirmar exclusão','Excluir',()=>{
-    undoData=[...dados];
+    _pushUndo();
     const paraRemover=[...selSet].map(i=>dados[i]).filter(Boolean);
     [...selSet].sort((a,b)=>b-a).forEach(i=>dados.splice(i,1));
     selSet.clear();popularFiltros();renderTable();updateKPIs();
@@ -991,16 +1033,27 @@ function exportarSelecionados(){const sel=dados.filter((_,i)=>selSet.has(i));if(
 function openForm(idx=null){
   editIdx=idx;
   const r=idx!==null?dados[idx]:{};
+  _editOriginal=idx!==null?{...r}:null;
   document.getElementById('form-title').textContent=idx!==null?`Editar — ${r.tipo} ${r.num}`:'Novo Instrumento de Cooperação';
-  const fields={tipo2:r.tipo,num:r.num,objeto:r.objeto,inst:r.inst,esfera:r.esfera,inicio:r.inicio,termino:r.termino,area:r.area,link:r.link,obs:r.obs,sei:r.sei,resp2:r.resp,statusint:r.statusInt,alerta:r.alerta,notas:r.notas};
-  Object.entries(fields).forEach(([k,v])=>{const el=document.getElementById('f-'+k);if(el)el.value=v||'';});
+  const fieldMap={tipo2:'tipo',num:'num',objeto:'objeto',inst:'inst',esfera:'esfera',inicio:'inicio',termino:'termino',area:'area',link:'link',obs:'obs',sei:'sei',resp2:'resp',statusint:'statusInt',alerta:'alerta',notas:'notas'};
+  Object.entries(fieldMap).forEach(([k,prop])=>{const el=document.getElementById('f-'+k);if(el){el.value=r[prop]||'';el.style.borderColor='';}});
+  // Ativar diff visual ao editar
+  if(_editOriginal){
+    Object.entries(fieldMap).forEach(([k,prop])=>{
+      const el=document.getElementById('f-'+k);
+      if(!el)return;
+      el.oninput=()=>{el.style.borderColor=el.value!==((_editOriginal[prop])||'')?'var(--y)':'';}
+    });
+  }
   const obj=document.getElementById('f-objeto');
   if(obj)countChars(obj,200,'cnt-obj');
   document.querySelectorAll('.ferrmsg').forEach(e=>{e.classList.remove('show');});
   document.querySelectorAll('.ferr').forEach(e=>e.classList.remove('ferr'));
   document.getElementById('modal-form').classList.add('open');
 }
-function closeForm(){document.getElementById('modal-form').classList.remove('open');editIdx=null;}
+function closeForm(){document.getElementById('modal-form').classList.remove('open');editIdx=null;_editOriginal=null;
+  document.querySelectorAll('[id^="f-"]').forEach(el=>{if(el.tagName==='INPUT'||el.tagName==='SELECT'||el.tagName==='TEXTAREA')el.style.borderColor='';});
+}
 function validarDatas(){
   const i=document.getElementById('f-inicio').value;
   const t=document.getElementById('f-termino').value;
@@ -1048,12 +1101,23 @@ async function salvar(){
   };
   const _doSave=()=>{
     const idxAtual=editIdx;
+    // Calcular diff para histórico
+    const diffFields=_editOriginal?Object.keys(rec).filter(k=>k!=='_ts'&&k!=='_row'&&String(rec[k]||'')!==String((_editOriginal[k])||'')):[];
+    _pushUndo();
     if(idxAtual!==null)dados[idxAtual]=rec;else dados.push(rec);
+    _autosave();
     closeForm();popularFiltros();renderTable();updateKPIs();
     showToast(`${rec.tipo} ${rec.num} salvo localmente.`,'ok',2500);
     if(SYNC){
       SYNC.save(rec)
-        .then(()=>showToast(`${rec.tipo} ${rec.num} sincronizado com Sheets.`,'ok'))
+        .then(()=>{
+          showToast(`${rec.tipo} ${rec.num} sincronizado com Sheets.`,'ok');
+          // Registrar histórico de alterações no GAS
+          if(diffFields.length>0&&SYNC._hasToken()){
+            const entries=diffFields.map(k=>({tipo:rec.tipo,num:rec.num,campo:k,antes:String(_editOriginal[k]||''),depois:String(rec[k]||'')}));
+            SYNC._post({action:'addHistory',entries}).catch(()=>{});
+          }
+        })
         .catch(e=>{
           showToast('Salvo localmente. Sheets será atualizado no próximo sync.','warn');
           if(typeof appendLog==='function')appendLog({level:'warn',msg:'Push Sheets: '+e.message,iso:new Date().toLocaleTimeString('pt-BR')});
@@ -1068,17 +1132,18 @@ async function salvar(){
 }
 
 // ── DELETE + UNDO ──────────────────────────────────────────────────────────────
-function openDel(idx){delIdx=idx;const r=dados[idx];document.getElementById('del-sub').textContent=`Excluir: ${r.tipo} ${r.num} — ${r.inst.split('–')[0].trim()}. Você pode desfazer em seguida.`;document.getElementById('modal-del').classList.add('open');}
+function openDel(idx){delIdx=idx;const r=dados[idx];document.getElementById('del-sub').textContent=`Excluir: ${r.tipo} ${r.num} — ${(r.inst||'').split('–')[0].trim()}. Você pode desfazer em seguida.`;document.getElementById('modal-del').classList.add('open');}
 function cancelDel(){document.getElementById('modal-del').classList.remove('open');delIdx=null;}
 function confirmarDel(){
   if(delIdx===null)return;
-  undoData=[...dados];
+  _pushUndo();
   const r=dados[delIdx];
   const tipoNum={tipo:r.tipo,num:r.num};
   dados.splice(delIdx,1);
   document.getElementById('modal-del').classList.remove('open');
   selSet.delete(delIdx);
   delIdx=null;
+  _autosave();
   popularFiltros();renderTable();updateKPIs();
   mostrarUndo(`Registro "${tipoNum.tipo} ${tipoNum.num}" excluído`);
   if(SYNC){
@@ -1091,16 +1156,9 @@ function mostrarUndo(msg){
   const bar=document.getElementById('undo-bar');
   bar.classList.remove('hidden');
   document.getElementById('undo-msg').textContent=msg;
-  let t=5;document.getElementById('undo-timer').textContent=t;
+  let t=8;document.getElementById('undo-timer').textContent=t;
   clearInterval(undoTimer);
-  undoTimer=setInterval(()=>{t--;document.getElementById('undo-timer').textContent=t;if(t<=0){clearInterval(undoTimer);bar.classList.add('hidden');undoData=null;}},1000);
-}
-function desfazerExclusao(){
-  if(!undoData)return;
-  dados=[...undoData];undoData=null;
-  clearInterval(undoTimer);
-  document.getElementById('undo-bar').classList.add('hidden');
-  popularFiltros();renderTable();updateKPIs();
+  undoTimer=setInterval(()=>{t--;document.getElementById('undo-timer').textContent=t;if(t<=0){clearInterval(undoTimer);bar.classList.add('hidden');}},1000);
 }
 
 // ── IMPORT ─────────────────────────────────────────────────────────────────────
@@ -1139,11 +1197,28 @@ function processFile(file){
 function parseDateStr(s){if(!s)return '';if(s.includes('/')){const[d,m,y]=s.split('/');return`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;}return s;}
 function confirmarImport(){
   if(!pendImport)return;
-  // Merge: skip exact duplicates by tipo+num
-  const novos=pendImport.filter(r=>!dados.some(d=>d.num===r.num&&d.tipo===r.tipo));
-  dados=[...dados,...novos];
+  _pushUndo();
+  const publicFields=['tipo','num','objeto','inst','esfera','inicio','termino','area','link','obs'];
+  const internalFields=['sei','resp','statusInt','alerta','notas'];
+  let novos=0,atualizados=0,ignorados=0;
+  pendImport.forEach(imp=>{
+    const idx=dados.findIndex(d=>d.num===imp.num&&d.tipo===imp.tipo);
+    if(idx===-1){dados.push(imp);novos++;}
+    else{
+      const existing=dados[idx];
+      // Merge inteligente: aplicar apenas campos públicos alterados; preservar internos do existente
+      const changed=publicFields.some(f=>String(imp[f]||'')!==String(existing[f]||''));
+      if(changed){
+        internalFields.forEach(f=>{imp[f]=existing[f]||'';});
+        dados[idx]={...existing,...imp};
+        atualizados++;
+      } else {ignorados++;}
+    }
+  });
+  _autosave();
   document.getElementById('import-info').textContent=
-    `Importado: ${novos.length} novos, ${pendImport.length-novos.length} duplicatas ignoradas · ${new Date().toLocaleTimeString('pt-BR')}`;
+    `Importado: ${novos} novos, ${atualizados} atualizados, ${ignorados} sem mudanças · ${new Date().toLocaleTimeString('pt-BR')}`;
+  showToast(`Import: ${novos} novos · ${atualizados} atualizados · ${ignorados} ignorados`,'ok',5000);
   closeImport();popularFiltros();renderTable();updateKPIs();
 }
 
@@ -1158,7 +1233,7 @@ function enviarAlertaLote(){
   const criticos=dados.filter(r=>{const s=calcStatus(r.termino).label;return s==='Vence em 30 dias'||s==='Expirado'||s==='A vencer';});
   if(!criticos.length){showToast('Nenhum instrumento a vencer ou expirado.','warn');return;}
   const subj=`[SEMA/AC] Relatório de alertas de vencimento — ${new Date().toLocaleDateString('pt-BR')}`;
-  const body=`Prezados,\n\nRelacionamos abaixo os instrumentos que requerem atenção:\n\n${criticos.map(r=>`- ${r.tipo} ${r.num} | ${r.inst.split('–')[0].trim()} | ${fmtDate(r.termino)} | ${calcStatus(r.termino).label}`).join('\n')}\n\nAtenciosamente,\nAssessoria Jurídica — SEMA/AC`;
+  const body=`Prezados,\n\nRelacionamos abaixo os instrumentos que requerem atenção:\n\n${criticos.map(r=>`- ${r.tipo} ${r.num} | ${(r.inst||'').split('–')[0].trim()} | ${fmtDate(r.termino)} | ${calcStatus(r.termino).label}`).join('\n')}\n\nAtenciosamente,\nAssessoria Jurídica — SEMA/AC`;
   window.location.href=`mailto:?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
 }
 function alertarSelecionados(){
@@ -1173,12 +1248,68 @@ function alertarSelecionados(){
 function exportarXLSX(rows,fname){try{
   const str=v=>String(v??'');
   const header=['Tipo','Número','Objeto','Instituição','Esfera','Início','Término','Área','Status','Dias','SEI (interno)','Responsável','Situação','Alerta','Notas'];
-  const data=rows.map(r=>{const s=calcStatus(r.termino);return[str(r.tipo),str(r.num),str(r.objeto),str(r.inst),str(r.esfera),str(fmtDate(r.inicio)),str(fmtDate(r.termino)),str(r.area),str(s.label),s.dias??'',str(r.sei),str(r.resp),str(r.statusInt),str(r.alerta),str(r.notas)];});
+  const data=rows.map(r=>{const s=calcStatus(r.termino);return[str(r.tipo),str(r.num),str(r.objeto),str(r.inst),str(r.esfera),str(fmtDate(r.inicio)),str(fmtDate(r.termino)),str(r.area),str(s.label),str(s.dias??''),str(r.sei),str(r.resp),str(r.statusInt),str(r.alerta),str(r.notas)];});
   const ws=XLSX.utils.aoa_to_sheet([header,...data]);
   ws['!cols']=[8,10,50,30,12,12,12,22,14,8,28,18,20,20,36].map(w=>({wch:w}));
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,'TCT_Admin',ws);
-  XLSX.writeFile(wb,`${fname}_${new Date().toISOString().slice(0,10)}.xlsx`);}catch(e){alert('Erro ao exportar: '+e.message);console.error(e);}}
+  XLSX.writeFile(wb,`${fname}_${new Date().toISOString().slice(0,10)}.xlsx`);}catch(e){showToast('Erro ao exportar: '+e.message,'err');console.error(e);}}
 function exportarCompleto(){exportarXLSX(dados,'SEMA_TCT_Admin_Completo');}
+function exportarFiltrados(){if(!filtrados.length){showToast('Nenhum registro filtrado.','warn');return;}exportarXLSX(filtrados,'SEMA_TCT_Filtrado');}
+function exportarFiltradosCSV(){if(!filtrados.length){showToast('Nenhum registro filtrado.','warn');return;}exportarCSV(filtrados,'SEMA_TCT_Filtrado');}
+function exportarCompletoCSV(){exportarCSV(dados,'SEMA_TCT_Admin_Completo');}
+function exportarSelecionadosCSV(){const sel=dados.filter((_,i)=>selSet.has(i));if(!sel.length){showToast('Nenhum registro selecionado.','warn');return;}exportarCSV(sel,'SEMA_TCT_Selecionados');}
+
+function exportarCSV(rows,fname){try{
+  const esc=v=>String(v??'').replace(/"/g,'""');
+  const header=['Tipo','Número','Objeto','Instituição','Esfera','Início','Término','Área','Status','Dias','SEI (interno)','Responsável','Situação Int.','Alerta','Notas'];
+  const lines=[header,...rows.map(r=>{const s=calcStatus(r.termino);return[r.tipo,r.num,r.objeto,r.inst,r.esfera,fmtDate(r.inicio),fmtDate(r.termino),r.area,s.label,s.dias??'',r.sei,r.resp,r.statusInt,r.alerta,r.notas];})].map(row=>row.map(v=>`"${esc(v)}"`).join(','));
+  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`${fname}_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+  showToast(`CSV exportado: ${rows.length} registros`,'ok',3000);
+}catch(e){showToast('Erro ao exportar CSV: '+e.message,'err');console.error(e);}}
+
+function exportarPDF(rows,fname){try{
+  if(!window.jspdf){showToast('Carregando biblioteca PDF…','info',3000);const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';s.onload=()=>exportarPDF(rows,fname);document.head.appendChild(s);return;}
+  const{jsPDF}=window.jspdf;const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const W=297;
+  doc.setFillColor(9,92,24);doc.rect(0,0,W,18,'F');
+  doc.setFillColor(245,199,26);doc.rect(0,18,W,1.2,'F');
+  doc.setFontSize(12);doc.setFont('helvetica','bold');doc.setTextColor(31,173,53);doc.text('SEMA',10,12);
+  doc.setTextColor(255,255,255);doc.setFontSize(8);doc.setFont('helvetica','normal');
+  doc.text('Secretaria de Estado do Meio Ambiente — AC | Termos de Cooperação Técnica',28,12);
+  doc.setTextColor(180,180,180);doc.setFontSize(7);doc.text(`Gerado em ${new Date().toLocaleString('pt-BR')} · ${rows.length} registros`,W-10,12,{align:'right'});
+  const cols=['Tipo','Número','Objeto','Instituição','Esfera','Término','Status','Dias','Responsável'];
+  const colW=[12,22,70,45,14,22,22,10,28];
+  let x=10,y=26;
+  doc.setFillColor(9,92,24);doc.rect(x,y,W-20,7,'F');
+  doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
+  colW.forEach((w,i)=>{doc.text(cols[i],x+2,y+5);x+=w;});
+  y+=7;
+  rows.forEach((r,idx)=>{
+    if(y>190){doc.addPage();y=15;}
+    const s=calcStatus(r.termino);
+    if(idx%2===0){doc.setFillColor(240,247,240);doc.rect(10,y,W-20,6,'F');}
+    doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.setTextColor(60,60,60);
+    x=10;
+    const vals=[r.tipo,r.num,(r.objeto||'').slice(0,45),(r.inst||'').split('–')[0].trim().slice(0,30),r.esfera||'',fmtDate(r.termino),s.label,s.dias!==null?Math.abs(s.dias):'',r.resp||''];
+    colW.forEach((w,i)=>{doc.text(String(vals[i]??''),x+1,y+4.5,{maxWidth:w-2});x+=w;});
+    y+=6;
+  });
+  doc.setFontSize(6.5);doc.setTextColor(150,150,150);doc.text('SEMA/AC — Assessoria Jurídica · Documento gerado automaticamente',W/2,doc.internal.pageSize.height-5,{align:'center'});
+  doc.save(`${fname}_${new Date().toISOString().slice(0,10)}.pdf`);
+  showToast(`PDF exportado: ${rows.length} registros`,'ok',3000);
+}catch(e){showToast('Erro ao exportar PDF: '+e.message,'err');console.error(e);}}
+function exportarCompletoPDF(){exportarPDF(dados,'SEMA_TCT_Admin_Completo');}
+function exportarFiltradosPDF(){if(!filtrados.length){showToast('Nenhum registro filtrado.','warn');return;}exportarPDF(filtrados,'SEMA_TCT_Filtrado');}
+function exportarSelecionadosPDF(){const sel=dados.filter((_,i)=>selSet.has(i));if(!sel.length){showToast('Nenhum registro selecionado.','warn');return;}exportarPDF(sel,'SEMA_TCT_Selecionados');}
+
+function baixarBackup(){
+  const blob=new Blob([JSON.stringify({ts:new Date().toISOString(),version:'3.0',records:dados},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`sema_backup_${new Date().toISOString().slice(0,10)}.json`;a.click();
+  showToast(`Backup exportado: ${dados.length} registros`,'ok',3000);
+}
 
 // ── SENHA SHA-256 ──────────────────────────────────────────────────────────────
 async function alterarSenha(){
@@ -1393,10 +1524,12 @@ document.addEventListener('keydown',e=>{
   if((e.key==='F1'||(e.key==='?'&&!e.ctrlKey&&!e.altKey&&document.activeElement.tagName!=='INPUT'&&document.activeElement.tagName!=='TEXTAREA'))){
     e.preventDefault();document.getElementById('modal-help').classList.add('open');
   }
-  if(e.ctrlKey&&e.key==='f'){e.preventDefault();document.getElementById('search')?.focus();}
+  if(e.ctrlKey&&e.key==='f'){e.preventDefault();document.getElementById('busca')?.focus();}
   if(e.ctrlKey&&e.key==='i'){e.preventDefault();openImport();}
-  if(e.ctrlKey&&e.key==='e'){e.preventDefault();exportarCompleto();}
+  if(e.ctrlKey&&e.key==='e'){e.preventDefault();exportarFiltrados();}
   if(e.ctrlKey&&e.key==='s'){e.preventDefault();document.getElementById('modal-form')?.classList.contains('open')&&salvarForm();}
+  if(e.ctrlKey&&(e.key==='z'||e.key==='Z')&&!e.shiftKey){e.preventDefault();undo();}
+  if((e.ctrlKey&&e.key==='y')||(e.ctrlKey&&e.shiftKey&&e.key==='Z')){e.preventDefault();redo();}
   if(e.key==='Delete'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){if(selSet.size)excluirSelecionados();}
 });
 

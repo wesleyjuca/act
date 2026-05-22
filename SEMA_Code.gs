@@ -70,9 +70,10 @@ function doGet(e) {
     const action = (e.parameter && e.parameter.action) || 'list';
     let result;
     switch (action) {
-      case 'list':   result = handleList(e.parameter);   break;
-      case 'schema': result = handleSchema();            break;
-      case 'status': result = handleStatus();            break;
+      case 'list':       result = handleList(e.parameter);              break;
+      case 'history':    result = handleGetHistory(e.parameter);       break;
+      case 'schema':     result = handleSchema();                       break;
+      case 'status':     result = handleStatus();                       break;
       default:       result = { error: `Ação desconhecida: ${action}` };
     }
     return jsonResponse(result);
@@ -120,6 +121,7 @@ function doPost(e) {
       case 'upsertBatch':  result = handleUpsertBatch(body.records, body.sheet);    break;
       case 'delete':       result = handleDelete(body.tipo, body.num, body.sheet);  break;
       case 'log':          result = handleLogEntry(body.entry);                     break;
+      case 'addHistory':   result = handleAddHistory(body.entries);                 break;
       default:             result = { error: `Ação POST desconhecida: ${body.action}` };
     }
     return jsonResponse(result);
@@ -307,6 +309,41 @@ function handleDelete(tipo, num, sheetName) {
     }
   }
   return { ok: false, reason: 'not_found' };
+}
+
+function handleAddHistory(entries) {
+  if (!Array.isArray(entries) || !entries.length) return { error: 'entries deve ser array não vazio' };
+  const ss   = SpreadsheetApp.getActiveSpreadsheet();
+  let hist   = ss.getSheetByName(SHEET_HIST);
+  if (!hist) {
+    hist = ss.insertSheet(SHEET_HIST);
+    hist.appendRow(['Timestamp', 'Tipo', 'Num', 'Campo', 'Valor Anterior', 'Valor Novo', 'Usuário']);
+    hist.getRange(1, 1, 1, 7).setFontWeight('bold').setBackground('#095C18').setFontColor('#FFFFFF');
+  }
+  const rows = entries.map(e => [new Date(), e.tipo || '', e.num || '', e.campo || '', e.antes || '', e.depois || '', 'admin']);
+  hist.getRange(hist.getLastRow() + 1, 1, rows.length, 7).setValues(rows);
+  logInfo('addHistory', `${rows.length} alterações registradas`);
+  return { ok: true, count: rows.length };
+}
+
+function handleGetHistory(params) {
+  const tipo = params.tipo || '';
+  const num  = params.num  || '';
+  const ss   = SpreadsheetApp.getActiveSpreadsheet();
+  const hist = ss.getSheetByName(SHEET_HIST);
+  if (!hist) return { entries: [], count: 0 };
+  const data = hist.getDataRange().getValues();
+  const entries = [];
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if ((tipo && String(row[1]) !== tipo) || (num && String(row[2]) !== num)) continue;
+    entries.push({
+      ts:    row[0] instanceof Date ? Utilities.formatDate(row[0], 'America/Rio_Branco', 'yyyy-MM-dd HH:mm:ss') : String(row[0]),
+      tipo:  String(row[1]), num:   String(row[2]), campo: String(row[3]),
+      antes: String(row[4]), depois:String(row[5]), usuario: String(row[6]),
+    });
+  }
+  return { entries, count: entries.length };
 }
 
 function handleLogEntry(entry) {
