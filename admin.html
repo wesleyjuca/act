@@ -23,7 +23,41 @@
   --ok:#0A7A2E;--okl:#E6F9EE;
   --b:#1565C0;--bl:#E3F2FD;
   --tx:#4A4A4A;--tx2:#888;--bdr:#DDD;--bg:#F0F2F0;
+  --card:#fff;--modal-bg:#fff;
 }
+[data-theme="dark"]{
+  --tx:#E2E2E2;--tx2:#AAA;--bdr:#3A3A3A;--bg:#1A1A1A;
+  --card:#242424;--modal-bg:#2A2A2A;
+  --gl:#1A2E1D;--yl:#2A2500;--rl:#2A1010;--bl:#0D1E38;--al:#2A1F00;--okl:#0A1E10;
+}
+[data-theme="dark"] .kpi,[data-theme="dark"] .card-sec,[data-theme="dark"] .modal-box,
+[data-theme="dark"] .confirm-card,[data-theme="dark"] .modal-bd{background:var(--card);}
+[data-theme="dark"] body{background:var(--bg);color:var(--tx);}
+[data-theme="dark"] .fg input,[data-theme="dark"] .fg select,[data-theme="dark"] .fg textarea{
+  background:#1E1E1E;color:var(--tx);border-color:var(--bdr);}
+[data-theme="dark"] .import-zone{background:#1E1E1E;border-color:var(--bdr);}
+[data-theme="dark"] table{color:var(--tx);}
+[data-theme="dark"] th,[data-theme="dark"] td{border-color:var(--bdr);}
+[data-theme="dark"] tr:hover{background:rgba(255,255,255,.04)!important;}
+.p-online{background:rgba(31,173,53,.25);color:#6DCA7E;border:1px solid rgba(31,173,53,.35);}
+.p-offline{background:rgba(198,40,40,.25);color:#ffb3b3;border:1px solid rgba(198,40,40,.35);}
+.btn-icon{background:transparent;border:1px solid rgba(255,255,255,.28);color:rgba(255,255,255,.75);padding:4px 9px;border-radius:20px;font-size:13px;cursor:pointer;line-height:1;}
+/* Confirm modal */
+.confirm-modal{background:rgba(0,0,0,.55);position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:9999;}
+.confirm-modal.open{display:flex;}
+.confirm-modal-box{background:var(--modal-bg);border-radius:12px;padding:28px 32px;max-width:380px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.25);}
+.confirm-modal-title{font-size:16px;font-weight:800;color:var(--tx);margin-bottom:10px;}
+.confirm-modal-msg{font-size:13px;color:var(--tx2);margin-bottom:22px;line-height:1.5;}
+.confirm-modal-btns{display:flex;gap:8px;justify-content:flex-end;}
+/* Help modal */
+.help-modal{background:rgba(0,0,0,.55);position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:9999;}
+.help-modal.open{display:flex;}
+.help-modal-box{background:var(--modal-bg);border-radius:12px;padding:28px 32px;max-width:480px;width:92%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.25);}
+.help-modal-title{font-size:16px;font-weight:800;color:var(--gd);margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;}
+.help-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.help-table td{padding:6px 8px;border-bottom:1px solid var(--bdr);}
+.help-table td:first-child{font-family:monospace;background:var(--bg);border-radius:4px;font-weight:700;white-space:nowrap;}
+.help-section{font-size:11px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.5px;padding:12px 0 4px;}
 /* Logo */
 .sl{display:flex;align-items:center;}
 .sl-s{font-size:20px;font-weight:900;color:var(--g);letter-spacing:-1px;}
@@ -262,7 +296,10 @@ tbody tr.row-sel td{background:#e8f7eb;}
       </div>
       <div class="hpills">
         <span class="pill p-lock" role="note">🔒 Admin — ASJUR</span>
+        <span class="pill p-online" id="h-online" aria-live="polite">● Online</span>
         <span class="pill p-user" id="h-date" aria-live="polite"></span>
+        <button class="btn-icon" onclick="toggleDarkMode()" id="btn-theme" title="Alternar modo escuro" aria-label="Alternar tema claro/escuro">☀</button>
+        <button class="btn-icon" onclick="document.getElementById('modal-help').classList.add('open')" title="Atalhos e ajuda (F1)" aria-label="Ajuda e atalhos de teclado">?</button>
         <button class="btn-logout" onclick="doLogout()" aria-label="Encerrar sessão">Sair</button>
       </div>
     </div>
@@ -556,7 +593,7 @@ tbody tr.row-sel td{background:#e8f7eb;}
       <div class="import-zone" id="drop-zone" tabindex="0" role="button"
            aria-label="Clique ou arraste para importar planilha"
            onclick="document.getElementById('file-input').click()"
-           onkeydown="if(event.key==='Enter'||event.key===' ')document.getElementById('file-input').click()"
+           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('file-input').click();}"
            ondragover="event.preventDefault();this.classList.add('drag')"
            ondragleave="this.classList.remove('drag')"
            ondrop="handleDrop(event)">
@@ -589,6 +626,43 @@ tbody tr.row-sel td{background:#e8f7eb;}
       <button class="btn btn-o" onclick="cancelDel()">Cancelar</button>
       <button class="btn btn-r" onclick="confirmarDel()">Excluir</button>
     </div>
+  </div>
+</div>
+
+<!-- ══ MODAL CONFIRMAR GENÉRICO ══════════════════════════════════════════════ -->
+<div id="modal-confirm" class="confirm-modal" role="dialog" aria-modal="true" aria-label="Confirmação">
+  <div class="confirm-modal-box">
+    <div class="confirm-modal-title" id="modal-confirm-title">Confirmar</div>
+    <div class="confirm-modal-msg" id="modal-confirm-msg"></div>
+    <div class="confirm-modal-btns">
+      <button class="btn btn-o" id="modal-confirm-cancel">Cancelar</button>
+      <button class="btn btn-r" id="modal-confirm-ok">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL AJUDA / ATALHOS ══════════════════════════════════════════════════ -->
+<div id="modal-help" class="help-modal" role="dialog" aria-modal="true" aria-label="Ajuda — Atalhos de teclado"
+     onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="help-modal-box">
+    <div class="help-modal-title">
+      <span>Atalhos de teclado</span>
+      <button class="btn-icon" style="color:var(--tx2)" onclick="document.getElementById('modal-help').classList.remove('open')" aria-label="Fechar ajuda">✕</button>
+    </div>
+    <table class="help-table" aria-label="Atalhos de teclado disponíveis">
+      <tr><td colspan="2" class="help-section">Navegação</td></tr>
+      <tr><td>Esc</td><td>Fechar modal aberto</td></tr>
+      <tr><td>F1 / ?</td><td>Abrir este painel de ajuda</td></tr>
+      <tr><td colspan="2" class="help-section">Tabela</td></tr>
+      <tr><td>Ctrl + F</td><td>Focar campo de busca</td></tr>
+      <tr><td>Del</td><td>Excluir registros selecionados</td></tr>
+      <tr><td colspan="2" class="help-section">Import / Export</td></tr>
+      <tr><td>Ctrl + I</td><td>Abrir importação de planilha</td></tr>
+      <tr><td>Ctrl + E</td><td>Exportar Excel (todos)</td></tr>
+      <tr><td colspan="2" class="help-section">Admin</td></tr>
+      <tr><td>Ctrl + S</td><td>Salvar registro em edição</td></tr>
+    </table>
+    <p style="font-size:11px;color:var(--tx2);margin-top:14px;">☀/🌙 = alternar tema claro/escuro (botão no cabeçalho)</p>
   </div>
 </div>
 
@@ -697,7 +771,7 @@ function _initSessionTimer(){
     }
     if(remaining <= 0){
       doLogout();
-      alert('Sessão encerrada por inatividade (30 min). Faça login novamente.');
+      showToast('Sessão encerrada por inatividade (30 min). Faça login novamente.','warn',6000);
     }
   }, 30_000);
 }
@@ -757,9 +831,33 @@ async function doLogin(){
 }
 function doLogout(){
   sessionStorage.removeItem('sema_auth');
+  sessionStorage.removeItem('sema_pwd_hash');
   document.getElementById('app').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('pwd-input').value='';
+}
+function toggleDarkMode(){
+  const dark = document.documentElement.getAttribute('data-theme')==='dark';
+  const next = dark ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  document.getElementById('btn-theme').textContent = next==='dark' ? '🌙' : '☀';
+  localStorage.setItem('sema_theme', next);
+}
+(()=>{
+  const t = localStorage.getItem('sema_theme');
+  if(t==='dark'){document.documentElement.setAttribute('data-theme','dark');document.getElementById('btn-theme')&&(document.getElementById('btn-theme').textContent='🌙');}
+})();
+function showConfirm(msg, title, btnLabel, onOk){
+  const modal = document.getElementById('modal-confirm');
+  document.getElementById('modal-confirm-title').textContent = title || 'Confirmar';
+  document.getElementById('modal-confirm-msg').textContent   = msg;
+  const okBtn = document.getElementById('modal-confirm-ok');
+  okBtn.textContent = btnLabel || 'Confirmar';
+  okBtn.className = btnLabel==='Excluir' ? 'btn btn-r' : 'btn btn-g';
+  modal.classList.add('open');
+  const close = () => { modal.classList.remove('open'); okBtn.onclick = null; document.getElementById('modal-confirm-cancel').onclick = null; };
+  okBtn.onclick = () => { close(); onOk(); };
+  document.getElementById('modal-confirm-cancel').onclick = close;
 }
 // Restore session (SYNC já estará inicializado pelo DOMContentLoaded)
 if(sessionStorage.getItem('sema_auth')==='1'){
@@ -872,21 +970,22 @@ function toggleSelectAll(){const all=document.getElementById('sel-all').checked;
 function updateBulkBar(){const n=selSet.size;const bar=document.getElementById('bulk-bar');bar.classList.toggle('hidden',n===0);if(n>0)document.getElementById('bulk-count').textContent=`${n} selecionado${n>1?'s':''}`;}
 async function excluirSelecionados(){
   if(!selSet.size)return;
-  if(!confirm(`Excluir ${selSet.size} registro(s)? Esta ação pode ser desfeita.`))return;
-  undoData=[...dados];
-  const paraRemover=[...selSet].map(i=>dados[i]).filter(Boolean);
-  [...selSet].sort((a,b)=>b-a).forEach(i=>dados.splice(i,1));
-  selSet.clear();popularFiltros();renderTable();updateKPIs();
-  mostrarUndo(`${paraRemover.length} registro(s) excluído(s)`);
-  if(SYNC){
-    for(const r of paraRemover){
-      SYNC.remove(r.tipo,r.num).catch(e=>{
-        if(typeof appendLog==='function')appendLog({level:'warn',msg:`Remoção Sheets ${r.num}: `+e.message,iso:new Date().toLocaleTimeString('pt-BR')});
-      });
+  showConfirm(`Excluir ${selSet.size} registro(s)? Você pode desfazer em seguida.`,'Confirmar exclusão','Excluir',()=>{
+    undoData=[...dados];
+    const paraRemover=[...selSet].map(i=>dados[i]).filter(Boolean);
+    [...selSet].sort((a,b)=>b-a).forEach(i=>dados.splice(i,1));
+    selSet.clear();popularFiltros();renderTable();updateKPIs();
+    mostrarUndo(`${paraRemover.length} registro(s) excluído(s)`);
+    if(SYNC){
+      for(const r of paraRemover){
+        SYNC.remove(r.tipo,r.num).catch(e=>{
+          if(typeof appendLog==='function')appendLog({level:'warn',msg:`Remoção Sheets ${r.num}: `+e.message,iso:new Date().toLocaleTimeString('pt-BR')});
+        });
+      }
     }
-  }
+  });
 }
-function exportarSelecionados(){const sel=dados.filter((_,i)=>selSet.has(i));if(!sel.length){alert('Nenhum registro selecionado.');return;}exportarXLSX(sel,'SEMA_TCT_Selecionados');}
+function exportarSelecionados(){const sel=dados.filter((_,i)=>selSet.has(i));if(!sel.length){showToast('Nenhum registro selecionado.','warn');return;}exportarXLSX(sel,'SEMA_TCT_Selecionados');}
 
 // ── FORM ───────────────────────────────────────────────────────────────────────
 function openForm(idx=null){
@@ -947,24 +1046,25 @@ async function salvar(){
     alerta:document.getElementById('f-alerta').value.trim(),
     notas:document.getElementById('f-notas').value.trim(),
   };
+  const _doSave=()=>{
+    const idxAtual=editIdx;
+    if(idxAtual!==null)dados[idxAtual]=rec;else dados.push(rec);
+    closeForm();popularFiltros();renderTable();updateKPIs();
+    showToast(`${rec.tipo} ${rec.num} salvo localmente.`,'ok',2500);
+    if(SYNC){
+      SYNC.save(rec)
+        .then(()=>showToast(`${rec.tipo} ${rec.num} sincronizado com Sheets.`,'ok'))
+        .catch(e=>{
+          showToast('Salvo localmente. Sheets será atualizado no próximo sync.','warn');
+          if(typeof appendLog==='function')appendLog({level:'warn',msg:'Push Sheets: '+e.message,iso:new Date().toLocaleTimeString('pt-BR')});
+        });
+    }
+  };
   if(editIdx===null){
     const dup=dados.find(d=>d.num===rec.num&&d.tipo===rec.tipo);
-    if(dup&&!confirm(`Já existe um ${rec.tipo} ${rec.num}. Deseja adicionar mesmo assim?`))return;
+    if(dup){showConfirm(`Já existe um ${rec.tipo} ${rec.num}. Deseja adicionar mesmo assim?`,'Registro duplicado','Adicionar',_doSave);return;}
   }
-  // Atualiza state local imediatamente
-  const idxAtual=editIdx;
-  if(idxAtual!==null)dados[idxAtual]=rec;else dados.push(rec);
-  closeForm();popularFiltros();renderTable();updateKPIs();
-  showToast(`${rec.tipo} ${rec.num} salvo localmente.`,'ok',2500);
-  // Push assíncrono ao Sheets (fire-and-forget — UI já foi atualizada)
-  if(SYNC){
-    SYNC.save(rec)
-      .then(()=>showToast(`${rec.tipo} ${rec.num} sincronizado com Sheets.`,'ok'))
-      .catch(e=>{
-        showToast('Salvo localmente. Sheets será atualizado no próximo sync.','warn');
-        if(typeof appendLog==='function')appendLog({level:'warn',msg:'Push Sheets: '+e.message,iso:new Date().toLocaleTimeString('pt-BR')});
-      });
-  }
+  _doSave();
 }
 
 // ── DELETE + UNDO ──────────────────────────────────────────────────────────────
@@ -1010,12 +1110,12 @@ function handleDrop(e){e.preventDefault();document.getElementById('drop-zone').c
 function handleFile(e){const f=e.target.files[0];if(f)processFile(f);}
 function processFile(file){
   const reader=new FileReader();
-  reader.onerror=function(){alert('Erro ao ler o arquivo. Verifique se é um .xlsx válido.');document.getElementById('drop-zone').classList.remove('drag');};
+  reader.onerror=function(){showToast('Erro ao ler o arquivo. Verifique se é um .xlsx válido.','err');document.getElementById('drop-zone').classList.remove('drag');};
   reader.onload=function(e){try{
     const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
     const sn=wb.SheetNames.includes('DADOS_PÚBLICOS')?'DADOS_PÚBLICOS':wb.SheetNames[0];
     const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,raw:false});
-    if(rows.length<3){alert('Planilha sem dados suficientes.');return;}
+    if(rows.length<3){showToast('Planilha sem dados suficientes.','warn');return;}
     pendImport=rows.slice(2).filter(r=>r[0]&&r[1]).map(r=>({
       tipo:r[0]||'',num:r[1]||'',
       ano:parseInt((r[1]||'').match(/\d{4}/)?.[0])||parseInt(r[2])||0,
@@ -1033,7 +1133,7 @@ function processFile(file){
     if(dups.length){warn.style.display='block';warn.innerHTML=`⚠ ${dups.length} registro(s) duplicado(s) detectado(s): ${dups.map(r=>`${escHtml(r.tipo)} ${escHtml(r.num)}`).join(', ')}. Ao confirmar, os existentes serão mantidos e os novos adicionados apenas se diferentes.`;}
     else{warn.style.display='none';}
     document.getElementById('btn-import-ok').style.display='inline-flex';
-  }catch(err){alert('Erro ao processar a planilha: '+err.message);console.error(err);}};
+  }catch(err){showToast('Erro ao processar a planilha: '+err.message,'err');console.error(err);}};
   reader.readAsArrayBuffer(file);
 }
 function parseDateStr(s){if(!s)return '';if(s.includes('/')){const[d,m,y]=s.split('/');return`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;}return s;}
@@ -1056,7 +1156,7 @@ function enviarAlerta(idx){
 }
 function enviarAlertaLote(){
   const criticos=dados.filter(r=>{const s=calcStatus(r.termino).label;return s==='Vence em 30 dias'||s==='Expirado'||s==='A vencer';});
-  if(!criticos.length){alert('Nenhum instrumento a vencer ou expirado.');return;}
+  if(!criticos.length){showToast('Nenhum instrumento a vencer ou expirado.','warn');return;}
   const subj=`[SEMA/AC] Relatório de alertas de vencimento — ${new Date().toLocaleDateString('pt-BR')}`;
   const body=`Prezados,\n\nRelacionamos abaixo os instrumentos que requerem atenção:\n\n${criticos.map(r=>`- ${r.tipo} ${r.num} | ${r.inst.split('–')[0].trim()} | ${fmtDate(r.termino)} | ${calcStatus(r.termino).label}`).join('\n')}\n\nAtenciosamente,\nAssessoria Jurídica — SEMA/AC`;
   window.location.href=`mailto:?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
@@ -1113,6 +1213,13 @@ function initSync() {
   });
 
   SYNC.on('status', updateSyncStatus);
+  SYNC.on('status', st => {
+    const badge = document.getElementById('h-online');
+    if (!badge) return;
+    const online = (st === 'ok' || st === 'syncing' || st === 'idle');
+    badge.textContent = online ? '● Online' : '● Offline';
+    badge.className = 'pill ' + (online ? 'p-online' : 'p-offline');
+  });
   // 'data' só é emitido em syncs completos (não em saves locais)
   // Dados remotos do Sheets substituem o estado local quando há registros
   SYNC.on('data', recs => {
@@ -1207,7 +1314,7 @@ async function doManualSync() {
 async function publicarTudo() {
   if (!SYNC) return;
   if (!SYNC._hasToken()) {
-    alert('SYNC_TOKEN não configurado.\n\nContate o administrador do sistema.');
+    showToast('SYNC_TOKEN não configurado. Contate o administrador do sistema.','err',6000);
     return;
   }
   if (publicarTudo._running) return;
@@ -1279,7 +1386,19 @@ function updateConflict() {
   SYNC.updateConfig({ conflictMode: val });
 }
 
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){['modal-form','modal-import','modal-del'].forEach(id=>document.getElementById(id).classList.remove('open'));}});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    ['modal-form','modal-import','modal-del','modal-confirm','modal-help'].forEach(id=>document.getElementById(id)?.classList.remove('open'));
+  }
+  if((e.key==='F1'||(e.key==='?'&&!e.ctrlKey&&!e.altKey&&document.activeElement.tagName!=='INPUT'&&document.activeElement.tagName!=='TEXTAREA'))){
+    e.preventDefault();document.getElementById('modal-help').classList.add('open');
+  }
+  if(e.ctrlKey&&e.key==='f'){e.preventDefault();document.getElementById('search')?.focus();}
+  if(e.ctrlKey&&e.key==='i'){e.preventDefault();openImport();}
+  if(e.ctrlKey&&e.key==='e'){e.preventDefault();exportarCompleto();}
+  if(e.ctrlKey&&e.key==='s'){e.preventDefault();document.getElementById('modal-form')?.classList.contains('open')&&salvarForm();}
+  if(e.key==='Delete'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){if(selSet.size)excluirSelecionados();}
+});
 
 // ── TOAST ─────────────────────────────────────────────────────────────────────
 function showToast(msg, type='info', duration=3500) {

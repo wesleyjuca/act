@@ -111,9 +111,9 @@ class SEMASync {
         const toSend = merged.filter(r => dirtyKeys.has(`${r.tipo}|${r.num}`));
         if (toSend.length > 0) await this._pushDirtyRecords(toSend);
       }
+      this._saveCache(merged);
       this._records = merged;
       this._dirty.clear();
-      this._saveCache(merged);
       this._lastSync = new Date();
       this._errCount = 0;
       this._retries  = 0;
@@ -127,7 +127,7 @@ class SEMASync {
       this.log('error', `Sync falhou: ${err.message}`);
       if (this._retries < this.cfg.retryMax) {
         this._retries++;
-        const delay = Math.min(this.cfg.retryDelay * this._retries, this.cfg.retryDelayMax);
+        const delay = Math.min(this.cfg.retryDelay * Math.pow(2, this._retries - 1), this.cfg.retryDelayMax);
         this.log('warn', `Retry ${this._retries}/${this.cfg.retryMax} em ${delay / 1000}s`);
         await this._delay(delay);
         return this.sync();
@@ -326,9 +326,11 @@ class SEMASync {
         }
       }
     }
-    return [...map.values()].sort((a, b) =>
-      (a.termino || '').localeCompare(b.termino || '')
-    );
+    return [...map.values()].sort((a, b) => {
+      const t = (a.termino || '').localeCompare(b.termino || '');
+      if (t !== 0) return t;
+      return (`${a.tipo}|${a.num}`).localeCompare(`${b.tipo}|${b.num}`);
+    });
   }
 
   _resolveConflict(local, remote) {

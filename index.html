@@ -377,6 +377,7 @@ function calcSt(t){
 }
 function fmtDate(iso){if(!iso)return'';const[y,m,d]=iso.split('-');return`${d}/${m}/${y}`;}
 function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function showToast(msg,type,dur){const t=document.createElement('div');t.style.cssText=`position:fixed;bottom:20px;right:20px;z-index:9999;padding:11px 18px;border-radius:8px;font-size:13px;font-weight:600;color:#fff;background:${type==='err'?'#C62828':type==='warn'?'#B07D00':'#095C18'};box-shadow:0 4px 14px rgba(0,0,0,.25);`;t.textContent=msg;document.body.appendChild(t);setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .3s';setTimeout(()=>t.remove(),350);},dur||4000);}
 function hl(text,q){if(!q)return esc(text);return esc(text).replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi'),'<mark class="hl">$1</mark>');}
 
 // ── KPIs + CHARTS ─────────────────────────────────────────────────────────────
@@ -546,7 +547,7 @@ function exportCSV(){
 async function exportPDF(){
   if(!window.jspdf){
     await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);}).catch(()=>null);
-    if(!window.jspdf){alert('Biblioteca PDF indisponível.');return;}
+    if(!window.jspdf){showToast('Biblioteca PDF indisponível.','err');return;}
   }
   const{jsPDF}=window.jspdf;const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
   const W=297;

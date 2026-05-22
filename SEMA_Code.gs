@@ -164,10 +164,17 @@ function handleList(params) {
 
   enrichFromInternal(records, ss, params.internal === '1');
 
-  logInfo('list', `${records.length} registros retornados`);
+  // Paginação opcional: ?limit=N&offset=N
+  const total  = records.length;
+  const limit  = parseInt(params.limit  || '0');
+  const offset = parseInt(params.offset || '0');
+  const paged  = (limit > 0) ? records.slice(offset, offset + limit) : records;
+
+  logInfo('list', `${paged.length}/${total} registros retornados`);
   return {
-    records,
-    count:   records.length,
+    records: paged,
+    count:   paged.length,
+    total,
     sheet:   sheetName,
     updated: new Date().toISOString(),
   };
@@ -303,10 +310,7 @@ function handleDelete(tipo, num, sheetName) {
 }
 
 function handleLogEntry(entry) {
-  ensureLogSheet();
-  const ss  = SpreadsheetApp.getActiveSpreadsheet();
-  const log = ss.getSheetByName(SHEET_LOG);
-  log.appendRow([
+  ensureLogSheet().appendRow([
     new Date(), entry.level || 'info', entry.msg || '',
     entry.user || 'sistema', entry.ip || ''
   ]);
@@ -390,12 +394,14 @@ function findLastRow(sheet) {
 }
 
 function validateToken(token) {
-  // Token gerado em 2026-05-17 — rotacionar editando esta constante e js/config.js
-  const HARDCODED_TOKEN = '520f32d0-d3ce-47f5-93de-2f36ab930c58-9c48918d-14ab-4aad-95aa-670fcbe0a39e';
-  if (token && token === HARDCODED_TOKEN) return true;
-  // Fallback: PropertiesService (caso configurado via setupSyncToken())
-  const stored = PropertiesService.getScriptProperties().getProperty('SYNC_TOKEN');
-  return stored && token && token === stored;
+  // Preferir SYNC_TOKEN das propriedades do projeto; fallback para valor hardcoded
+  const stored = PropertiesService.getScriptProperties().getProperty('SYNC_TOKEN')
+              || '520f32d0-d3ce-47f5-93de-2f36ab930c58-9c48918d-14ab-4aad-95aa-670fcbe0a39e';
+  if (!token || token.length !== stored.length) return false;
+  // Comparação de comprimento constante para mitigar timing attacks
+  let match = true;
+  for (let i = 0; i < stored.length; i++) { if (token[i] !== stored[i]) match = false; }
+  return match;
 }
 
 function jsonResponse(data, code) {
@@ -474,8 +480,12 @@ function setupSheet() {
   const create = (name, headers) => {
     if (ss.getSheetByName(name)) return;
     const sh = ss.insertSheet(name);
+    // Linha 1: título decorativo (convenção das abas existentes)
+    sh.appendRow([name]);
+    sh.getRange(1, 1).setFontSize(14).setFontWeight('bold');
+    // Linha 2: cabeçalho real lido por handleList (data[1] = índice 1 = linha 2)
     sh.appendRow(headers);
-    sh.getRange(1, 1, 1, headers.length)
+    sh.getRange(2, 1, 1, headers.length)
       .setFontWeight('bold').setBackground('#095C18').setFontColor('#FFFFFF');
   };
   create(SHEET_DADOS,   COL_PUB);
