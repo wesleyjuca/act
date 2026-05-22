@@ -106,7 +106,7 @@ class SEMASync {
         }).filter(Boolean)
       );
       const remote = await this._fetchRemote();
-      const merged = this._merge(this._records, remote);
+      const merged = this._merge(this._records, remote, dirtyKeys);
       if (dirtyKeys.size > 0) {
         const toSend = merged.filter(r => dirtyKeys.has(`${r.tipo}|${r.num}`));
         if (toSend.length > 0) await this._pushDirtyRecords(toSend);
@@ -305,7 +305,7 @@ class SEMASync {
 
   // ─── MERGE / CONFLITO ─────────────────────────────────────────────────────
 
-  _merge(local, remote) {
+  _merge(local, remote, dirtyKeys = new Set()) {
     const map = new Map();
     // Base: remote
     for (const r of remote) {
@@ -316,7 +316,11 @@ class SEMASync {
     for (const l of local) {
       const k = `${l.tipo}|${l.num}`;
       if (!map.has(k)) {
-        map.set(k, { ...l, _source: 'local_new' });
+        // Só preserva local_new se o registro está pendente de envio (dirty)
+        // Evita que cache antigo reapareça quando a planilha é limpa
+        if (dirtyKeys.has(k)) {
+          map.set(k, { ...l, _source: 'local_new' });
+        }
       } else {
         const rem = map.get(k);
         const winner = this._resolveConflict(l, rem);

@@ -1,11 +1,11 @@
 const SEMA_CONFIG = {
 
   // URL do Google Apps Script (Web App implantado)
-  appsScriptUrl: 'https://script.google.com/macros/s/AKfycbyyW4logP6kQZ84If5LlLgaQlbUsNhSaHY44uUXJlVugbuFZJ5SrFm0aIosAqxJdxLt/exec',
+  appsScriptUrl: 'https://script.google.com/macros/s/AKfycbwxjyb3twqgso7q898sCoYqNM2wUWJal-8LMcJDTxY/exec',
 
   // Token para operações de escrita (admin → Sheets)
   // Configure o Secret SYNC_TOKEN no GitHub para habilitar o painel admin
-  syncToken: '520f32d0-d3ce-47f5-93de-2f36ab930c58-9c48918d-14ab-4aad-95aa-670fcbe0a39e',
+  syncToken: 'c62b136a-b2f7-4be3-911c-b1ce7a7411a4-15be1043-0792-4d53-8573-751f3156127e',
 
   // Sync automático
   interval:      60_000,    // 1 min entre syncs — painel público (admin sobrescreve para 5 min)

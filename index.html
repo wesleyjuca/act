@@ -283,41 +283,6 @@ const cfg   = (typeof SEMA_CONFIG !== 'undefined') ? SEMA_CONFIG : {};
 const SYNC  = new SEMASync({ ...cfg, interval: cfg.interval || 300_000 });
 let allRecs = [], filtered = [], sortField = 'termino', sortAsc = true;
 
-// Dados locais como fallback enquanto o Google Sheets não é populado
-const DEMO_RECORDS = [
-  {tipo:'ACT',num:'01/2021',ano:2021,objeto:'Cooperação técnica para implementação de ações ambientais no Município de Jordão',inst:'Prefeitura Municipal de Jordão',esfera:'Municipal',inicio:'2021-01-01',termino:'2023-12-31',area:'Gestão ambiental'},
-  {tipo:'ACT',num:'02/2021',ano:2021,objeto:'Cooperação técnica para implementação de ações ambientais no Município de Senador Guiomard',inst:'Prefeitura Municipal de Senador Guiomard',esfera:'Municipal',inicio:'2021-01-01',termino:'2023-12-31',area:'Gestão ambiental'},
-  {tipo:'ACT',num:'01/2022',ano:2022,objeto:'Cooperação técnica para gestão ambiental integrada entre SEMA e IMAC',inst:'Instituto de Meio Ambiente do Acre – IMAC',esfera:'Estadual',inicio:'2022-01-01',termino:'2022-12-31',area:'Gestão ambiental'},
-  {tipo:'ACT',num:'02/2022',ano:2022,objeto:'Cooperação técnica para implementação de ações ambientais no Município de Sena Madureira',inst:'Prefeitura Municipal de Sena Madureira',esfera:'Municipal',inicio:'2022-01-01',termino:'2023-12-31',area:'Gestão ambiental'},
-  {tipo:'ACT',num:'01/2023',ano:2023,objeto:'Cooperação técnica para conservação, proteção da biodiversidade e implementação de programas ambientais',inst:'Conservation International do Brasil',esfera:'Privado',inicio:'2023-01-01',termino:'2024-04-30',area:'Biodiversidade'},
-  {tipo:'ACT',num:'02/2023',ano:2023,objeto:'Cooperação técnica entre CBMAC e FGV para desenvolvimento de projetos de pesquisa e capacitação',inst:'Fundação Getúlio Vargas – FGV / CBMAC',esfera:'Federal',inicio:'2023-01-01',termino:'2025-02-17',area:'Pesquisa e inovação'},
-  {tipo:'ACT',num:'03/2023',ano:2023,objeto:'Cooperação técnica para monitoramento e proteção ambiental por meio de sistemas de vigilância',inst:'CENSIPAM – Centro Gestor e Operacional do SIPAM/MD',esfera:'Federal',inicio:'2023-01-01',termino:'2025-05-15',area:'Monitoramento ambiental'},
-  {tipo:'ACT',num:'04/2023',ano:2023,objeto:'Cooperação técnica para pesquisa, desenvolvimento e inovação em tecnologias agropecuárias e ambientais',inst:'EMBRAPA',esfera:'Federal',inicio:'2023-01-01',termino:'2026-04-18',area:'Pesquisa e inovação'},
-  {tipo:'ACT',num:'05/2023',ano:2023,objeto:'Cooperação técnica para monitoramento hidrometeorológico e climático no estado do Acre',inst:'INMET – Instituto Nacional de Meteorologia',esfera:'Federal',inicio:'2023-01-01',termino:'2029-10-16',area:'Monitoramento ambiental'},
-  {tipo:'ACT',num:'06/2023',ano:2023,objeto:'Cooperação técnica para monitoramento e gestão dos recursos hídricos do estado do Acre',inst:'ANA – Agência Nacional de Águas e Saneamento Básico',esfera:'Federal',inicio:'2023-01-01',termino:'2030-01-15',area:'Monitoramento ambiental'},
-  {tipo:'ACT',num:'07/2023',ano:2023,objeto:'Cooperação técnica para o Projeto ASL Fase 2 em parceria com FGV',inst:'Fundação Getúlio Vargas – FGV (ASL Fase 2)',esfera:'Federal',inicio:'2023-01-01',termino:'',area:'Pesquisa e inovação'},
-  {tipo:'ACT',num:'08/2023',ano:2023,objeto:'Cooperação técnica para conservação da Amazônia e implementação de projetos de sustentabilidade ambiental',inst:'WWF-Brasil',esfera:'Privado',inicio:'2023-01-01',termino:'',area:'Biodiversidade'},
-  {tipo:'ACT',num:'09/2023',ano:2023,objeto:'Cooperação técnica entre SEMA, MPAC e UFAC para ações de proteção e gestão ambiental',inst:'MPAC / UFAC',esfera:'Estadual',inicio:'2023-01-01',termino:'',area:'Gestão ambiental'},
-  {tipo:'ACT',num:'10/2023',ano:2023,objeto:'Cooperação técnica para o Programa de Estagiários entre SEMA e UFAC',inst:'UFAC – Universidade Federal do Acre (Estagiários)',esfera:'Estadual',inicio:'2023-01-01',termino:'',area:'Educação ambiental'},
-  {tipo:'ACT',num:'11/2023',ano:2023,objeto:'Cooperação técnica para desenvolvimento de inteligência territorial e geoespacial',inst:'Centro de Inteligência Territorial',esfera:'Privado',inicio:'2023-01-01',termino:'',area:'ZEE / Ordenamento territorial'},
-  {tipo:'ACT',num:'01/2024',ano:2024,objeto:'Cooperação técnica entre SEMA e IAPEN para ações de educação e recuperação ambiental',inst:'IAPEN – Instituto de Administração Penitenciária do Acre',esfera:'Estadual',inicio:'2024-01-01',termino:'2027-10-03',area:'Educação ambiental'},
-  {tipo:'ACT',num:'02/2024',ano:2024,objeto:'Cooperação técnica para conservação e desenvolvimento sustentável da Amazônia',inst:'FAS – Fundação Amazônia Sustentável',esfera:'Privado',inicio:'2024-01-01',termino:'2024-11-30',area:'Biodiversidade'},
-  {tipo:'ACT',num:'03/2024',ano:2024,objeto:'Cooperação técnica para implementação do Programa Áreas Protegidas da Amazônia – ARPA',inst:'FUNBIO / MMA / ARPA',esfera:'Federal',inicio:'2024-01-01',termino:'2027-03-07',area:'Biodiversidade'},
-  {tipo:'ACT',num:'04/2024',ano:2024,objeto:'Cooperação técnica entre SEMA e IMC para gestão ambiental e conservação',inst:'IMC – Instituto de Mudanças Climáticas e Regulação de Serviços Ambientais',esfera:'Estadual',inicio:'2024-01-01',termino:'2028-10-23',area:'Gestão ambiental'},
-  {tipo:'ACT',num:'05/2024',ano:2024,objeto:'Cooperação técnica entre SEMA, IMC, IMAC, CBMAC e CEPDEC para defesa civil e gestão ambiental integrada',inst:'IMC / IMAC / CBMAC / CEPDEC',esfera:'Estadual',inicio:'2024-01-01',termino:'2028-12-31',area:'Gestão ambiental'},
-  {tipo:'ACT',num:'06/2024',ano:2024,objeto:'Cooperação técnica para ações de regularização fundiária e ordenamento territorial',inst:'INCRA – Instituto Nacional de Colonização e Reforma Agrária',esfera:'Federal',inicio:'2024-01-01',termino:'2030-02-21',area:'ZEE / Ordenamento territorial'},
-  {tipo:'ACT',num:'07/2024',ano:2024,objeto:'Cooperação técnica entre SEMA e DERACRE para recuperação e conservação de áreas degradadas ao longo de rodovias',inst:'DERACRE – Departamento de Estradas de Rodagem do Acre',esfera:'Estadual',inicio:'2024-01-01',termino:'',area:'Recuperação de áreas degradadas'},
-  {tipo:'ACT',num:'08/2024',ano:2024,objeto:'Cooperação técnica entre SEMA, SEOP e SANEACRE para ações integradas de saneamento e meio ambiente',inst:'SEOP / SANEACRE',esfera:'Estadual',inicio:'2024-01-01',termino:'',area:'Gestão ambiental'},
-  {tipo:'ACT',num:'09/2024',ano:2024,objeto:'Cooperação técnica entre SEMA, SEOP, AMAC e SANEACRE para ações ambientais urbanas integradas',inst:'SEOP / AMAC / SANEACRE',esfera:'Estadual',inicio:'2024-01-01',termino:'',area:'Gestão ambiental'},
-  {tipo:'ACT',num:'10/2024',ano:2024,objeto:'Cooperação técnica para pesquisa em biologia e ciências ambientais entre SEMA e UFAC/DBIO',inst:'UFAC – Departamento de Biologia (DBIO)',esfera:'Estadual',inicio:'2024-01-01',termino:'',area:'Pesquisa e inovação'},
-  {tipo:'ACT',num:'11/2024',ano:2024,objeto:'Cooperação técnica entre SEMA e FUNTAC para pesquisa, inovação e capacitação ambiental',inst:'FUNTAC – Fundação de Tecnologia do Acre',esfera:'Estadual',inicio:'2024-01-01',termino:'2028-07-07',area:'Pesquisa e inovação'},
-  {tipo:'ACT',num:'01/2025',ano:2025,objeto:'Cooperação técnica entre SEMA e Instituto Semeia para gestão de unidades de conservação',inst:'Instituto Semeia',esfera:'Privado',inicio:'2025-01-01',termino:'2027-06-06',area:'Biodiversidade'},
-  {tipo:'ACT',num:'02/2025',ano:2025,objeto:'Cooperação técnica entre SEMA e SEPI para proteção e valorização dos povos indígenas e meio ambiente',inst:'SEPI – Secretaria de Estado dos Povos Indígenas',esfera:'Estadual',inicio:'2025-01-01',termino:'2027-12-31',area:'Gestão ambiental'},
-  {tipo:'ACT',num:'03/2025',ano:2025,objeto:'Cooperação técnica entre SEMA e IDAF para fiscalização e controle ambiental integrado',inst:'IDAF – Instituto de Defesa Agropecuária e Florestal do Acre',esfera:'Estadual',inicio:'2025-01-01',termino:'2026-05-20',area:'Gestão ambiental'},
-  {tipo:'ACT',num:'04/2025',ano:2025,objeto:'Cooperação técnica entre SEMA e Instituto Semeia para gestão compartilhada de unidades de conservação',inst:'Instituto Semeia',esfera:'Privado',inicio:'2025-01-01',termino:'2028-05-07',area:'Biodiversidade'},
-  {tipo:'ACT',num:'01/2026',ano:2026,objeto:'Cooperação técnica entre SEMA e CBMAC para ações integradas de combate a incêndios e desastres ambientais',inst:'CBMAC – Corpo de Bombeiros Militar do Acre',esfera:'Estadual',inicio:'2026-01-30',termino:'2031-01-30',area:'Gestão ambiental'},
-];
-
 SYNC.on('status', s => {
   const dot   = document.getElementById('sync-dot');
   const label = document.getElementById('sync-label');
@@ -329,14 +294,8 @@ SYNC.on('status', s => {
 });
 
 SYNC.on('data', recs => {
-  // Usar dados do Sheets se houver; manter DEMO apenas se Sheets nunca retornou nada
-  if (recs.length > 0) {
-    allRecs = recs;
-    document.getElementById('tbl-src').textContent = 'Fonte: Google Sheets';
-  } else if (allRecs.length === 0) {
-    allRecs = DEMO_RECORDS;
-    document.getElementById('tbl-src').textContent = 'Fonte: Dados locais (Sheets vazia)';
-  }
+  allRecs = recs;
+  document.getElementById('tbl-src').textContent = recs.length > 0 ? 'Fonte: Google Sheets' : '';
   document.getElementById('loading').classList.add('hidden');
   popularFiltroAno();
   filtrar();
@@ -350,14 +309,9 @@ SYNC.on('data', recs => {
 SYNC.on('error', e => {
   const eb = document.getElementById('error-bar');
   eb.classList.add('show');
-  document.getElementById('error-msg').textContent = ' ' + (e.message || 'Erro de rede. Exibindo dados locais.');
-  // Show DEMO data if nothing loaded yet
-  if (allRecs.length === 0) {
-    allRecs = DEMO_RECORDS;
-    document.getElementById('loading').classList.add('hidden');
-    popularFiltroAno(); filtrar(); renderKPIs(); renderCharts();
-    document.getElementById('tbl-src').textContent = 'Fonte: Dados locais (Sheets indisponível)';
-  }
+  document.getElementById('error-msg').textContent = ' ' + (e.message || 'Erro de rede.');
+  document.getElementById('loading').classList.add('hidden');
+  if (allRecs.length === 0) { popularFiltroAno(); filtrar(); renderKPIs(); renderCharts(); }
 });
 
 document.getElementById('data-atual').textContent =
