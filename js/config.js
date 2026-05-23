@@ -5,7 +5,7 @@ const SEMA_CONFIG = {
 
   // Token para operações de escrita (admin → Sheets)
   // Configure o Secret SYNC_TOKEN no GitHub para habilitar o painel admin
-  syncToken: '27f2b931-2773-4198-9edd-261047aa5ec7-9a263f1b-488d-4a6d-81a1-dfe1704acf29',
+  syncToken: '%%SYNC_TOKEN%%',
 
   // Sync automático
   interval:      60_000,    // 1 min entre syncs — painel público (admin sobrescreve para 5 min)
