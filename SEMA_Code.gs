@@ -433,7 +433,7 @@ function findLastRow(sheet) {
 function validateToken(token) {
   // Preferir SYNC_TOKEN das propriedades do projeto; fallback para valor hardcoded
   const stored = PropertiesService.getScriptProperties().getProperty('SYNC_TOKEN')
-              || 'f5a925ba-4c8d-4e2d-9b8c-eb61dc1a5aa0-dfbe6531-8c14-48c4-a09b-00a79696aa0b';
+              || '27f2b931-2773-4198-9edd-261047aa5ec7-9a263f1b-488d-4a6d-81a1-dfe1704acf29';
   if (!token || token.length !== stored.length) return false;
   // Comparação de comprimento constante para mitigar timing attacks
   let match = true;
