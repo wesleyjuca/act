@@ -326,19 +326,19 @@ tbody td{padding:11px 13px;border-bottom:1px solid var(--bdr);color:var(--tx);ve
     <div class="tbl-wrap" role="region" aria-label="Tabela de instrumentos">
       <div class="tbl-scroll">
         <table aria-label="Termos de Cooperação Técnica SEMA/AC">
-          <thead><tr>
+          <thead id="table-head"><tr>
             <th onclick="sortBy('tipo')" aria-sort="none">Tipo</th>
             <th onclick="sortBy('num')">Nº</th>
-            <th>Objeto</th>
-            <th onclick="sortBy('inst')">Instituição</th>
-            <th onclick="sortBy('esfera')" class="col-esfera">Esfera</th>
-            <th onclick="sortBy('inicio')">Início</th>
-            <th onclick="sortBy('termino')" class="sorted">Término ↑</th>
-            <th class="col-area">Área</th>
-            <th onclick="sortBy('status')">Status</th>
-            <th onclick="sortBy('dias')" class="col-dias" title="Dias restantes ou expirados">Dias</th>
-            <th class="col-sei-pub" onclick="sortBy('sei')" title="Número SEI">SEI</th>
-            <th>Doc.</th>
+            <th id="th-objeto">Objeto</th>
+            <th id="th-inst" onclick="sortBy('inst')">Instituição</th>
+            <th id="th-esfera" onclick="sortBy('esfera')" class="col-esfera">Esfera</th>
+            <th id="th-inicio" onclick="sortBy('inicio')">Início</th>
+            <th id="th-termino" onclick="sortBy('termino')" class="sorted">Término ↑</th>
+            <th id="th-area" class="col-area">Área</th>
+            <th id="th-status" onclick="sortBy('status')">Status</th>
+            <th id="th-dias" onclick="sortBy('dias')" class="col-dias" title="Dias restantes ou expirados">Dias</th>
+            <th id="th-sei" class="col-sei-pub" onclick="sortBy('sei')" title="Número SEI">SEI</th>
+            <th id="th-linkDoc">Doc.</th>
           </tr></thead>
           <tbody id="tbody" aria-live="polite"></tbody>
         </table>
@@ -395,6 +395,28 @@ const SYNC = new SEMASync({ ...cfg, interval: cfg.interval || 300_000 });
 let allRecs = [], filtered = [], sortField = 'termino', sortAsc = true;
 let _buscarTimer = null;
 
+// Campos visíveis no painel público — carregados do GAS via action=getConfig
+// Default: todos os campos visíveis
+let _pubConfig = { visibleFields: ['objeto','inst','esfera','inicio','termino','area','obs','sei','linkDoc','dias','status'] };
+
+async function loadPubConfig() {
+  if (!cfg.appsScriptUrl) return;
+  try {
+    const r = await fetch(cfg.appsScriptUrl + '?action=getConfig');
+    const text = await r.text();
+    const json = JSON.parse(text);
+    if (json.ok && json.config && Array.isArray(json.config.visibleFields)) {
+      _pubConfig = json.config;
+      // Re-render if data already loaded
+      if (allRecs.length > 0) { renderTable(); renderTableHeader(); }
+    }
+  } catch(_) {}
+}
+
+function isVisible(field) {
+  return _pubConfig.visibleFields.includes(field);
+}
+
 function debounceFiltrar() {
   clearTimeout(_buscarTimer);
   _buscarTimer = setTimeout(filtrar, 200);
@@ -444,6 +466,7 @@ document.getElementById('data-atual').textContent =
   new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
 
 SYNC.start();
+loadPubConfig();
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
 function calcSt(t){
@@ -551,6 +574,17 @@ function popularFiltroAno(){
 }
 function limpar(){['busca','f-tipo','f-status','f-area','f-ano'].forEach(id=>{const el=document.getElementById(id);el&&(el.tagName==='INPUT'?el.value='':el.selectedIndex=0);});filtrar();}
 
+// ── CABEÇALHO DINÂMICO ────────────────────────────────────────────────────────
+function renderTableHeader(){
+  const hide=id=>{const el=document.getElementById(id);if(el)el.style.display='none';};
+  const show=id=>{const el=document.getElementById(id);if(el)el.style.display='';};
+  // Sempre visíveis: tipo, num
+  ['objeto','inst','esfera','inicio','termino','area','obs','sei','linkDoc','dias','status'].forEach(f=>{
+    const thId='th-'+(f==='linkDoc'?'linkDoc':f==='sei'?'sei':f);
+    isVisible(f)?show(thId):hide(thId);
+  });
+}
+
 // ── TABELA ────────────────────────────────────────────────────────────────────
 function renderTable(){
   const q=document.getElementById('busca').value.trim();
@@ -570,6 +604,7 @@ function renderTable(){
     document.getElementById('count-bar').textContent='';
     return;
   }
+  renderTableHeader();
   tbody.innerHTML=filtered.map(r=>{
     const idx=allRecs.indexOf(r);const st=calcSt(getVal(r,'termino'));
     const tipo=getVal(r,'tipo'),num=getVal(r,'num')||getVal(r,'numero');
@@ -581,20 +616,21 @@ function renderTable(){
     const diasClr=st.cls==='st-err'?'var(--r)':st.cls==='st-soon'?'#880e4f':st.cls==='st-warn'?'var(--a)':'var(--ok)';
     const diasTxt=diasAbs!==null?(st.dias<0?`-${diasAbs}`:`+${diasAbs}`):'—';
     const seiHtml=sei?(linkSei?`<a href="${esc(linkSei)}" target="_blank" rel="noopener" style="color:var(--b);text-decoration:none;" onclick="event.stopPropagation()" title="Abrir no SEI">${esc(sei)}</a>`:esc(sei)):'—';
+    const v=(f,html)=>isVisible(f)?html:'';
     return`<tr tabindex="0" onclick="openModal(${idx})" onkeydown="if(event.key==='Enter')openModal(${idx})"
       aria-label="${esc(tipo)} ${esc(num)} — ${esc(inst)} — ${esc(st.label)}">
       <td><span class="tipo-tag">${hl(tipo,q)}</span></td>
       <td style="font-weight:700;">${hl(num,q)}</td>
-      <td style="max-width:220px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:11px;" title="${esc(obj)}">${hl(obj,q)}</td>
-      <td style="max-width:160px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:11px;" title="${esc(inst)}">${hl(inst,q)}</td>
-      <td class="col-esfera" style="font-size:11px;">${esc(esf)}</td>
-      <td style="white-space:nowrap;">${fmtDate(ini)}</td>
-      <td style="white-space:nowrap;">${fmtDate(ter)}</td>
-      <td class="col-area"><span class="area-tag">${esc(area)}</span></td>
-      <td><span class="st ${st.cls}">${esc(st.label)}</span></td>
-      <td class="col-dias" style="color:${diasClr};" title="${diasAbs!==null?(st.dias<0?`${diasAbs} dias expirado`:`${diasAbs} dias restantes`):'Sem data'}">${diasTxt}</td>
-      <td class="col-sei-pub" style="font-size:10px;white-space:nowrap;" title="${esc(sei)}">${seiHtml}</td>
-      <td>${link?`<a href="${esc(link)}" target="_blank" rel="noopener noreferrer" style="color:var(--g);font-size:17px;text-decoration:none;" onclick="event.stopPropagation()" aria-label="Documento">↓</a>`:'—'}</td>
+      ${v('objeto',`<td style="max-width:220px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:11px;" title="${esc(obj)}">${hl(obj,q)}</td>`)}
+      ${v('inst',`<td style="max-width:160px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:11px;" title="${esc(inst)}">${hl(inst,q)}</td>`)}
+      ${v('esfera',`<td class="col-esfera" style="font-size:11px;">${esc(esf)}</td>`)}
+      ${v('inicio',`<td style="white-space:nowrap;">${fmtDate(ini)}</td>`)}
+      ${v('termino',`<td style="white-space:nowrap;">${fmtDate(ter)}</td>`)}
+      ${v('area',`<td class="col-area"><span class="area-tag">${esc(area)}</span></td>`)}
+      ${v('status',`<td><span class="st ${st.cls}">${esc(st.label)}</span></td>`)}
+      ${v('dias',`<td class="col-dias" style="color:${diasClr};" title="${diasAbs!==null?(st.dias<0?`${diasAbs} dias expirado`:`${diasAbs} dias restantes`):'Sem data'}">${diasTxt}</td>`)}
+      ${v('sei',`<td class="col-sei-pub" style="font-size:10px;white-space:nowrap;" title="${esc(sei)}">${seiHtml}</td>`)}
+      ${v('linkDoc',`<td>${link?`<a href="${esc(link)}" target="_blank" rel="noopener noreferrer" style="color:var(--g);font-size:17px;text-decoration:none;" onclick="event.stopPropagation()" aria-label="Documento">↓</a>`:'—'}</td>`)}
     </tr>`;
   }).join('');
   const countTxt=`${filtered.length} de ${allRecs.length} registros`;
@@ -622,18 +658,18 @@ function openModal(idx){
       <div class="modal-field"><div class="modal-lbl">Tipo</div><div class="modal-val"><span class="tipo-tag">${esc(tipo)}</span></div></div>
       <div class="modal-field"><div class="modal-lbl">Número</div><div class="modal-val" style="font-weight:700;font-size:15px;">${esc(num)}</div></div>
     </div>
-    <div class="modal-field"><div class="modal-lbl">Objeto</div><div class="modal-val">${esc(obj)}</div></div>
+    ${isVisible('objeto')?`<div class="modal-field"><div class="modal-lbl">Objeto</div><div class="modal-val">${esc(obj)}</div></div>`:''}
     <div class="modal-grid">
-      <div class="modal-field"><div class="modal-lbl">Instituição</div><div class="modal-val">${esc(inst)}</div></div>
-      <div class="modal-field"><div class="modal-lbl">Esfera</div><div class="modal-val">${esc(getVal(r,'esfera'))}</div></div>
+      ${isVisible('inst')?`<div class="modal-field"><div class="modal-lbl">Instituição</div><div class="modal-val">${esc(inst)}</div></div>`:''}
+      ${isVisible('esfera')?`<div class="modal-field"><div class="modal-lbl">Esfera</div><div class="modal-val">${esc(getVal(r,'esfera'))}</div></div>`:''}
     </div>
     <div class="modal-grid">
-      <div class="modal-field"><div class="modal-lbl">Vigência</div><div class="modal-val">${fmtDate(getVal(r,'inicio'))} → ${fmtDate(getVal(r,'termino'))}</div></div>
-      <div class="modal-field"><div class="modal-lbl">Status</div><div class="modal-val"><span class="st ${st.cls}">${esc(st.label)}</span>${st.dias!==null?` <span style="font-size:11px;color:var(--tx2);margin-left:6px;">(${Math.abs(st.dias)} dias ${st.dias<0?'expirado':'restantes'})</span>`:''}</div></div>
+      ${(isVisible('inicio')||isVisible('termino'))?`<div class="modal-field"><div class="modal-lbl">Vigência</div><div class="modal-val">${isVisible('inicio')?fmtDate(getVal(r,'inicio')):'…'} → ${isVisible('termino')?fmtDate(getVal(r,'termino')):'…'}</div></div>`:''}
+      ${isVisible('status')?`<div class="modal-field"><div class="modal-lbl">Status</div><div class="modal-val"><span class="st ${st.cls}">${esc(st.label)}</span>${st.dias!==null?` <span style="font-size:11px;color:var(--tx2);margin-left:6px;">(${Math.abs(st.dias)} dias ${st.dias<0?'expirado':'restantes'})</span>`:''}</div></div>`:''}
     </div>
-    <div class="modal-field"><div class="modal-lbl">Área temática</div><div class="modal-val"><span class="area-tag">${esc(getVal(r,'area'))}</span></div></div>
-    ${getVal(r,'obs')?`<div class="modal-field"><div class="modal-lbl">Observações</div><div class="modal-val">${esc(getVal(r,'obs'))}</div></div>`:''}
-    ${seiModalHtml}
+    ${isVisible('area')?`<div class="modal-field"><div class="modal-lbl">Área temática</div><div class="modal-val"><span class="area-tag">${esc(getVal(r,'area'))}</span></div></div>`:''}
+    ${isVisible('obs')&&getVal(r,'obs')?`<div class="modal-field"><div class="modal-lbl">Observações</div><div class="modal-val">${esc(getVal(r,'obs'))}</div></div>`:''}
+    ${isVisible('sei')?seiModalHtml:''}
     <div style="height:1px;background:var(--bdr);margin:16px 0;"></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
       <button class="btn btn-o" onclick="shareRegistro('${esc(shareUrl)}')" style="font-size:11px;padding:7px 12px;">🔗 Compartilhar</button>

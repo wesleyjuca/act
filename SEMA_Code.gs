@@ -83,6 +83,7 @@ function doGet(e) {
       case 'history':    result = handleGetHistory(e.parameter);       break;
       case 'schema':     result = handleSchema();                       break;
       case 'status':     result = handleStatus();                       break;
+      case 'getConfig':  result = handleGetConfig();                    break;
       default:       result = { error: `Ação desconhecida: ${action}` };
     }
     return jsonResponse(result);
@@ -131,6 +132,7 @@ function doPost(e) {
       case 'delete':       result = handleDelete(body.tipo, body.num, body.sheet);  break;
       case 'log':          result = handleLogEntry(body.entry);                     break;
       case 'addHistory':   result = handleAddHistory(body.entries);                 break;
+      case 'saveConfig':   result = handleSaveConfig(body.config);                  break;
       default:             result = { error: `Ação POST desconhecida: ${body.action}` };
     }
     return jsonResponse(result);
@@ -321,6 +323,34 @@ function handleDelete(tipo, num, sheetName) {
     }
   }
   return { ok: false, reason: 'not_found' };
+}
+
+// ── CONFIG DE VISIBILIDADE ────────────────────────────────────────────────────
+
+const DEFAULT_VISIBLE_FIELDS = [
+  'objeto','inst','esfera','inicio','termino','area','obs','sei','linkDoc'
+];
+
+function handleGetConfig() {
+  const props = PropertiesService.getScriptProperties();
+  const raw = props.getProperty('SEMA_FIELDS_CONFIG');
+  if (raw) {
+    try {
+      const cfg = JSON.parse(raw);
+      return { ok: true, config: cfg };
+    } catch(_) {}
+  }
+  return { ok: true, config: { visibleFields: DEFAULT_VISIBLE_FIELDS } };
+}
+
+function handleSaveConfig(config) {
+  if (!config || !Array.isArray(config.visibleFields)) {
+    return { error: 'config.visibleFields deve ser um array' };
+  }
+  const props = PropertiesService.getScriptProperties();
+  props.setProperty('SEMA_FIELDS_CONFIG', JSON.stringify(config));
+  logInfo('saveConfig', 'Configuração de campos salva');
+  return { ok: true };
 }
 
 function handleAddHistory(entries) {

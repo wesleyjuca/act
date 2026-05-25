@@ -188,29 +188,33 @@ class SEMASync {
 
   /** Remove um registro pelo par tipo+num */
   async remove(tipo, num) {
+    // Remove do array local se ainda estiver lá (pode já ter sido removido externamente)
     const idx = this._records.findIndex(r => r.tipo === tipo && r.num === num);
-    if (idx < 0) return false;
-    // Ajustar dirty: remover este índice e decrementar os posteriores
-    const newDirty = new Set();
-    for (const i of this._dirty) {
-      if (i < idx) newDirty.add(i);
-      else if (i > idx) newDirty.add(i - 1);
+    if (idx >= 0) {
+      const newDirty = new Set();
+      for (const i of this._dirty) {
+        if (i < idx) newDirty.add(i);
+        else if (i > idx) newDirty.add(i - 1);
+      }
+      this._dirty = newDirty;
+      this._records.splice(idx, 1);
+      this._saveCache(this._records);
+      this.log('info', `Removido localmente: ${tipo} ${num}`);
     }
-    this._dirty = newDirty;
-    this._records.splice(idx, 1);
-    this._saveCache(this._records);
-    this.log('info', `Removido localmente: ${tipo} ${num}`);
+    // Sempre tenta deletar no remoto independentemente do estado local
     if (this.cfg.appsScriptUrl && this._hasToken()) {
       try {
         await this._deleteRemote(tipo, num);
         this.log('ok', `Removido do Sheets: ${tipo} ${num}`);
+        return { ok: true, remote: true };
       } catch(e) {
         this.log('warn', `Remoção remota falhou: ${e.message}`);
+        return { ok: true, remote: false, error: e.message };
       }
     } else if (!this._hasToken()) {
       this.log('warn', 'SYNC_TOKEN não configurado — removido apenas localmente');
     }
-    return true;
+    return { ok: true, remote: false };
   }
 
   /** Registra listener para eventos: 'data' | 'status' | 'error' | 'log' */

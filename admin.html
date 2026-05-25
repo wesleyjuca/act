@@ -360,6 +360,7 @@ tbody tr.row-sel td{background:#e8f7eb;}
           <button class="btn btn-dk" style="padding:7px 8px;" onclick="exportarFiltradosCSV()" aria-label="Exportar filtrado CSV" title="Exportar registros visíveis (CSV)">CSV</button>
           <button class="btn btn-dk" style="padding:7px 8px;" onclick="exportarFiltradosPDF()" aria-label="Exportar filtrado PDF" title="Exportar registros visíveis (PDF)">PDF</button>
           <button class="btn btn-dk" style="padding:7px 8px;" onclick="baixarBackup()" aria-label="Backup JSON" title="Backup completo em JSON">⬇</button>
+          <button class="btn btn-mail" style="padding:7px 10px;font-size:11px;" onclick="exportarParaSheets()" aria-label="Exportar para importação no Sheets" title="Gera XLSX no formato exato do Google Sheets para importação manual">📥 p/ Sheets</button>
         </div>
         <button class="btn btn-mail" onclick="enviarAlertaLote()" aria-label="Enviar alerta por e-mail para vencimentos">✉ Alertar</button>
         <button class="btn btn-o" onclick="limparFiltros()" aria-label="Limpar filtros">Limpar</button>
@@ -427,6 +428,30 @@ tbody tr.row-sel td{background:#e8f7eb;}
       <p style="font-size:10.5px;color:var(--a);margin-top:10px;">⚠ A senha é armazenada com hash SHA-256 na sessão. Para tornar permanente: edite a constante SENHA_HASH no código-fonte.</p>
     </div>
 
+    <!-- Visibilidade Pública -->
+    <div class="settings-box" style="margin-top:16px;" role="region" aria-label="Visibilidade de campos no painel público">
+      <p class="settings-title">👁 Visibilidade de campos no painel público</p>
+      <p style="font-size:11px;color:var(--tx2);margin-bottom:12px;">Marque os campos que devem aparecer no painel público. Tipo e Número são sempre exibidos.</p>
+      <div id="field-visibility-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin-bottom:14px;">
+        <!-- Preenchido por loadFieldConfig() -->
+        <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;"><input type="checkbox" id="fv-objeto" checked> Objeto / Descrição</label>
+        <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;"><input type="checkbox" id="fv-inst" checked> Instituição Parceira</label>
+        <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;"><input type="checkbox" id="fv-esfera" checked> Esfera</label>
+        <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;"><input type="checkbox" id="fv-inicio" checked> Data de Início</label>
+        <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;"><input type="checkbox" id="fv-termino" checked> Data de Término</label>
+        <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;"><input type="checkbox" id="fv-area" checked> Área Temática</label>
+        <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;"><input type="checkbox" id="fv-obs" checked> Observações</label>
+        <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;"><input type="checkbox" id="fv-sei" checked> Número SEI</label>
+        <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;"><input type="checkbox" id="fv-linkDoc" checked> Link do Documento</label>
+        <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;"><input type="checkbox" id="fv-dias" checked> Coluna Dias</label>
+        <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;"><input type="checkbox" id="fv-status" checked> Status</label>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button class="btn btn-g" onclick="salvarFieldConfig()" aria-label="Salvar configuração de visibilidade">💾 Salvar configuração</button>
+        <span id="fv-status-msg" style="font-size:11px;color:var(--tx2);"></span>
+      </div>
+      <p style="font-size:10.5px;color:var(--tx2);margin-top:8px;">A configuração é salva no Google Apps Script e aplicada automaticamente no painel público.</p>
+    </div>
 
     <!-- ══ SYNC DASHBOARD ═══════════════════════════════════════════════════ -->
     <div class="divider" style="margin-top:24px;"></div>
@@ -1013,18 +1038,25 @@ function toggleSelectAll(){const all=document.getElementById('sel-all').checked;
 function updateBulkBar(){const n=selSet.size;const bar=document.getElementById('bulk-bar');bar.classList.toggle('hidden',n===0);if(n>0)document.getElementById('bulk-count').textContent=`${n} selecionado${n>1?'s':''}`;}
 async function excluirSelecionados(){
   if(!selSet.size)return;
-  showConfirm(`Excluir ${selSet.size} registro(s)? Você pode desfazer em seguida.`,'Confirmar exclusão','Excluir',()=>{
+  showConfirm(`Excluir ${selSet.size} registro(s)? Você pode desfazer em seguida.`,'Confirmar exclusão','Excluir',async()=>{
     _pushUndo();
     const paraRemover=[...selSet].map(i=>dados[i]).filter(Boolean);
     [...selSet].sort((a,b)=>b-a).forEach(i=>dados.splice(i,1));
     selSet.clear();popularFiltros();renderTable();updateKPIs();
     mostrarUndo(`${paraRemover.length} registro(s) excluído(s)`);
     if(SYNC){
+      let remoteSucesso=0,remoteFalhou=0;
       for(const r of paraRemover){
-        SYNC.remove(r.tipo,r.num).catch(e=>{
+        try{
+          const res=await SYNC.remove(r.tipo,r.num);
+          if(res&&res.remote)remoteSucesso++;else remoteFalhou++;
+        }catch(e){
+          remoteFalhou++;
           if(typeof appendLog==='function')appendLog({level:'warn',msg:`Remoção Sheets ${r.num}: `+e.message,iso:new Date().toLocaleTimeString('pt-BR')});
-        });
+        }
       }
+      if(remoteSucesso>0)showToast(`${remoteSucesso} removido(s) do Sheets ✓`,'ok',3000);
+      if(remoteFalhou>0)showToast(`${remoteFalhou} não removido(s) do Sheets — verifique token`,'warn',4000);
     }
   });
 }
@@ -1135,7 +1167,7 @@ async function salvar(){
 // ── DELETE + UNDO ──────────────────────────────────────────────────────────────
 function openDel(idx){delIdx=idx;const r=dados[idx];document.getElementById('del-sub').textContent=`Excluir: ${r.tipo} ${r.num} — ${(r.inst||'').split('–')[0].trim()}. Você pode desfazer em seguida.`;document.getElementById('modal-del').classList.add('open');}
 function cancelDel(){document.getElementById('modal-del').classList.remove('open');delIdx=null;}
-function confirmarDel(){
+async function confirmarDel(){
   if(delIdx===null)return;
   _pushUndo();
   const r=dados[delIdx];
@@ -1148,9 +1180,14 @@ function confirmarDel(){
   popularFiltros();renderTable();updateKPIs();
   mostrarUndo(`Registro "${tipoNum.tipo} ${tipoNum.num}" excluído`);
   if(SYNC){
-    SYNC.remove(tipoNum.tipo,tipoNum.num).catch(e=>{
+    try{
+      const res=await SYNC.remove(tipoNum.tipo,tipoNum.num);
+      if(res&&res.remote)showToast(`${tipoNum.tipo} ${tipoNum.num} removido do Sheets ✓`,'ok',3000);
+      else if(res&&!res.remote)showToast('Removido localmente. Sheets requer token configurado.','warn',3500);
+    }catch(e){
       if(typeof appendLog==='function')appendLog({level:'warn',msg:'Remoção Sheets: '+e.message,iso:new Date().toLocaleTimeString('pt-BR')});
-    });
+      showToast('Remoção do Sheets falhou: '+e.message,'err',4000);
+    }
   }
 }
 function mostrarUndo(msg){
@@ -1320,6 +1357,96 @@ function baixarBackup(){
   showToast(`Backup exportado: ${dados.length} registros`,'ok',3000);
 }
 
+// ── EXPORTAR PARA SHEETS (formato exato da aba DADOS_PÚBLICOS) ─────────────────
+function exportarParaSheets(){
+  if(!dados.length){showToast('Nenhum registro para exportar.','warn');return;}
+  try{
+    const fmtIso=d=>{
+      if(!d)return'';
+      // d pode ser 'YYYY-MM-DD' ou 'DD/MM/YYYY'
+      if(/^\d{4}-\d{2}-\d{2}$/.test(d))return d;
+      const p=d.split('/');
+      return p.length===3?`${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`:'';
+    };
+    // Título decorativo — linha 1 (equivale ao título da planilha)
+    const titulo=['SEMA/AC — Termos de Cooperação Técnica','','','','','','','','','','','','','',''];
+    // Cabeçalhos — linha 2 (exatamente as colunas de DADOS_PÚBLICOS)
+    const cabecalho=['Tipo','Número','Ano','Objeto','Instituição Parceira','Esfera','Início','Término','Área','Status','Dias Restantes','Link Doc','Link SEI','Observações','SEI'];
+    // Dados — linha 3+ (campos internos omitidos; Status e DiasRestantes vazios → preenchidos por fórmula no Sheets)
+    const linhas=dados.map(r=>[
+      r.tipo||'',
+      r.num||'',
+      r.ano||parseInt((r.num||'').match(/\d{4}/)?.[0])||new Date().getFullYear(),
+      r.objeto||'',
+      r.inst||'',
+      r.esfera||'',
+      fmtIso(r.inicio),
+      fmtIso(r.termino),
+      r.area||'',
+      '',  // Status — calculado por fórmula no Sheets
+      '',  // Dias Restantes — calculado por fórmula no Sheets
+      r.link||r.linkDoc||'',
+      r.linkSei||'',
+      r.obs||'',
+      r.sei||''
+    ]);
+    const ws=XLSX.utils.aoa_to_sheet([titulo,cabecalho,...linhas]);
+    // Larguras de coluna compatíveis com o Sheets
+    ws['!cols']=[8,14,6,60,40,12,12,12,28,14,10,40,40,40,22].map(w=>({wch:w}));
+    // Mesclar título na linha 1 (A1:O1)
+    ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:14}}];
+    // Estilo básico
+    ws['A1']={v:titulo[0],t:'s',s:{font:{bold:true,sz:13},fill:{fgColor:{rgb:'095C18'}},alignment:{horizontal:'center'}}};
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,'DADOS_PÚBLICOS',ws);
+    const fname=`SEMA_TCT_ImportSheets_${new Date().toISOString().slice(0,10)}.xlsx`;
+    XLSX.writeFile(wb,fname);
+    showToast(`Arquivo gerado: ${fname} · Para importar: Sheets → Arquivo → Importar → Substituir aba DADOS_PÚBLICOS`,'ok',7000);
+  }catch(e){showToast('Erro ao exportar: '+e.message,'err');console.error(e);}
+}
+
+// ── VISIBILIDADE DE CAMPOS PÚBLICOS ───────────────────────────────────────────
+const _FIELD_VIS_IDS=['objeto','inst','esfera','inicio','termino','area','obs','sei','linkDoc','dias','status'];
+
+async function loadFieldConfig(){
+  if(!SEMA_CONFIG.appsScriptUrl)return;
+  try{
+    const url=SEMA_CONFIG.appsScriptUrl+'?action=getConfig';
+    const r=await fetch(url,{method:'GET'});
+    const text=await r.text();
+    const json=JSON.parse(text);
+    if(json.ok&&json.config&&Array.isArray(json.config.visibleFields)){
+      _FIELD_VIS_IDS.forEach(f=>{
+        const el=document.getElementById('fv-'+f);
+        if(el)el.checked=json.config.visibleFields.includes(f);
+      });
+      const msg=document.getElementById('fv-status-msg');
+      if(msg)msg.textContent='Configuração carregada do servidor.';
+    }
+  }catch(_){}
+}
+
+async function salvarFieldConfig(){
+  const visibleFields=_FIELD_VIS_IDS.filter(f=>{
+    const el=document.getElementById('fv-'+f);
+    return el&&el.checked;
+  });
+  const msg=document.getElementById('fv-status-msg');
+  if(msg){msg.textContent='Salvando…';msg.style.color='var(--tx2)';}
+  try{
+    const res=await SYNC._post({action:'saveConfig',config:{visibleFields}});
+    if(res&&res.ok){
+      if(msg){msg.textContent='✓ Configuração salva no servidor.';msg.style.color='var(--ok)';}
+      showToast('Visibilidade de campos salva no Sheets ✓','ok',3500);
+    }else{
+      throw new Error(res&&res.error?res.error:'Resposta inválida');
+    }
+  }catch(e){
+    if(msg){msg.textContent='Erro: '+e.message;msg.style.color='var(--r)';}
+    showToast('Erro ao salvar configuração: '+e.message,'err',4000);
+  }
+}
+
 // ── SENHA SHA-256 ──────────────────────────────────────────────────────────────
 async function alterarSenha(){
   const atual=document.getElementById('pwd-atual').value;
@@ -1388,6 +1515,8 @@ function initSync() {
   SYNC.start();
   // Atualizar painel de status a cada segundo
   setInterval(refreshSyncDashboard, 1000);
+  // Carregar config de visibilidade de campos do GAS
+  setTimeout(loadFieldConfig, 2000);
 }
 
 function updateSyncStatus(s) {
