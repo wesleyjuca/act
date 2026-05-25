@@ -93,11 +93,14 @@ main{max-width:1200px;margin:0 auto;padding:24px;flex:1;width:100%;}
 
 /* ── KPIs ──────────────────────────────────────────────────────────────────── */
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
-@media(max-width:900px){.col-sei-pub{display:none;}}
+@media(max-width:480px){.col-sei-pub{display:none;}}
 @media(max-width:700px){.kpi-grid{grid-template-columns:1fr 1fr;}.sk-kpi-grid{grid-template-columns:1fr 1fr;}.sk-charts{grid-template-columns:1fr;}}
+.col-dias{white-space:nowrap;font-size:11px;font-weight:700;}
+@media(max-width:600px){.col-dias{display:none;}}
 .kpi{background:var(--card);border-radius:10px;border:1px solid var(--bdr);padding:15px 17px;
   position:relative;overflow:hidden;opacity:0;transform:translateY(8px);
-  transition:opacity .4s,transform .4s;}
+  transition:opacity .4s,transform .4s,box-shadow .15s;cursor:pointer;}
+.kpi:hover{box-shadow:0 4px 16px rgba(0,0,0,.12);}
 .kpi.visible{opacity:1;transform:translateY(0);}
 .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;}
 .kg::before{background:var(--g);}.ky::before{background:var(--y);}
@@ -289,10 +292,10 @@ tbody td{padding:11px 13px;border-bottom:1px solid var(--bdr);color:var(--tx);ve
   <!-- CONTEÚDO REAL (oculto até carregar) -->
   <div id="conteudo" style="display:none;">
     <div class="kpi-grid" role="region" aria-label="Indicadores">
-      <div class="kpi kg"><div class="kpi-l">Vigentes</div><div class="kpi-v" id="kpi-vig" aria-live="polite">—</div><div class="kpi-s">instrumentos</div></div>
-      <div class="kpi ky"><div class="kpi-l">A vencer (90d)</div><div class="kpi-v" id="kpi-av" aria-live="polite">—</div><div class="kpi-s">atenção</div></div>
-      <div class="kpi kr"><div class="kpi-l">Expirados</div><div class="kpi-v" id="kpi-exp" aria-live="polite">—</div><div class="kpi-s">sem renovação</div></div>
-      <div class="kpi kb"><div class="kpi-l">Parceiros</div><div class="kpi-v" id="kpi-parc" aria-live="polite">—</div><div class="kpi-s">instituições</div></div>
+      <div class="kpi kg" onclick="filtrarPorStatus('Vigente')" title="Filtrar por Vigentes" role="button" tabindex="0" onkeydown="if(event.key==='Enter')filtrarPorStatus('Vigente')"><div class="kpi-l">Vigentes</div><div class="kpi-v" id="kpi-vig" aria-live="polite">—</div><div class="kpi-s">clique para filtrar</div></div>
+      <div class="kpi ky" onclick="filtrarPorStatus('A vencer')" title="Filtrar por A vencer" role="button" tabindex="0" onkeydown="if(event.key==='Enter')filtrarPorStatus('A vencer')"><div class="kpi-l">A vencer (90d)</div><div class="kpi-v" id="kpi-av" aria-live="polite">—</div><div class="kpi-s">clique para filtrar</div></div>
+      <div class="kpi kr" onclick="filtrarPorStatus('Expirado')" title="Filtrar por Expirados" role="button" tabindex="0" onkeydown="if(event.key==='Enter')filtrarPorStatus('Expirado')"><div class="kpi-l">Expirados</div><div class="kpi-v" id="kpi-exp" aria-live="polite">—</div><div class="kpi-s">clique para filtrar</div></div>
+      <div class="kpi kb" title="Total de instituições parceiras"><div class="kpi-l">Parceiros</div><div class="kpi-v" id="kpi-parc" aria-live="polite">—</div><div class="kpi-s">instituições</div></div>
     </div>
     <div class="charts-row">
       <div class="chart-card" role="region" aria-label="Instrumentos por tipo">
@@ -306,7 +309,8 @@ tbody td{padding:11px 13px;border-bottom:1px solid var(--bdr);color:var(--tx);ve
     </div>
     <div class="sec-hd">
       <span class="sec-title">Tabela de instrumentos</span>
-      <div style="display:flex;gap:8px;">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span id="count-bar" style="font-size:11px;color:var(--tx2);"></span>
         <button class="btn btn-g" onclick="exportPDF()" aria-label="Exportar PDF">📄 PDF</button>
         <button class="btn btn-o" onclick="exportCSV()" aria-label="Exportar CSV">📊 CSV</button>
       </div>
@@ -332,6 +336,7 @@ tbody td{padding:11px 13px;border-bottom:1px solid var(--bdr);color:var(--tx);ve
             <th onclick="sortBy('termino')" class="sorted">Término ↑</th>
             <th class="col-area">Área</th>
             <th onclick="sortBy('status')">Status</th>
+            <th onclick="sortBy('dias')" class="col-dias" title="Dias restantes ou expirados">Dias</th>
             <th class="col-sei-pub" onclick="sortBy('sei')" title="Número SEI">SEI</th>
             <th>Doc.</th>
           </tr></thead>
@@ -425,6 +430,7 @@ SYNC.on('data', recs => {
   const ts = SYNC.getStatus().lastSync;
   if (ts) document.getElementById('sync-ts').textContent =
     'Última sync: ' + ts.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  if (firstLoad) setTimeout(checkDeepLink, 50);
 });
 
 SYNC.on('error', e => {
@@ -514,8 +520,15 @@ function filtrar(){
       &&(!ft||tip===ft)&&(!fs||st===fs)&&(!fa||area===fa)&&(!fy||ano===fy);
   });
   filtered.sort((a,b)=>{
+    if(sortField==='status'){
+      const va=calcSt(getVal(a,'termino')).label,vb=calcSt(getVal(b,'termino')).label;
+      return sortAsc?va.localeCompare(vb):vb.localeCompare(va);
+    }
+    if(sortField==='dias'){
+      const va=calcSt(getVal(a,'termino')).dias??999999,vb=calcSt(getVal(b,'termino')).dias??999999;
+      return sortAsc?va-vb:vb-va;
+    }
     let va=getVal(a,sortField),vb=getVal(b,sortField);
-    if(sortField==='status'){va=calcSt(getVal(a,'termino')).label;vb=calcSt(getVal(b,'termino')).label;}
     return sortAsc?va.localeCompare(vb):vb.localeCompare(va);
   });
   renderTable();
@@ -544,7 +557,7 @@ function renderTable(){
   const tbody=document.getElementById('tbody');
   if(!filtered.length){
     const msg=allRecs.length>0?'Nenhum registro corresponde aos filtros aplicados.':'Nenhum instrumento cadastrado.';
-    tbody.innerHTML=`<tr><td colspan="11"><div class="empty-state">
+    tbody.innerHTML=`<tr><td colspan="12"><div class="empty-state">
       <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
         <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>
@@ -554,6 +567,7 @@ function renderTable(){
       <p>${msg}${allRecs.length===0?'<br>Os dados serão exibidos assim que publicados pelo administrador.':''}</p>
     </div></td></tr>`;
     document.getElementById('tbl-count').textContent='0 registros';
+    document.getElementById('count-bar').textContent='';
     return;
   }
   tbody.innerHTML=filtered.map(r=>{
@@ -562,23 +576,30 @@ function renderTable(){
     const obj=getVal(r,'objeto'),inst=getVal(r,'inst')||getVal(r,'instituicao_parceira');
     const esf=getVal(r,'esfera'),ini=getVal(r,'inicio'),ter=getVal(r,'termino');
     const area=getVal(r,'area'),link=getVal(r,'link_doc')||getVal(r,'linkDoc')||getVal(r,'link');
-    const sei=getVal(r,'sei');
+    const sei=getVal(r,'sei'),linkSei=getVal(r,'linkSei')||getVal(r,'link_sei');
+    const diasAbs=st.dias!==null?Math.abs(st.dias):null;
+    const diasClr=st.cls==='st-err'?'var(--r)':st.cls==='st-soon'?'#880e4f':st.cls==='st-warn'?'var(--a)':'var(--ok)';
+    const diasTxt=diasAbs!==null?(st.dias<0?`-${diasAbs}`:`+${diasAbs}`):'—';
+    const seiHtml=sei?(linkSei?`<a href="${esc(linkSei)}" target="_blank" rel="noopener" style="color:var(--b);text-decoration:none;" onclick="event.stopPropagation()" title="Abrir no SEI">${esc(sei)}</a>`:esc(sei)):'—';
     return`<tr tabindex="0" onclick="openModal(${idx})" onkeydown="if(event.key==='Enter')openModal(${idx})"
       aria-label="${esc(tipo)} ${esc(num)} — ${esc(inst)} — ${esc(st.label)}">
       <td><span class="tipo-tag">${hl(tipo,q)}</span></td>
       <td style="font-weight:700;">${hl(num,q)}</td>
-      <td style="max-width:260px;font-size:11px;">${hl(obj,q)}</td>
-      <td style="font-size:11px;">${hl(inst,q)}</td>
+      <td style="max-width:220px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:11px;" title="${esc(obj)}">${hl(obj,q)}</td>
+      <td style="max-width:160px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:11px;" title="${esc(inst)}">${hl(inst,q)}</td>
       <td class="col-esfera" style="font-size:11px;">${esc(esf)}</td>
       <td style="white-space:nowrap;">${fmtDate(ini)}</td>
       <td style="white-space:nowrap;">${fmtDate(ter)}</td>
       <td class="col-area"><span class="area-tag">${esc(area)}</span></td>
       <td><span class="st ${st.cls}">${esc(st.label)}</span></td>
-      <td class="col-sei-pub" style="font-size:10px;white-space:nowrap;" title="${esc(sei)}">${esc(sei)||'—'}</td>
+      <td class="col-dias" style="color:${diasClr};" title="${diasAbs!==null?(st.dias<0?`${diasAbs} dias expirado`:`${diasAbs} dias restantes`):'Sem data'}">${diasTxt}</td>
+      <td class="col-sei-pub" style="font-size:10px;white-space:nowrap;" title="${esc(sei)}">${seiHtml}</td>
       <td>${link?`<a href="${esc(link)}" target="_blank" rel="noopener noreferrer" style="color:var(--g);font-size:17px;text-decoration:none;" onclick="event.stopPropagation()" aria-label="Documento">↓</a>`:'—'}</td>
     </tr>`;
   }).join('');
-  document.getElementById('tbl-count').textContent=`${filtered.length} de ${allRecs.length} registros`;
+  const countTxt=`${filtered.length} de ${allRecs.length} registros`;
+  document.getElementById('tbl-count').textContent=countTxt;
+  document.getElementById('count-bar').textContent=filtered.length<allRecs.length?`Exibindo ${countTxt}`:`${allRecs.length} registros`;
 }
 
 // ── MODAL ─────────────────────────────────────────────────────────────────────
@@ -587,6 +608,13 @@ function openModal(idx){
   const st=calcSt(getVal(r,'termino'));
   const tipo=getVal(r,'tipo'),num=getVal(r,'num')||getVal(r,'numero');
   const obj=getVal(r,'objeto'),inst=getVal(r,'inst')||getVal(r,'instituicao_parceira');
+  const sei=getVal(r,'sei'),linkSei=getVal(r,'linkSei')||getVal(r,'link_sei');
+  const shareUrl=buildShareUrl(tipo,num);
+  const seiModalHtml=sei?`<div class="modal-field"><div class="modal-lbl">Número SEI</div>
+    <div class="modal-val" style="display:flex;align-items:center;gap:8px;">
+      <span style="font-size:12px;font-family:monospace;">${linkSei?`<a href="${esc(linkSei)}" target="_blank" rel="noopener" style="color:var(--b);">${esc(sei)}</a>`:esc(sei)}</span>
+      <button onclick="copySEI('${esc(sei)}')" style="background:var(--gl);border:1px solid var(--gb);border-radius:5px;padding:3px 8px;font-size:10px;cursor:pointer;color:var(--gd);" title="Copiar SEI">📋 Copiar</button>
+    </div></div>`:'';
   document.getElementById('modal-title').textContent=`${tipo} ${num}`;
   document.getElementById('modal-body').innerHTML=`
     <div class="modal-sec">Dados do instrumento</div>
@@ -605,15 +633,21 @@ function openModal(idx){
     </div>
     <div class="modal-field"><div class="modal-lbl">Área temática</div><div class="modal-val"><span class="area-tag">${esc(getVal(r,'area'))}</span></div></div>
     ${getVal(r,'obs')?`<div class="modal-field"><div class="modal-lbl">Observações</div><div class="modal-val">${esc(getVal(r,'obs'))}</div></div>`:''}
-    ${getVal(r,'sei')?`<div class="modal-field"><div class="modal-lbl">Número SEI</div><div class="modal-val" style="font-size:11px;font-family:monospace;">${esc(getVal(r,'sei'))}</div></div>`:''}
+    ${seiModalHtml}
     <div style="height:1px;background:var(--bdr);margin:16px 0;"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+      <button class="btn btn-o" onclick="shareRegistro('${esc(shareUrl)}')" style="font-size:11px;padding:7px 12px;">🔗 Compartilhar</button>
+      <button class="btn btn-o" onclick="exportModalPDF(${idx})" style="font-size:11px;padding:7px 12px;">📄 Exportar ficha</button>
+    </div>
     <div class="qr-wrap">
-      <div style="font-size:11px;font-weight:700;color:var(--gd);margin-bottom:10px;">QR Code — link ao painel público</div>
+      <div style="font-size:11px;font-weight:700;color:var(--gd);margin-bottom:10px;">QR Code — link direto a este registro</div>
       <div id="qr-container" style="display:inline-block;"></div>
-      <div class="qr-caption">Aponte a câmera para acessar este instrumento no painel público</div>
+      <div class="qr-caption">Aponte a câmera para abrir este registro no painel público</div>
     </div>`;
   document.getElementById('modal').classList.add('open');
   document.getElementById('modal-title').focus();
+  // Update URL without reload for shareable link
+  if(history.replaceState){try{history.replaceState(null,'',shareUrl);}catch(_){}}
   setTimeout(async()=>{
     const el=document.getElementById('qr-container');
     if(!el)return;
@@ -624,13 +658,102 @@ function openModal(idx){
     }
     if(typeof QRCode!=='undefined'){
       el.innerHTML='';
-      try{new QRCode(el,{text:window.location.href,width:96,height:96,colorDark:'#095C18',colorLight:'#ffffff'});}
+      try{new QRCode(el,{text:shareUrl,width:96,height:96,colorDark:'#095C18',colorLight:'#ffffff'});}
       catch(_){el.innerHTML='<div style="font-size:10px;color:var(--tx2);">QR indisponível</div>';}
     }else{el.innerHTML='<div style="font-size:10px;color:var(--tx2);">QR indisponível</div>';}
   },100);
 }
-function closeModal(){document.getElementById('modal').classList.remove('open');}
+function closeModal(){
+  document.getElementById('modal').classList.remove('open');
+  // Restore URL without the record params
+  if(history.replaceState){try{const u=new URL(window.location.href);u.searchParams.delete('tipo');u.searchParams.delete('num');history.replaceState(null,'',u.toString());}catch(_){}}
+}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
+// ── KPI FILTER ───────────────────────────────────────────────────────────────
+function filtrarPorStatus(status){
+  const sel=document.getElementById('f-status');
+  if(sel.value===status){sel.value='';} // toggle off
+  else{sel.value=status;}
+  filtrar();
+  document.querySelector('.tbl-wrap')?.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+// ── SHARE / COPY ──────────────────────────────────────────────────────────────
+function buildShareUrl(tipo,num){
+  const u=new URL(window.location.href);
+  u.searchParams.set('tipo',tipo);u.searchParams.set('num',num);
+  u.hash='';return u.toString();
+}
+function shareRegistro(url){
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(url).then(()=>showToast('Link copiado para a área de transferência!','ok')).catch(()=>showToast('Não foi possível copiar.','err'));
+  }else{
+    const ta=document.createElement('textarea');ta.value=url;document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');showToast('Link copiado!','ok');}catch(_){showToast('Não foi possível copiar.','err');}
+    ta.remove();
+  }
+}
+function copySEI(sei){
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(sei).then(()=>showToast('SEI copiado: '+sei,'ok')).catch(()=>showToast('Não foi possível copiar.','err'));
+  }else{
+    const ta=document.createElement('textarea');ta.value=sei;document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');showToast('SEI copiado!','ok');}catch(_){showToast('Não foi possível copiar.','err');}
+    ta.remove();
+  }
+}
+
+// ── DEEP LINK (URL params → auto-open modal) ──────────────────────────────────
+function checkDeepLink(){
+  const p=new URLSearchParams(window.location.search);
+  const tipo=p.get('tipo'),num=p.get('num');
+  if(!tipo||!num)return;
+  const idx=allRecs.findIndex(r=>getVal(r,'tipo')===tipo&&(getVal(r,'num')||getVal(r,'numero'))===num);
+  if(idx>=0)openModal(idx);
+}
+
+// ── EXPORT MODAL PDF (ficha individual) ──────────────────────────────────────
+async function exportModalPDF(idx){
+  const r=allRecs[idx];if(!r)return;
+  if(!window.jspdf){
+    await new Promise((res)=>{const s=document.createElement('script');
+      s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      s.onload=res;s.onerror=res;document.head.appendChild(s);});
+    if(!window.jspdf){showToast('Biblioteca PDF indisponível.','err');return;}
+  }
+  const{jsPDF}=window.jspdf;const doc=new jsPDF({unit:'mm',format:'a4'});
+  const W=210,pad=14;
+  doc.setFillColor(9,92,24);doc.rect(0,0,W,22,'F');
+  doc.setFillColor(245,199,26);doc.rect(0,22,W,1.5,'F');
+  doc.setFontSize(16);doc.setFont('helvetica','bold');doc.setTextColor(31,173,53);doc.text('SEMA',pad,14);
+  doc.setTextColor(255,255,255);doc.setFontSize(9);doc.setFont('helvetica','normal');
+  doc.text('Secretaria de Estado do Meio Ambiente — AC',35,14);
+  doc.setFontSize(8);doc.text(`Emitido: ${new Date().toLocaleDateString('pt-BR')}`,W-pad,14,{align:'right'});
+  const st=calcSt(getVal(r,'termino'));
+  const tipo=getVal(r,'tipo'),num=getVal(r,'num')||getVal(r,'numero');
+  doc.setFontSize(14);doc.setFont('helvetica','bold');doc.setTextColor(9,92,24);
+  doc.text(`Ficha: ${tipo} ${num}`,pad,34);
+  doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(74,74,74);
+  const campos=[
+    ['Tipo',tipo],['Número',num],['Objeto',getVal(r,'objeto')],
+    ['Instituição',getVal(r,'inst')||getVal(r,'instituicao_parceira')],
+    ['Esfera',getVal(r,'esfera')],['Área',getVal(r,'area')],
+    ['Início',fmtDate(getVal(r,'inicio'))],['Término',fmtDate(getVal(r,'termino'))],
+    ['Status',st.label+(st.dias!==null?` (${Math.abs(st.dias)} dias ${st.dias<0?'expirado':'restantes'})`:'')],
+    ['SEI',getVal(r,'sei')],['Observações',getVal(r,'obs')],
+  ].filter(([,v])=>v);
+  let y=44;
+  campos.forEach(([lbl,val])=>{
+    doc.setFont('helvetica','bold');doc.setTextColor(9,92,24);doc.text(lbl+':',pad,y);
+    doc.setFont('helvetica','normal');doc.setTextColor(74,74,74);
+    const lines=doc.splitTextToSize(String(val),W-pad-50);
+    doc.text(lines,60,y);y+=lines.length*5+3;
+  });
+  doc.setFontSize(7);doc.setTextColor(136,136,136);
+  doc.text('SEMA/AC · Dados públicos · Lei 12.527/2011',W/2,285,{align:'center'});
+  doc.save(`SEMA_${tipo}_${num.replace(/\//g,'-')}.pdf`);
+}
 
 // ── EXPORTAR ─────────────────────────────────────────────────────────────────
 function exportCSV(){
