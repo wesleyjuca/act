@@ -67,6 +67,15 @@ const COL_INT = [
 // ── GET HANDLER ───────────────────────────────────────────────────────────────
 function doGet(e) {
   try {
+    // Rate limiting em GET: max 120 req/min (suficiente para sync periódico público)
+    const rlCache = CacheService.getScriptCache();
+    const rlKey = 'rl_get_' + new Date().toISOString().slice(0, 16); // por minuto
+    const rlCount = parseInt(rlCache.get(rlKey) || '0') + 1;
+    rlCache.put(rlKey, String(rlCount), 90);
+    if (rlCount > 120) {
+      return jsonResponse({ error: 'rate_limit', message: 'Muitas requisições. Aguarde 1 minuto.' });
+    }
+
     const action = (e.parameter && e.parameter.action) || 'list';
     let result;
     switch (action) {
@@ -249,6 +258,9 @@ function handleUpsert(record, sheetName) {
 function handleUpsertBatch(records, sheetName) {
   if (!Array.isArray(records) || !records.length) {
     return { error: 'records deve ser um array não vazio' };
+  }
+  if (records.length > 200) {
+    return { error: 'Limite de 200 registros por lote excedido. Divida em lotes menores.' };
   }
   sheetName = sheetName || SHEET_DADOS;
   const ss    = SpreadsheetApp.getActiveSpreadsheet();

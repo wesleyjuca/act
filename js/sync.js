@@ -253,7 +253,10 @@ class SEMASync {
     const url = `${this.cfg.appsScriptUrl}?action=list&sheet=${encodeURIComponent(this.cfg.sheet)}`;
     const r = await this._fetchWithTimeout(url, { method: 'GET' });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const json = await r.json();
+    const text = await r.text();
+    let json;
+    try { json = JSON.parse(text); }
+    catch(_) { throw new Error(`Resposta inválida do servidor: ${text.slice(0, 120)}`); }
     if (json.error) throw new Error(json.error);
     return (json.records || []).map(rec => ({ ...rec, _source: 'remote' }));
   }
@@ -288,7 +291,10 @@ class SEMASync {
       body: JSON.stringify({ ...body, token: this.cfg.syncToken }),
     });
     if (!r.ok) throw new Error(`POST HTTP ${r.status}`);
-    const json = await r.json();
+    const text = await r.text();
+    let json;
+    try { json = JSON.parse(text); }
+    catch(_) { throw new Error(`Resposta POST inválida: ${text.slice(0, 120)}`); }
     if (json.error) throw new Error(json.error);
     return json;
   }

@@ -15,6 +15,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
+:focus-visible{outline:3px solid var(--g);outline-offset:2px;}
 :root{
   --g:#1FAD35;--gd:#095C18;--gm:#0F7A21;--gl:#E8F7EB;--gb:#6DCA7E;
   --y:#F5C71A;--yl:#FFFAE6;
@@ -1194,7 +1195,15 @@ function processFile(file){
   }catch(err){showToast('Erro ao processar a planilha: '+err.message,'err');console.error(err);}};
   reader.readAsArrayBuffer(file);
 }
-function parseDateStr(s){if(!s)return '';if(s.includes('/')){const[d,m,y]=s.split('/');return`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;}return s;}
+function parseDateStr(s){
+  if(!s)return '';
+  let iso='';
+  if(s.includes('/')){const[d,m,y]=s.split('/');iso=`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;}
+  else{iso=s;}
+  // Validar data resultante (rejeita datas impossíveis como 31/02)
+  if(iso&&isNaN(new Date(iso).getTime()))return '';
+  return iso;
+}
 function confirmarImport(){
   if(!pendImport)return;
   _pushUndo();
