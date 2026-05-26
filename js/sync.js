@@ -35,6 +35,7 @@ class SEMASync {
     this._records       = [];        // estado local em memória
     this._dirty         = new Set(); // chaves "tipo|num" modificadas localmente
     this._pendingDeletes= new Set(); // chaves "tipo|num" com delete remoto em voo
+    this._pdKey         = (this.cfg.cacheKey || 'sema_tct_cache') + '_pd';
     this._logs          = this._loadLogs();
     this._listeners     = [];        // callbacks de mudança
     this._timer         = null;
@@ -51,6 +52,7 @@ class SEMASync {
 
   /** Inicia sync automático */
   start() {
+    this._loadPendingDeletes(); // restaurar deletes pendentes antes do cache
     this._loadCache();
     this._emit('status', this._status);
 
@@ -102,6 +104,12 @@ class SEMASync {
       // Capturar chaves dirty ANTES do merge (já são strings tipo|num)
       const dirtyKeys = new Set(this._dirty);
       const remote = await this._fetchRemote();
+      // Limpar pendingDeletes confirmados: se chave não está no remoto, foi deletada com sucesso
+      const remoteKeys = new Set(remote.map(r => `${r.tipo}|${r.num}`));
+      for (const k of [...this._pendingDeletes]) {
+        if (!remoteKeys.has(k)) this._pendingDeletes.delete(k);
+      }
+      this._savePendingDeletes();
       const merged = this._merge(this._records, remote, dirtyKeys);
       let failedKeys = new Set();
       if (dirtyKeys.size > 0) {
@@ -193,6 +201,7 @@ class SEMASync {
     }
     // Marcar como pendente — impede que sync() restaure do Sheets durante o delete
     this._pendingDeletes.add(key);
+    this._savePendingDeletes();
     // Remove do array local se ainda estiver lá
     const idx = this._records.findIndex(r => r.tipo === tipo && r.num === num);
     if (idx >= 0) {
@@ -207,6 +216,7 @@ class SEMASync {
         await this._deleteRemote(tipo, num);
         this.log('ok', `Removido do Sheets: ${tipo} ${num}`);
         this._pendingDeletes.delete(key);
+        this._savePendingDeletes();
         return { ok: true, remote: true };
       } catch(e) {
         // Mantém em _pendingDeletes para que o próximo sync não restaure o registro
@@ -217,6 +227,7 @@ class SEMASync {
       this.log('warn', 'SYNC_TOKEN não configurado — removido apenas localmente');
     }
     this._pendingDeletes.delete(key);
+    this._savePendingDeletes();
     return { ok: true, remote: false };
   }
 
@@ -392,6 +403,22 @@ class SEMASync {
   }
 
   // ─── CACHE ────────────────────────────────────────────────────────────────
+
+  _savePendingDeletes() {
+    try {
+      if (this._pendingDeletes.size > 0)
+        sessionStorage.setItem(this._pdKey, JSON.stringify([...this._pendingDeletes]));
+      else
+        sessionStorage.removeItem(this._pdKey);
+    } catch(_) {}
+  }
+
+  _loadPendingDeletes() {
+    try {
+      const raw = sessionStorage.getItem(this._pdKey);
+      if (raw) this._pendingDeletes = new Set(JSON.parse(raw));
+    } catch(_) {}
+  }
 
   _saveCache(records) {
     try {

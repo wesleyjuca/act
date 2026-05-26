@@ -35,6 +35,8 @@ const HEADER_MAP = {
   'num': 'num', 'numero': 'num', 'número': 'num',
   'ano': 'ano', 'year': 'ano',
   'objeto': 'objeto', 'obj': 'objeto', 'object': 'objeto',
+  'objeto_descricao': 'objeto', 'objeto_desc': 'objeto',
+  'descricao': 'objeto', 'descrição': 'objeto', 'desc': 'objeto',
   'inst': 'inst', 'instituicao': 'inst', 'instituição': 'inst', 'institution': 'inst',
   'instituicao_parceira': 'inst', 'instituicao parceira': 'inst',
   'institucao_parceira': 'inst', 'nome_da_entidade': 'inst', 'entidade': 'inst',
@@ -169,7 +171,16 @@ function handleList(params) {
     const rec = {};
     headers.forEach((h, j) => {
       const v = row[j];
-      rec[h] = v instanceof Date ? Utilities.formatDate(v, 'America/Rio_Branco', 'yyyy-MM-dd') : String(v || '');
+      if (h === 'num' || h === 'tipo') {
+        // num/tipo nunca são datas — se Sheets converteu "01/2025" para Date, reconstruir
+        rec[h] = v instanceof Date
+          ? (String(v.getMonth() + 1).padStart(2, '0') + '/' + v.getFullYear())
+          : String(v || '');
+      } else {
+        rec[h] = v instanceof Date
+          ? Utilities.formatDate(v, 'America/Rio_Branco', 'yyyy-MM-dd')
+          : String(v || '');
+      }
     });
     // Também mapeia para chaves canônicas usadas pelo frontend
     rec._ts  = Date.now();
@@ -217,6 +228,13 @@ function handleStatus() {
 
 // ── AÇÕES POST ────────────────────────────────────────────────────────────────
 
+// Converte célula para string de número de ACT, tratando auto-conversão do Sheets
+function numToStr(v) {
+  if (v instanceof Date)
+    return String(v.getMonth() + 1).padStart(2, '0') + '/' + v.getFullYear();
+  return String(v || '').trim();
+}
+
 function handleUpsert(record, sheetName) {
   if (!record || !record.tipo || !record.num) {
     return { error: 'Registro inválido: tipo e num são obrigatórios' };
@@ -227,14 +245,13 @@ function handleUpsert(record, sheetName) {
   if (!sheet) return { error: `Aba '${sheetName}' não encontrada` };
 
   const data    = sheet.getDataRange().getValues();
-  const numCol  = 1;  // coluna B (índice 1) = NÚMERO
 
-  // Procura linha existente (trim + case-insensitive no tipo)
+  // Procura linha existente usando numToStr para suportar células auto-convertidas para Date
   const _tipUps = String(record.tipo).trim().toUpperCase();
   const _numUps = String(record.num).trim();
   let targetRow = -1;
   for (let i = 2; i < data.length; i++) {
-    if (String(data[i][numCol]).trim()               === _numUps &&
+    if (numToStr(data[i][1])                     === _numUps &&
         String(data[i][0]).trim().toUpperCase() === _tipUps) {
       targetRow = i + 1;
       break;
@@ -248,14 +265,15 @@ function handleUpsert(record, sheetName) {
   const rowValues = buildRowValues(record, sheetName);
 
   if (targetRow > 0) {
-    // Atualizar linha existente
     sheet.getRange(targetRow, 1, 1, rowValues.length).setValues([rowValues]);
+    // Forçar formato texto para coluna num (B) — evita re-conversão pelo Sheets
+    sheet.getRange(targetRow, 2, 1, 1).setNumberFormat('@STRING@');
     logInfo('upsert', `Atualizado: ${record.tipo} ${record.num} (linha ${targetRow})`);
     return { ok: true, action: 'updated', row: targetRow, _ts_server: record._ts_server };
   } else {
-    // Inserir nova linha (após último registro preenchido)
     const lastRow = findLastRow(sheet);
     sheet.getRange(lastRow + 1, 1, 1, rowValues.length).setValues([rowValues]);
+    sheet.getRange(lastRow + 1, 2, 1, 1).setNumberFormat('@STRING@');
     logInfo('upsert', `Inserido: ${record.tipo} ${record.num} (linha ${lastRow + 1})`);
     return { ok: true, action: 'inserted', row: lastRow + 1, _ts_server: record._ts_server };
   }
@@ -273,18 +291,19 @@ function handleUpsertBatch(records, sheetName) {
   const sheet = ss.getSheetByName(sheetName);
   if (!sheet) return { error: `Aba '${sheetName}' não encontrada` };
 
-  // Leitura única: construir mapa tipo+num → linha 1-based (normalizado)
+  // Leitura única: construir mapa tipo+num → linha 1-based usando numToStr
   const data   = sheet.getDataRange().getValues();
   const rowMap = new Map();
   for (let i = 2; i < data.length; i++) {
     if (data[i][1]) {
-      const k = `${String(data[i][0]).trim().toUpperCase()}|${String(data[i][1]).trim()}`;
+      const k = `${String(data[i][0]).trim().toUpperCase()}|${numToStr(data[i][1])}`;
       rowMap.set(k, i + 1);
     }
   }
 
   let updated = 0, inserted = 0, errors = 0;
   const toInsert = [];
+  const insertedRows = [];
 
   for (const r of records) {
     try {
@@ -294,7 +313,9 @@ function handleUpsertBatch(records, sheetName) {
       const rowValues = buildRowValues(r, sheetName);
       const key = `${String(r.tipo).trim().toUpperCase()}|${String(r.num).trim()}`;
       if (rowMap.has(key)) {
-        sheet.getRange(rowMap.get(key), 1, 1, rowValues.length).setValues([rowValues]);
+        const row = rowMap.get(key);
+        sheet.getRange(row, 1, 1, rowValues.length).setValues([rowValues]);
+        sheet.getRange(row, 2, 1, 1).setNumberFormat('@STRING@');
         updated++;
       } else {
         toInsert.push(rowValues);
@@ -306,6 +327,8 @@ function handleUpsertBatch(records, sheetName) {
   if (toInsert.length > 0) {
     const lastRow = Math.max(sheet.getLastRow(), 2);
     sheet.getRange(lastRow + 1, 1, toInsert.length, toInsert[0].length).setValues(toInsert);
+    // Forçar formato texto para coluna num em todas as linhas inseridas
+    sheet.getRange(lastRow + 1, 2, toInsert.length, 1).setNumberFormat('@STRING@');
     inserted = toInsert.length;
   }
 
@@ -325,7 +348,7 @@ function handleDelete(tipo, num, sheetName) {
   const numNorm = String(num).trim();
   for (let i = 2; i < data.length; i++) {
     if (String(data[i][0]).trim().toUpperCase() === tipNorm &&
-        String(data[i][1]).trim()               === numNorm) {
+        numToStr(data[i][1])                    === numNorm) {
       sheet.deleteRow(i + 1);
       logInfo('delete', `Removido: ${tipo} ${num}`);
       return { ok: true, row: i + 1 };
@@ -337,7 +360,7 @@ function handleDelete(tipo, num, sheetName) {
 // ── CONFIG DE VISIBILIDADE ────────────────────────────────────────────────────
 
 const DEFAULT_VISIBLE_FIELDS = [
-  'objeto','inst','esfera','inicio','termino','area','obs','sei','linkDoc'
+  'objeto','inst','esfera','inicio','termino','area','obs','sei','linkDoc','status','diasRestantes'
 ];
 
 function handleGetConfig() {
@@ -356,6 +379,9 @@ function handleSaveConfig(config) {
   if (!config || !Array.isArray(config.visibleFields)) {
     return { error: 'config.visibleFields deve ser um array' };
   }
+  // objeto e inst são obrigatórios — sempre visíveis
+  const ALWAYS_VISIBLE = ['objeto', 'inst'];
+  config.visibleFields = [...new Set([...ALWAYS_VISIBLE, ...config.visibleFields])];
   const props = PropertiesService.getScriptProperties();
   props.setProperty('SEMA_FIELDS_CONFIG', JSON.stringify(config));
   logInfo('saveConfig', 'Configuração de campos salva');

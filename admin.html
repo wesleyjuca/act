@@ -856,11 +856,19 @@ async function doLogin(){
     app.style.display='flex';
     document.getElementById('h-date').textContent=
       new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
-    // Restaurar dados do autosave sessionStorage (sobrescreve DEMO, aguarda Sheets)
-    const _cached=sessionStorage.getItem('sema_dados_cache');
-    dados=SYNC?[...SYNC.getAll()||DEMO]:[...DEMO];
-    if(_cached){try{const _c=JSON.parse(_cached);if(_c.length>0){dados=_c;showToast(`${_c.length} registros restaurados do autosave`,'ok',3000);}}catch(_){}}
-    if(!dados.length)dados=[...DEMO];
+    // Preferir SYNC.getAll() como fonte primária (inclui estado pós-deletes)
+    dados = SYNC ? [...(SYNC.getAll() || [])] : [];
+    if (!dados.length) {
+      // Fallback: cache de autosave local (offline ou sem token)
+      const _cached = sessionStorage.getItem('sema_dados_cache');
+      if (_cached) {
+        try {
+          const _c = JSON.parse(_cached);
+          if (_c.length > 0) { dados = _c; showToast(`${_c.length} registros do cache local`, 'info', 2000); }
+        } catch(_) {}
+      }
+    }
+    if (!dados.length) dados = [...DEMO];
     if(SYNC) {
       // Auto-publicar se token configurado e Sheets parece vazia
       if (SYNC._hasToken()) {
@@ -1536,6 +1544,7 @@ function initSync() {
     if (recs.length > 0) {
       dados = [...recs];
       popularFiltros(); renderTable(); updateKPIs();
+      _autosave(); // manter sema_dados_cache em sincronia com sema_tct_cache
     }
   });
   SYNC.on('log',    entry => appendLog(entry));
