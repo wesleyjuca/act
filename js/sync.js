@@ -98,29 +98,29 @@ class SEMASync {
     }
     this._setStatus('syncing');
     try {
-      // Capturar chaves dirty ANTES do merge para evitar mismatch de índices
-      const dirtyKeys = new Set(
-        [...this._dirty].map(i => {
-          const r = this._records[i];
-          return r ? `${r.tipo}|${r.num}` : null;
-        }).filter(Boolean)
-      );
+      // Capturar chaves dirty ANTES do merge (já são strings tipo|num)
+      const dirtyKeys = new Set(this._dirty);
       const remote = await this._fetchRemote();
       const merged = this._merge(this._records, remote, dirtyKeys);
+      let failedKeys = new Set();
       if (dirtyKeys.size > 0) {
         const toSend = merged.filter(r => dirtyKeys.has(`${r.tipo}|${r.num}`));
-        if (toSend.length > 0) await this._pushDirtyRecords(toSend);
+        if (toSend.length > 0) failedKeys = await this._pushDirtyRecords(toSend);
       }
       this._saveCache(merged);
       this._records = merged;
-      this._dirty.clear();
+      // Remove apenas chaves enviadas com sucesso; preserva novas edições e falhas
+      for (const k of dirtyKeys) {
+        if (!failedKeys.has(k)) this._dirty.delete(k);
+      }
       this._lastSync = new Date();
       this._errCount = 0;
       this._retries  = 0;
       this._setStatus('ok');
       this._emit('data', merged);
-      this.log('ok', `Sync concluído — ${merged.length} registros · ${dirtyKeys.size} enviados`);
-      return { ok: true, count: merged.length, pushed: dirtyKeys.size };
+      const pushed = dirtyKeys.size - failedKeys.size;
+      this.log('ok', `Sync concluído — ${merged.length} registros · ${pushed} enviados`);
+      return { ok: true, count: merged.length, pushed };
     } catch (err) {
       this._errCount++;
       this._setStatus('error');
@@ -154,28 +154,24 @@ class SEMASync {
       r => r.tipo === record.tipo && r.num === record.num
     );
     record._ts = Date.now();
-    let finalIdx;
+    const key = `${record.tipo}|${record.num}`;
     if (idx >= 0) {
       this._records[idx] = record;
-      finalIdx = idx;
-      this._dirty.add(idx);
     } else {
       this._records.push(record);
-      finalIdx = this._records.length - 1;
-      this._dirty.add(finalIdx);
     }
+    this._dirty.add(key);
     this._saveCache(this._records);
     this.log('info', `Salvo localmente: ${record.tipo} ${record.num}`);
 
     // Push remoto com debounce (evita múltiplas requisições rápidas)
     if (this.cfg.appsScriptUrl && this._hasToken()) {
-      const key = `${record.tipo}|${record.num}`;
       if (this._debounce.has(key)) clearTimeout(this._debounce.get(key));
       this._debounce.set(key, setTimeout(async () => {
         this._debounce.delete(key);
         try {
           await this._pushSingle(record);
-          this._dirty.delete(finalIdx);  // usa valor capturado no momento do save
+          this._dirty.delete(key);
           this.log('ok', `Sincronizado com Sheets: ${record.tipo} ${record.num}`);
         } catch(e) {
           this.log('warn', `Push falhou (tentará na próxima sync): ${e.message}`);
@@ -191,12 +187,7 @@ class SEMASync {
     // Remove do array local se ainda estiver lá (pode já ter sido removido externamente)
     const idx = this._records.findIndex(r => r.tipo === tipo && r.num === num);
     if (idx >= 0) {
-      const newDirty = new Set();
-      for (const i of this._dirty) {
-        if (i < idx) newDirty.add(i);
-        else if (i > idx) newDirty.add(i - 1);
-      }
-      this._dirty = newDirty;
+      this._dirty.delete(`${tipo}|${num}`);
       this._records.splice(idx, 1);
       this._saveCache(this._records);
       this.log('info', `Removido localmente: ${tipo} ${num}`);
@@ -270,8 +261,18 @@ class SEMASync {
   }
 
   async _pushDirtyRecords(records) {
-    if (!this.cfg.appsScriptUrl || !this._hasToken()) return;
-    await this._post({ action: 'upsertBatch', sheet: this.cfg.sheet, records });
+    if (!this.cfg.appsScriptUrl || !this._hasToken()) return new Set();
+    try {
+      const result = await this._post({ action: 'upsertBatch', sheet: this.cfg.sheet, records });
+      if (result.errors > 0) {
+        this.log('warn', `Batch: ${result.errors} erro(s) em ${records.length} — mantidos para retry`);
+        return new Set(records.map(r => `${r.tipo}|${r.num}`));
+      }
+      return new Set();
+    } catch(e) {
+      this.log('warn', `Push batch falhou: ${e.message}`);
+      return new Set(records.map(r => `${r.tipo}|${r.num}`));
+    }
   }
 
   async _pushSingle(record) {

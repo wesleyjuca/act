@@ -361,6 +361,7 @@ tbody tr.row-sel td{background:#e8f7eb;}
           <button class="btn btn-dk" style="padding:7px 8px;" onclick="exportarFiltradosPDF()" aria-label="Exportar filtrado PDF" title="Exportar registros visíveis (PDF)">PDF</button>
           <button class="btn btn-dk" style="padding:7px 8px;" onclick="baixarBackup()" aria-label="Backup JSON" title="Backup completo em JSON">⬇</button>
           <button class="btn btn-mail" style="padding:7px 10px;font-size:11px;" onclick="exportarParaSheets()" aria-label="Exportar para importação no Sheets" title="Gera XLSX no formato exato do Google Sheets para importação manual">📥 p/ Sheets</button>
+          <button class="btn btn-g" style="padding:7px 10px;font-size:11px;" onclick="baixarPlanilhaSheets()" aria-label="Baixar planilha atualizada do Sheets" title="Baixa os dados atuais diretamente do Google Sheets como XLSX">⬇ Sheets</button>
         </div>
         <button class="btn btn-mail" onclick="enviarAlertaLote()" aria-label="Enviar alerta por e-mail para vencimentos">✉ Alertar</button>
         <button class="btn btn-o" onclick="limparFiltros()" aria-label="Limpar filtros">Limpar</button>
@@ -861,7 +862,6 @@ async function doLogin(){
     if(_cached){try{const _c=JSON.parse(_cached);if(_c.length>0){dados=_c;showToast(`${_c.length} registros restaurados do autosave`,'ok',3000);}}catch(_){}}
     if(!dados.length)dados=[...DEMO];
     if(SYNC) {
-      SYNC.loadAll(dados);
       // Auto-publicar se token configurado e Sheets parece vazia
       if (SYNC._hasToken()) {
         SYNC.sync().then(res => {
@@ -928,7 +928,6 @@ if(sessionStorage.getItem('sema_auth')==='1'){
     document.getElementById('h-date').textContent=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
     // Inicia com dados locais; SYNC substituirá ao conectar com Sheets
     dados=[...DEMO];
-    if(SYNC) SYNC.loadAll(dados);
     popularFiltros(); renderTable(); updateKPIs();
   });
 }
@@ -1405,6 +1404,50 @@ function exportarParaSheets(){
   }catch(e){showToast('Erro ao exportar: '+e.message,'err');console.error(e);}
 }
 
+async function baixarPlanilhaSheets(){
+  const cfg=(typeof SEMA_CONFIG!=='undefined')?SEMA_CONFIG:{};
+  if(!cfg.appsScriptUrl||cfg.appsScriptUrl.startsWith('%%')){
+    showToast('URL do Apps Script não configurada — exportando dados locais.','warn',4000);
+    exportarParaSheets();return;
+  }
+  showToast('Buscando dados atualizados do Sheets…','info',3000);
+  try{
+    const url=cfg.appsScriptUrl+'?action=list&sheet='+encodeURIComponent(cfg.sheet||'DADOS_PÚBLICOS');
+    const r=await fetch(url);
+    const text=await r.text();
+    let json;
+    try{json=JSON.parse(text);}catch(_){throw new Error('Resposta inválida do servidor');}
+    if(json.error)throw new Error(json.error);
+    const recs=json.records||[];
+    if(!recs.length){showToast('Planilha Sheets está vazia.','warn',3000);return;}
+    const fmtIso=d=>{
+      if(!d)return'';
+      if(/^\d{4}-\d{2}-\d{2}$/.test(d))return d;
+      const p=d.split('/');
+      return p.length===3?`${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`:'';
+    };
+    const titulo=['SEMA/AC — Termos de Cooperação Técnica','','','','','','','','','','','','','',''];
+    const cabecalho=['Tipo','Número','Ano','Objeto','Instituição Parceira','Esfera','Início','Término','Área','Status','Dias Restantes','Link Doc','Link SEI','Observações','SEI'];
+    const linhas=recs.map(r=>[
+      r.tipo||'',r.num||'',
+      r.ano||parseInt((r.num||'').match(/\d{4}/)?.[0])||new Date().getFullYear(),
+      r.objeto||'',r.inst||'',r.esfera||'',
+      fmtIso(r.inicio),fmtIso(r.termino),r.area||'',
+      '','',  // Status e Dias — calculados por fórmula no Sheets
+      r.link||r.linkDoc||'',r.linkSei||'',r.obs||'',r.sei||''
+    ]);
+    const ws=XLSX.utils.aoa_to_sheet([titulo,cabecalho,...linhas]);
+    ws['!cols']=[8,14,6,60,40,12,12,12,28,14,10,40,40,40,22].map(w=>({wch:w}));
+    ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:14}}];
+    ws['A1']={v:titulo[0],t:'s',s:{font:{bold:true,sz:13},fill:{fgColor:{rgb:'095C18'}},alignment:{horizontal:'center'}}};
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,'DADOS_PÚBLICOS',ws);
+    const fname=`SEMA_TCT_Sheets_${new Date().toISOString().slice(0,10)}.xlsx`;
+    XLSX.writeFile(wb,fname);
+    showToast(`${recs.length} registros baixados do Sheets → ${fname}`,'ok',5000);
+  }catch(e){showToast('Erro ao baixar do Sheets: '+e.message,'err',5000);console.error(e);}
+}
+
 // ── VISIBILIDADE DE CAMPOS PÚBLICOS ───────────────────────────────────────────
 const _FIELD_VIS_IDS=['objeto','inst','esfera','inicio','termino','area','obs','sei','linkDoc','dias','status'];
 
@@ -1510,8 +1553,6 @@ function initSync() {
     urlStatus.textContent = '⚠ URL do Apps Script não configurada — modo demo';
   }
 
-  // Seed SYNC with any dados already in memory (session restore populates dados before initSync)
-  if (dados.length > 0) SYNC.loadAll(dados);
   SYNC.start();
   // Atualizar painel de status a cada segundo
   setInterval(refreshSyncDashboard, 1000);
