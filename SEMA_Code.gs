@@ -36,6 +36,8 @@ const HEADER_MAP = {
   'ano': 'ano', 'year': 'ano',
   'objeto': 'objeto', 'obj': 'objeto', 'object': 'objeto',
   'inst': 'inst', 'instituicao': 'inst', 'instituição': 'inst', 'institution': 'inst',
+  'instituicao_parceira': 'inst', 'instituicao parceira': 'inst',
+  'institucao_parceira': 'inst', 'nome_da_entidade': 'inst', 'entidade': 'inst',
   'esfera': 'esfera', 'sphere': 'esfera',
   'inicio': 'inicio', 'início': 'inicio', 'data_inicio': 'inicio', 'start': 'inicio',
   'termino': 'termino', 'término': 'termino', 'data_termino': 'termino', 'end': 'termino',
@@ -227,11 +229,13 @@ function handleUpsert(record, sheetName) {
   const data    = sheet.getDataRange().getValues();
   const numCol  = 1;  // coluna B (índice 1) = NÚMERO
 
-  // Procura linha existente
+  // Procura linha existente (trim + case-insensitive no tipo)
+  const _tipUps = String(record.tipo).trim().toUpperCase();
+  const _numUps = String(record.num).trim();
   let targetRow = -1;
   for (let i = 2; i < data.length; i++) {
-    if (String(data[i][numCol]) === String(record.num) &&
-        String(data[i][0])      === String(record.tipo)) {
+    if (String(data[i][numCol]).trim()               === _numUps &&
+        String(data[i][0]).trim().toUpperCase() === _tipUps) {
       targetRow = i + 1;
       break;
     }
@@ -269,11 +273,14 @@ function handleUpsertBatch(records, sheetName) {
   const sheet = ss.getSheetByName(sheetName);
   if (!sheet) return { error: `Aba '${sheetName}' não encontrada` };
 
-  // Leitura única: construir mapa tipo+num → linha 1-based
+  // Leitura única: construir mapa tipo+num → linha 1-based (normalizado)
   const data   = sheet.getDataRange().getValues();
   const rowMap = new Map();
   for (let i = 2; i < data.length; i++) {
-    if (data[i][1]) rowMap.set(`${data[i][0]}|${data[i][1]}`, i + 1);
+    if (data[i][1]) {
+      const k = `${String(data[i][0]).trim().toUpperCase()}|${String(data[i][1]).trim()}`;
+      rowMap.set(k, i + 1);
+    }
   }
 
   let updated = 0, inserted = 0, errors = 0;
@@ -285,7 +292,7 @@ function handleUpsertBatch(records, sheetName) {
       r._ts_server = Date.now();
       if (!r._ts) r._ts = r._ts_server;
       const rowValues = buildRowValues(r, sheetName);
-      const key = `${r.tipo}|${r.num}`;
+      const key = `${String(r.tipo).trim().toUpperCase()}|${String(r.num).trim()}`;
       if (rowMap.has(key)) {
         sheet.getRange(rowMap.get(key), 1, 1, rowValues.length).setValues([rowValues]);
         updated++;
@@ -314,9 +321,11 @@ function handleDelete(tipo, num, sheetName) {
   if (!sheet) return { error: `Aba '${sheetName}' não encontrada` };
 
   const data = sheet.getDataRange().getValues();
+  const tipNorm = String(tipo).trim().toUpperCase();
+  const numNorm = String(num).trim();
   for (let i = 2; i < data.length; i++) {
-    if (String(data[i][1]) === String(num) &&
-        String(data[i][0]) === String(tipo)) {
+    if (String(data[i][0]).trim().toUpperCase() === tipNorm &&
+        String(data[i][1]).trim()               === numNorm) {
       sheet.deleteRow(i + 1);
       logInfo('delete', `Removido: ${tipo} ${num}`);
       return { ok: true, row: i + 1 };
@@ -407,7 +416,7 @@ function buildRowValues(rec, sheetName) {
       rec.inicio  ? parseDate(rec.inicio)  : '',
       rec.termino ? parseDate(rec.termino) : '',
       rec.area || '', '', '',   // status e diasRestantes = fórmulas → mantém vazio
-      rec.linkDoc || '', rec.linkSei || '', rec.obs || '', rec.sei || '',
+      rec.linkDoc || rec.link || '', rec.linkSei || '', rec.obs || '', rec.sei || '',
     ];
   }
   if (sheetName === SHEET_INTERNO) {

@@ -33,7 +33,8 @@ class SEMASync {
   constructor(cfg = {}) {
     this.cfg            = { ...SYNC_DEFAULTS, ...cfg };
     this._records       = [];        // estado local em memória
-    this._dirty         = new Set(); // índices modificados localmente
+    this._dirty         = new Set(); // chaves "tipo|num" modificadas localmente
+    this._pendingDeletes= new Set(); // chaves "tipo|num" com delete remoto em voo
     this._logs          = this._loadLogs();
     this._listeners     = [];        // callbacks de mudança
     this._timer         = null;
@@ -184,10 +185,18 @@ class SEMASync {
 
   /** Remove um registro pelo par tipo+num */
   async remove(tipo, num) {
-    // Remove do array local se ainda estiver lá (pode já ter sido removido externamente)
+    const key = `${tipo}|${num}`;
+    // Cancelar push pendente (evita re-inserção via debounce após delete)
+    if (this._debounce.has(key)) {
+      clearTimeout(this._debounce.get(key));
+      this._debounce.delete(key);
+    }
+    // Marcar como pendente — impede que sync() restaure do Sheets durante o delete
+    this._pendingDeletes.add(key);
+    // Remove do array local se ainda estiver lá
     const idx = this._records.findIndex(r => r.tipo === tipo && r.num === num);
     if (idx >= 0) {
-      this._dirty.delete(`${tipo}|${num}`);
+      this._dirty.delete(key);
       this._records.splice(idx, 1);
       this._saveCache(this._records);
       this.log('info', `Removido localmente: ${tipo} ${num}`);
@@ -197,14 +206,17 @@ class SEMASync {
       try {
         await this._deleteRemote(tipo, num);
         this.log('ok', `Removido do Sheets: ${tipo} ${num}`);
+        this._pendingDeletes.delete(key);
         return { ok: true, remote: true };
       } catch(e) {
+        // Mantém em _pendingDeletes para que o próximo sync não restaure o registro
         this.log('warn', `Remoção remota falhou: ${e.message}`);
         return { ok: true, remote: false, error: e.message };
       }
     } else if (!this._hasToken()) {
       this.log('warn', 'SYNC_TOKEN não configurado — removido apenas localmente');
     }
+    this._pendingDeletes.delete(key);
     return { ok: true, remote: false };
   }
 
@@ -253,7 +265,15 @@ class SEMASync {
     try { json = JSON.parse(text); }
     catch(_) { throw new Error(`Resposta inválida do servidor: ${text.slice(0, 120)}`); }
     if (json.error) throw new Error(json.error);
-    return (json.records || []).map(rec => ({ ...rec, _source: 'remote' }));
+    // Normalização defensiva: garante chaves canônicas independente do cabeçalho do Sheets
+    const norm = rec => {
+      if (!rec.inst    && rec.instituicao_parceira) rec.inst    = rec.instituicao_parceira;
+      if (!rec.inst    && rec.instituicao)          rec.inst    = rec.instituicao;
+      if (!rec.objeto  && rec.descricao)            rec.objeto  = rec.descricao;
+      if (!rec.linkDoc && rec.link)                 rec.linkDoc = rec.link;
+      return rec;
+    };
+    return (json.records || []).map(rec => ({ ...norm({ ...rec }), _source: 'remote' }));
   }
 
   _hasToken() {
@@ -318,10 +338,12 @@ class SEMASync {
 
   _merge(local, remote, dirtyKeys = new Set()) {
     const map = new Map();
-    // Base: remote
+    // Base: remote (pula registros com delete pendente para evitar race condition)
     for (const r of remote) {
       const k = `${r.tipo}|${r.num}`;
-      map.set(k, { ...r, _source: 'remote' });
+      if (!this._pendingDeletes.has(k)) {
+        map.set(k, { ...r, _source: 'remote' });
+      }
     }
     // Aplicar locais (com política de conflito)
     for (const l of local) {
