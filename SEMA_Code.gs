@@ -195,11 +195,29 @@ function handleList(params) {
   };
 }
 
+// Retorna as colunas reais da planilha como [{key, label}]
+// Assim qualquer coluna nova adicionada ao Sheets aparece automaticamente no painel público
 function handleSchema() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_DADOS);
+  if (!sheet) return { columns: [], sheets: [] };
+  const lastCol = sheet.getLastColumn();
+  if (lastCol < 1) return { columns: [], sheets: [] };
+  const headerRow = sheet.getRange(2, 1, 1, lastCol).getValues()[0];
+  const columns = headerRow
+    .map((h, i) => {
+      const label = String(h || '').trim();
+      if (!label) return null;
+      const key = label.toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+      return { key: HEADER_MAP[key] || key, label, col: i + 1 };
+    })
+    .filter(Boolean);
   return {
-    publicColumns:   COL_PUB,
-    internalColumns: COL_INT,
-    sheets: [SHEET_DADOS, SHEET_INTERNO, SHEET_HIST],
+    columns,
+    sheets: ss.getSheets().map(s => s.getName()),
+    updated: new Date().toISOString(),
   };
 }
 
@@ -589,4 +607,74 @@ function setupSyncToken() {
   PropertiesService.getScriptProperties().setProperty('SYNC_TOKEN', token);
   Logger.log('SYNC_TOKEN criado: ' + token);
   Logger.log('Cole este valor em config.js → syncToken');
+}
+
+// ── MODELO DE PLANILHA ────────────────────────────────────────────────────────
+/**
+ * Execute esta função UMA VEZ no Apps Script para criar a aba modelo.
+ * Vá em: Executar → criarPlanilhaModelo
+ */
+function criarPlanilhaModelo() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const modelName = 'DADOS_TCT_MODELO';
+  let sh = ss.getSheetByName(modelName);
+  if (sh) { sh.clear(); } else { sh = ss.insertSheet(modelName); }
+
+  // Linha 1: título decorativo
+  sh.getRange(1, 1).setValue('SEMA/AC — Termos de Cooperação Técnica');
+  sh.getRange(1, 1).setFontSize(14).setFontWeight('bold').setFontColor('#095C18');
+
+  // Linha 2: cabeçalhos (modelo simplificado — fonte única de verdade)
+  const headers = [
+    'Tipo', 'Número', 'Objeto', 'Instituição', 'Esfera',
+    'Início', 'Término', 'Área', 'SEI', 'Link Documentação', 'Observações',
+    'Status', 'Dias Restantes'
+  ];
+  sh.getRange(2, 1, 1, headers.length).setValues([headers]);
+  sh.getRange(2, 1, 1, headers.length)
+    .setFontWeight('bold').setBackground('#095C18').setFontColor('#FFFFFF');
+
+  // Linha 3: dados de exemplo
+  const exemplo = [
+    'ACT', '01/2025', 'Cooperação técnica para monitoramento ambiental',
+    'Exemplo S/A', 'Privado', new Date(2025, 0, 1), new Date(2027, 11, 31),
+    'Gestão ambiental', '0820.000001/2025-00', 'https://exemplo.ac.gov.br/doc',
+    'Publicado no DOE nº 14.000', '', ''
+  ];
+  sh.getRange(3, 1, 1, exemplo.length).setValues([exemplo]);
+
+  // Formatação das colunas de data
+  sh.getRange(3, 6, 100, 1).setNumberFormat('dd/mm/yyyy');  // Início
+  sh.getRange(3, 7, 100, 1).setNumberFormat('dd/mm/yyyy');  // Término
+  // Formatar Número como texto para evitar auto-conversão
+  sh.getRange(3, 2, 100, 1).setNumberFormat('@STRING@');
+
+  // Fórmulas de Status e Dias Restantes nas colunas L e M
+  // Status (coluna 12 = L)
+  sh.getRange(3, 12).setFormula(
+    '=IF(G3="","",IF(TODAY()>G3,"Expirado",IF(G3-TODAY()<=30,"Vence em 30 dias",IF(G3-TODAY()<=90,"A vencer","Vigente"))))'
+  );
+  // Dias Restantes (coluna 13 = M)
+  sh.getRange(3, 13).setFormula('=IF(G3="","",G3-TODAY())');
+
+  // Larguras de coluna
+  sh.setColumnWidth(1, 80);   // Tipo
+  sh.setColumnWidth(2, 100);  // Número
+  sh.setColumnWidth(3, 350);  // Objeto
+  sh.setColumnWidth(4, 200);  // Instituição
+  sh.setColumnWidth(5, 90);   // Esfera
+  sh.setColumnWidth(6, 100);  // Início
+  sh.setColumnWidth(7, 100);  // Término
+  sh.setColumnWidth(8, 160);  // Área
+  sh.setColumnWidth(9, 220);  // SEI
+  sh.setColumnWidth(10, 200); // Link Documentação
+  sh.setColumnWidth(11, 200); // Observações
+  sh.setColumnWidth(12, 130); // Status
+  sh.setColumnWidth(13, 110); // Dias Restantes
+
+  // Congelar as 2 primeiras linhas
+  sh.setFrozenRows(2);
+
+  Logger.log('Aba modelo criada: ' + modelName);
+  SpreadsheetApp.getUi().alert('Aba "' + modelName + '" criada com sucesso!\n\nRenomeie para DADOS_PÚBLICOS ao migrar.');
 }
