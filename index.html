@@ -494,13 +494,6 @@ function findKey(candidates) {
   return null;
 }
 
-function parseDateStr(str) {
-  if (!str) return null;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) { const [y,m,d]=str.split('-').map(Number); return new Date(y,m-1,d); }
-  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) { const [d,m,y]=str.split('/').map(Number); return new Date(y,m-1,d); }
-  const t=Date.parse(str); return isNaN(t)?null:new Date(t);
-}
-
 function statusBadge(st) {
   const sL = (st||'').toLowerCase();
   let cls = 'badge-default';

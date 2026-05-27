@@ -154,6 +154,7 @@ tbody td:last-child { white-space: nowrap; }
     </h1>
     <span id="last-sync" style="font-size:.75rem;opacity:.8"></span>
     <button class="btn-icon" onclick="syncAll()" title="Sincronizar agora">🔄</button>
+    <button class="btn-icon" onclick="abrirModelo()" title="Editar modelo da planilha">⚙️</button>
     <button class="btn-icon" id="btn-theme" title="Alternar tema" onclick="toggleTheme()">🌙</button>
     <button class="btn-icon" onclick="doLogout()" title="Sair" style="background:rgba(255,0,0,.2)">⏏</button>
   </header>
@@ -218,6 +219,52 @@ tbody td:last-child { white-space: nowrap; }
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="fecharImport()">Cancelar</button>
       <button class="btn btn-danger" id="import-confirm-btn" onclick="confirmarImport()">✅ Confirmar substituição</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal editor de modelo da planilha -->
+<div id="modelo-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;display:none;align-items:center;justify-content:center;padding:16px">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <h2>⚙️ Modelo da Planilha</h2>
+      <button class="btn-icon" onclick="fecharModelo()" style="color:var(--text2);background:var(--border)">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.85rem;color:var(--text2);margin-bottom:16px">
+        Defina as colunas da sua planilha. Após configurar, baixe o modelo em branco,
+        preencha com seus dados e importe via <strong>⬆ Importar planilha</strong>.
+      </p>
+
+      <div style="overflow-x:auto;border-radius:6px;box-shadow:var(--shadow);margin-bottom:12px">
+        <table style="width:100%;border-collapse:collapse;background:var(--bg2);font-size:.85rem">
+          <thead>
+            <tr style="background:var(--accent);color:#fff">
+              <th style="padding:8px 10px;width:36px">#</th>
+              <th style="padding:8px 10px">Nome da Coluna</th>
+              <th style="padding:8px 10px;width:130px">Tipo</th>
+              <th style="padding:8px 10px;width:100px;text-align:center">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="modelo-table-body"></tbody>
+        </table>
+      </div>
+
+      <button class="btn btn-outline" style="margin-bottom:16px" onclick="adicionarColuna()">+ Adicionar coluna</button>
+
+      <div id="modelo-formula-hint" style="background:var(--accent-light);border:1px solid var(--accent);border-radius:6px;padding:12px;font-size:.82rem;display:none">
+        <strong>ℹ️ Colunas do tipo "fórmula"</strong> não são incluídas no CSV para download
+        (os valores são calculados pelo Google Sheets).<br><br>
+        <strong>Fórmulas recomendadas no Google Sheets</strong> (copiar nas células da coluna correspondente):<br>
+        <div style="margin-top:6px;font-family:monospace;font-size:.78rem;overflow-x:auto;white-space:nowrap;background:var(--bg);padding:8px;border-radius:4px">
+          Status = <span id="formula-status">=SE(G3="";"";SE(HOJE()&gt;G3;"Expirado";SE(G3-HOJE()&lt;=30;"Vence em 30 dias";SE(G3-HOJE()&lt;=90;"A vencer";"Vigente"))))</span><br>
+          Dias Restantes = <span>=SE(G3="";"";G3-HOJE())</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="fecharModelo()">Fechar</button>
+      <button class="btn btn-primary" onclick="baixarModeloCsv()">⬇ Baixar modelo CSV</button>
     </div>
   </div>
 </div>
@@ -300,11 +347,15 @@ function doLogout() {
 
 /* ─── APP ────────────────────────────────────────────────────────────────── */
 async function startApp() {
-  // Re-ler config.js agora que app está ativo
   if (typeof SEMA_CONFIG !== 'undefined') {
     if (SEMA_CONFIG.appsScriptUrl) GAS_URL   = SEMA_CONFIG.appsScriptUrl;
     if (SEMA_CONFIG.syncToken)     SYNC_TOKEN = SEMA_CONFIG.syncToken;
   }
+  // Restaurar modelo salvo localmente
+  try {
+    const saved = localStorage.getItem('sema_model');
+    if (saved) _modelCols = JSON.parse(saved);
+  } catch (_) {}
   await syncAll();
   _pollTimer = setInterval(syncAll, POLL_MS);
 }
@@ -556,6 +607,164 @@ async function deleteRecord(idx) {
     showToast('Erro ao deletar: ' + e.message, 'err');
     setStatus('error');
   }
+}
+
+/* ─── EDITOR DE MODELO ───────────────────────────────────────────────────── */
+
+let _modelCols = null;  // [{name, type}] — null = não inicializado
+
+const TIPOS_COLUNA = ['texto', 'data', 'url', 'número', 'fórmula'];
+const TIPO_EXEMPLOS = {
+  'texto':   'Texto de exemplo',
+  'data':    'dd/mm/aaaa',
+  'url':     'https://exemplo.com',
+  'número':  '0',
+  'fórmula': '',  // excluída do CSV
+};
+
+/** Abre o modal de modelo; popula a partir do schema atual se ainda não foi editado */
+function abrirModelo() {
+  if (!_modelCols || !_modelCols.length) {
+    // Inicializa a partir do schema atual do Sheets (ou modelo padrão se não houver dados)
+    if (_schema.length) {
+      _modelCols = _schema.map(col => ({
+        name: col.label,
+        type: inferTipo(col.key, col.label),
+      }));
+    } else {
+      _modelCols = modeloPadrao();
+    }
+    salvarModeloLocal();
+  }
+  renderModeloTable();
+  document.getElementById('modelo-overlay').style.display = 'flex';
+}
+
+function fecharModelo() {
+  document.getElementById('modelo-overlay').style.display = 'none';
+}
+
+/** Infere o tipo da coluna a partir da chave/label */
+function inferTipo(key, label) {
+  const k = (key || '').toLowerCase();
+  const l = (label || '').toLowerCase();
+  if (k.includes('inicio') || k.includes('termino') || k.includes('data') ||
+      l.includes('início') || l.includes('término') || l.includes('data')) return 'data';
+  if (k.includes('link') || k.includes('url') || l.includes('link')) return 'url';
+  if (k === 'diasrestantes' || l.includes('dias restantes')) return 'fórmula';
+  if (k === 'status' || l.includes('status') || l.includes('situação')) return 'fórmula';
+  return 'texto';
+}
+
+/** Modelo padrão SEMA/AC para novos setups */
+function modeloPadrao() {
+  return [
+    { name: 'Tipo',               type: 'texto'   },
+    { name: 'Número',             type: 'texto'   },
+    { name: 'Objeto',             type: 'texto'   },
+    { name: 'Instituição',        type: 'texto'   },
+    { name: 'Esfera',             type: 'texto'   },
+    { name: 'Início',             type: 'data'    },
+    { name: 'Término',            type: 'data'    },
+    { name: 'Área',               type: 'texto'   },
+    { name: 'SEI',                type: 'texto'   },
+    { name: 'Link Documentação',  type: 'url'     },
+    { name: 'Observações',        type: 'texto'   },
+    { name: 'Status',             type: 'fórmula' },
+    { name: 'Dias Restantes',     type: 'fórmula' },
+  ];
+}
+
+/** Salva o modelo no localStorage */
+function salvarModeloLocal() {
+  try { localStorage.setItem('sema_model', JSON.stringify(_modelCols)); } catch (_) {}
+}
+
+/** Renderiza a tabela de colunas do modelo */
+function renderModeloTable() {
+  const tbody  = document.getElementById('modelo-table-body');
+  const hint   = document.getElementById('modelo-formula-hint');
+  const hasFormula = (_modelCols || []).some(c => c.type === 'fórmula');
+  if (hint) hint.style.display = hasFormula ? 'block' : 'none';
+
+  if (!_modelCols || !_modelCols.length) {
+    tbody.innerHTML = `<tr><td colspan="4" style="padding:20px;text-align:center;color:var(--text2)">Nenhuma coluna definida. Clique em "+ Adicionar coluna".</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = _modelCols.map((col, idx) => {
+    const opts = TIPOS_COLUNA.map(t =>
+      `<option value="${t}"${col.type === t ? ' selected' : ''}>${t}</option>`
+    ).join('');
+    return `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:6px 10px;color:var(--text2);text-align:center">${idx + 1}</td>
+      <td style="padding:4px 8px">
+        <input type="text" value="${esc(col.name)}" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:.85rem"
+          onchange="_modelCols[${idx}].name=this.value;salvarModeloLocal();renderModeloTable()">
+      </td>
+      <td style="padding:4px 8px">
+        <select style="width:100%;padding:5px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:.82rem"
+          onchange="_modelCols[${idx}].type=this.value;salvarModeloLocal();renderModeloTable()">${opts}</select>
+      </td>
+      <td style="padding:4px 8px;text-align:center;white-space:nowrap">
+        <button title="Mover para cima"  style="border:none;background:none;cursor:pointer;font-size:.9rem;opacity:${idx===0?'.3':'1'}"
+          ${idx===0?'disabled':''} onclick="moverColuna(${idx},-1)">↑</button>
+        <button title="Mover para baixo" style="border:none;background:none;cursor:pointer;font-size:.9rem;opacity:${idx===_modelCols.length-1?'.3':'1'}"
+          ${idx===_modelCols.length-1?'disabled':''} onclick="moverColuna(${idx},1)">↓</button>
+        <button title="Remover coluna"   style="border:none;background:none;cursor:pointer;font-size:.9rem;color:var(--red)"
+          onclick="removerColuna(${idx})">×</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function adicionarColuna() {
+  if (!_modelCols) _modelCols = [];
+  _modelCols.push({ name: 'Nova Coluna', type: 'texto' });
+  salvarModeloLocal();
+  renderModeloTable();
+}
+
+function removerColuna(idx) {
+  if (!_modelCols) return;
+  _modelCols.splice(idx, 1);
+  salvarModeloLocal();
+  renderModeloTable();
+}
+
+function moverColuna(idx, dir) {
+  if (!_modelCols) return;
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= _modelCols.length) return;
+  [_modelCols[idx], _modelCols[newIdx]] = [_modelCols[newIdx], _modelCols[idx]];
+  salvarModeloLocal();
+  renderModeloTable();
+}
+
+/**
+ * Baixa um CSV em branco com os cabeçalhos definidos no modelo.
+ * Colunas do tipo "fórmula" são excluídas (calculadas pelo Sheets).
+ * Inclui uma linha de exemplo com dicas por tipo.
+ */
+function baixarModeloCsv() {
+  if (!_modelCols || !_modelCols.length) {
+    showToast('Modelo sem colunas. Adicione ao menos uma coluna.', 'err'); return;
+  }
+  const cols = _modelCols.filter(c => c.type !== 'fórmula');
+  if (!cols.length) {
+    showToast('Todas as colunas são do tipo fórmula — nenhuma coluna editável para exportar.', 'err'); return;
+  }
+  const sep     = ';';
+  const headers = cols.map(c => `"${c.name.replace(/"/g,'""')}"`).join(sep);
+  const exemplo = cols.map(c => `"${(TIPO_EXEMPLOS[c.type] || '').replace(/"/g,'""')}"`).join(sep);
+  const csv     = '﻿' + headers + '\r\n' + exemplo;
+  const blob    = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const a       = Object.assign(document.createElement('a'), {
+    href:     URL.createObjectURL(blob),
+    download: `modelo_planilha_${new Date().toISOString().slice(0,10)}.csv`,
+  });
+  a.click(); URL.revokeObjectURL(a.href);
+  showToast(`Modelo baixado com ${cols.length} coluna${cols.length !== 1 ? 's' : ''} ✓`, 'ok');
 }
 
 /* ─── EXPORT/IMPORT ──────────────────────────────────────────────────────── */

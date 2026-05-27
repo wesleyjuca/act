@@ -57,11 +57,10 @@ jobs:
       - name: Validar sintaxe JS
         run: |
           node --check js/config.js && echo "✅ js/config.js syntax OK"
-          node --check js/sync.js   && echo "✅ js/sync.js syntax OK"
 
       - name: Validar arquivos HTML e JS
         run: |
-          for f in index.html admin.html js/config.js js/sync.js; do
+          for f in index.html admin.html js/config.js; do
             [ -f "$f" ] && echo "✅ $f ($(wc -c < $f) bytes)" || { echo "❌ $f ausente"; exit 1; }
           done
           echo "✅ Validação concluída"
