@@ -288,42 +288,33 @@ function renderAll() {
 }
 
 function renderKPIs() {
-  const statusKey = findKey(['status', 'situacao']);
-  const termKey   = findKey(['termino', 'término', 'fim', 'vencimento', 'data_fim', 'data_termino']);
-  const instKey   = findKey(['inst', 'instituicao', 'instituição', 'parceiro', 'entidade', 'partner']);
+  /* KPIs são exibidos SOMENTE se a coluna 'status' existir na planilha.
+     Os valores são contados diretamente — sem recálculo por datas no cliente. */
+  const statusCol = _schema.find(c => c.key === 'status' || c.key === 'situacao');
+  const kpiGrid   = document.querySelector('.kpi-grid');
+  if (!statusCol) {
+    if (kpiGrid) kpiGrid.style.display = 'none';
+    return;
+  }
+  if (kpiGrid) kpiGrid.style.display = '';
 
-  const today = new Date(); today.setHours(0,0,0,0);
-  let vigente = 0, avencer = 0, urgente = 0, expirado = 0;
+  const instKey = findKey(['inst', 'instituicao', 'instituição', 'parceiro', 'entidade', 'partner']);
+  const counts  = {};
   const parcSet = new Set();
 
   _records.forEach(r => {
-    let st = statusKey ? String(r[statusKey]||'').trim() : '';
-    if (!st && termKey) {
-      const d = parseDateStr(r[termKey]);
-      if (d) {
-        const diff = Math.floor((d - today) / 86400000);
-        if      (diff < 0)  st = 'Expirado';
-        else if (diff <= 30) st = 'Vence em 30 dias';
-        else if (diff <= 90) st = 'A vencer';
-        else                  st = 'Vigente';
-      }
-    }
-    const sL = st.toLowerCase();
-    if      (sL.includes('vigente') && !sL.includes('vence')) vigente++;
-    else if (sL.includes('vence em 30'))  urgente++;
-    else if (sL.includes('vencer'))       avencer++;
-    else if (sL.includes('expir'))        expirado++;
-
+    const st = String(r[statusCol.key] || '').trim();
+    if (st) counts[st] = (counts[st] || 0) + 1;
     if (instKey) {
-      const v = String(r[instKey]||'').trim();
+      const v = String(r[instKey] || '').trim();
       if (v) parcSet.add(v.toLowerCase());
     }
   });
 
-  setText('kpi-vigente-num', vigente);
-  setText('kpi-avencer-num', avencer);
-  setText('kpi-urgente-num', urgente);
-  setText('kpi-expirado-num', expirado);
+  setText('kpi-vigente-num',  counts['Vigente']          || 0);
+  setText('kpi-avencer-num',  counts['A vencer']         || 0);
+  setText('kpi-urgente-num',  counts['Vence em 30 dias'] || 0);
+  setText('kpi-expirado-num', counts['Expirado']         || 0);
   setText('kpi-parceiros-num', parcSet.size);
 }
 
@@ -337,22 +328,12 @@ function applyFilters() {
       const sel = document.getElementById(id);
       if (sel && sel.value && String(r[key]||'').trim() !== sel.value) return false;
     }
-    /* Filtro por KPI */
+    /* Filtro por KPI — compara diretamente com o valor do campo status na planilha */
     if (_kpiFilt) {
-      const statusKey = findKey(['status', 'situacao']);
-      const termKey   = findKey(['termino', 'término', 'fim', 'vencimento']);
-      let st = statusKey ? String(r[statusKey]||'') : '';
-      if (!st && termKey) {
-        const d = parseDateStr(r[termKey]);
-        if (d) {
-          const diff = Math.floor((d - new Date().setHours(0,0,0,0)) / 86400000);
-          if      (diff < 0)   st = 'Expirado';
-          else if (diff <= 30) st = 'Vence em 30 dias';
-          else if (diff <= 90) st = 'A vencer';
-          else                  st = 'Vigente';
-        }
-      }
-      if (!st.toLowerCase().includes(_kpiFilt.toLowerCase())) return false;
+      const statusCol = _schema.find(c => c.key === 'status' || c.key === 'situacao');
+      if (!statusCol) return false;
+      const st = String(r[statusCol.key] || '').trim();
+      if (st !== _kpiFilt) return false;
     }
     /* Busca livre */
     if (q) {

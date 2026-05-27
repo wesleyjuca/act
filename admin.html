@@ -117,6 +117,9 @@ tbody td:last-child { white-space: nowrap; }
 /* LOADING BAR */
 #loading-bar { height: 3px; background: var(--accent); width: 0; transition: width .4s; position: fixed; top: 0; left: 0; z-index: 500; }
 
+/* IMPORT OVERLAY */
+#import-overlay.open { display: flex !important; }
+
 /* TOAST */
 #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 10px 20px; border-radius: 20px; font-size: .88rem; z-index: 999; opacity: 0; transition: opacity .3s; pointer-events: none; white-space: nowrap; color: #fff; }
 #toast.ok  { background: var(--accent); }
@@ -159,7 +162,10 @@ tbody td:last-child { white-space: nowrap; }
     <div class="toolbar">
       <input type="search" id="search-input" placeholder="🔍 Buscar…" oninput="applyFilters()">
       <button class="btn btn-primary" onclick="openNew()">+ Novo registro</button>
-      <button class="btn btn-outline" onclick="exportCSV()">⬇ CSV</button>
+      <button class="btn btn-outline" onclick="exportCSV()" title="Exporta os registros visíveis como CSV">⬇ CSV local</button>
+      <button class="btn btn-outline" onclick="exportarPlanilha()" title="Baixa a planilha fonte completa do Google Sheets">⬇ Baixar planilha</button>
+      <button class="btn btn-outline" onclick="abrirImport()" title="Importa um CSV para substituir todos os dados da planilha fonte">⬆ Importar planilha</button>
+      <input type="file" id="file-import" accept=".csv" style="display:none" onchange="lerArquivoImport(event)">
     </div>
 
     <div class="table-wrap">
@@ -186,6 +192,32 @@ tbody td:last-child { white-space: nowrap; }
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
       <button class="btn btn-primary" id="save-btn" onclick="saveRecord()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de preview de importação -->
+<div id="import-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;display:none;align-items:center;justify-content:center;padding:16px">
+  <div class="modal" style="max-width:800px">
+    <div class="modal-header">
+      <h2>⬆ Importar planilha</h2>
+      <button class="btn-icon" onclick="fecharImport()" style="color:var(--text2);background:var(--border)">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="import-warning" style="background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:12px 16px;margin-bottom:16px;font-size:.88rem;color:#856404">
+        ⚠️ <strong>Atenção:</strong> ao confirmar, <strong>TODOS</strong> os dados atuais da planilha Google Sheets serão substituídos pelos dados do arquivo. Esta ação não pode ser desfeita.
+      </div>
+      <p id="import-count" style="margin-bottom:12px;font-size:.88rem;color:var(--text2)"></p>
+      <div style="overflow-x:auto;border-radius:6px;box-shadow:var(--shadow)">
+        <table style="width:100%;border-collapse:collapse;background:var(--bg2);font-size:.82rem">
+          <thead><tr id="import-preview-head" style="background:var(--accent);color:#fff"></tr></thead>
+          <tbody id="import-preview-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="fecharImport()">Cancelar</button>
+      <button class="btn btn-danger" id="import-confirm-btn" onclick="confirmarImport()">✅ Confirmar substituição</button>
     </div>
   </div>
 </div>
@@ -526,7 +558,9 @@ async function deleteRecord(idx) {
   }
 }
 
-/* ─── EXPORT CSV ─────────────────────────────────────────────────────────── */
+/* ─── EXPORT/IMPORT ──────────────────────────────────────────────────────── */
+
+/** Export local: CSV dos registros filtrados atualmente visíveis na tabela */
 function exportCSV() {
   if (!_filtered.length) { showToast('Nenhum dado para exportar'); return; }
   const sep = ';';
@@ -538,6 +572,163 @@ function exportCSV() {
   const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `ADMIN_TCT_${new Date().toISOString().slice(0,10)}.csv` });
   a.click(); URL.revokeObjectURL(a.href);
   showToast(`${_filtered.length} registros exportados`);
+}
+
+/**
+ * Download da planilha fonte completa via endpoint ?action=export do Apps Script.
+ * Retorna CSV com TODOS os dados + cabeçalhos reais da aba DADOS_PÚBLICOS.
+ */
+async function exportarPlanilha() {
+  showToast('Baixando planilha…', 'ok', 60000);
+  try {
+    const url = GAS_URL + (GAS_URL.includes('?') ? '&' : '?') + 'action=export';
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    if (!text.trim()) throw new Error('Planilha vazia ou aba não encontrada');
+
+    const blob = new Blob([text], { type: 'text/csv;charset=utf-8' });
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(blob),
+      download: `planilha_SEMA_${new Date().toISOString().slice(0,10)}.csv`,
+    });
+    a.click(); URL.revokeObjectURL(a.href);
+    showToast('Planilha baixada ✓', 'ok');
+  } catch (e) {
+    showToast('Erro ao baixar: ' + e.message, 'err');
+  }
+}
+
+/** Abre o file picker para selecionar o CSV de importação */
+function abrirImport() {
+  const input = document.getElementById('file-import');
+  input.value = '';  // reseta para permitir re-selecionar o mesmo arquivo
+  input.click();
+}
+
+/** Chamado quando o usuário seleciona um arquivo CSV */
+function lerArquivoImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    let text = e.target.result;
+    // Remove BOM se presente
+    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    try {
+      _importRecords = parseCsv(text);
+      mostrarPreviewImport(_importRecords);
+    } catch (err) {
+      showToast('Erro ao ler CSV: ' + err.message, 'err');
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+let _importRecords = [];  // registros lidos do CSV aguardando confirmação
+
+/** Exibe o modal de preview com os primeiros 5 registros */
+function mostrarPreviewImport(records) {
+  if (!records.length) { showToast('Nenhum registro encontrado no arquivo', 'err'); return; }
+
+  const overlay = document.getElementById('import-overlay');
+  const countEl = document.getElementById('import-count');
+  const thead   = document.getElementById('import-preview-head');
+  const tbody   = document.getElementById('import-preview-body');
+
+  const headers = records.length > 0 ? Object.keys(records[0]) : [];
+  const preview = records.slice(0, 5);
+
+  countEl.textContent = `${records.length} registro${records.length !== 1 ? 's' : ''} detectado${records.length !== 1 ? 's' : ''} no arquivo (exibindo os primeiros ${Math.min(5, records.length)}).`;
+
+  thead.innerHTML = headers.map(h => `<th style="padding:8px 10px;white-space:nowrap">${esc(h)}</th>`).join('');
+  tbody.innerHTML = preview.map(r =>
+    `<tr style="border-bottom:1px solid var(--border)">${headers.map(h =>
+      `<td style="padding:7px 10px">${esc(String(r[h] || ''))}</td>`
+    ).join('')}</tr>`
+  ).join('');
+
+  overlay.style.display = 'flex';
+}
+
+function fecharImport() {
+  document.getElementById('import-overlay').style.display = 'none';
+  _importRecords = [];
+}
+
+/** Envia os registros para o Apps Script substituindo toda a planilha */
+async function confirmarImport() {
+  if (!_importRecords.length) return;
+  const btn = document.getElementById('import-confirm-btn');
+  btn.disabled = true; btn.textContent = 'Enviando…';
+
+  try {
+    const result = await gasPost({ action: 'replaceAll', records: _importRecords });
+    showToast(`Planilha substituída: ${result.replaced} registro${result.replaced !== 1 ? 's' : ''} gravado${result.replaced !== 1 ? 's' : ''} ✓`, 'ok', 5000);
+    fecharImport();
+    await syncAll();
+  } catch (e) {
+    showToast('Erro ao importar: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = '✅ Confirmar substituição';
+  }
+}
+
+/* ─── PARSER CSV ─────────────────────────────────────────────────────────── */
+/**
+ * Converte texto CSV em array de objetos {header: valor}.
+ * Detecta automaticamente separador ';' ou ','.
+ * Suporta campos entre aspas duplas (incluindo aspas escapadas "" e quebras de linha).
+ */
+function parseCsv(text) {
+  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const firstLine = lines.split('\n')[0] || '';
+  const sep = firstLine.split(';').length > firstLine.split(',').length ? ';' : ',';
+
+  const rows = splitCsvRows(lines, sep);
+  if (rows.length < 2) throw new Error('CSV deve ter ao menos 1 linha de cabeçalho e 1 linha de dados');
+
+  const headers = rows[0].map(h => h.trim());
+  const records = [];
+  for (let i = 1; i < rows.length; i++) {
+    const vals = rows[i];
+    if (vals.every(v => !v.trim())) continue;  // pula linhas vazias
+    const rec = {};
+    headers.forEach((h, j) => { rec[h] = (vals[j] || '').trim(); });
+    records.push(rec);
+  }
+  return records;
+}
+
+/** Divide texto CSV em linhas e colunas respeitando campos entre aspas */
+function splitCsvRows(text, sep) {
+  const rows = [];
+  let cur = [];
+  let field = '';
+  let inQuote = false;
+  let i = 0;
+
+  while (i < text.length) {
+    const ch = text[i];
+    if (inQuote) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+        inQuote = false; i++; continue;
+      }
+      field += ch; i++; continue;
+    }
+    if (ch === '"') { inQuote = true; i++; continue; }
+    if (ch === sep) { cur.push(field); field = ''; i++; continue; }
+    if (ch === '\n') {
+      cur.push(field); field = '';
+      rows.push(cur); cur = []; i++; continue;
+    }
+    field += ch; i++;
+  }
+  // Última célula/linha
+  cur.push(field);
+  if (cur.some(v => v.trim())) rows.push(cur);
+  return rows;
 }
 
 /* ─── HELPERS ────────────────────────────────────────────────────────────── */

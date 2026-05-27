@@ -86,6 +86,7 @@ function doGet(e) {
       case 'schema':     result = handleSchema();                       break;
       case 'status':     result = handleStatus();                       break;
       case 'getConfig':  result = handleGetConfig();                    break;
+      case 'export':     return exportCsv();                            // retorna CSV direto, não JSON
       default:       result = { error: `Ação desconhecida: ${action}` };
     }
     return jsonResponse(result);
@@ -135,6 +136,7 @@ function doPost(e) {
       case 'log':          result = handleLogEntry(body.entry);                     break;
       case 'addHistory':   result = handleAddHistory(body.entries);                 break;
       case 'saveConfig':   result = handleSaveConfig(body.config);                  break;
+      case 'replaceAll':   result = handleReplaceAll(body);                         break;
       default:             result = { error: `Ação POST desconhecida: ${body.action}` };
     }
     return jsonResponse(result);
@@ -165,7 +167,8 @@ function handleList(params) {
   const records = [];
   for (let i = 2; i < data.length; i++) {
     const row = data[i];
-    if (!row[1]) continue;  // sem número → linha vazia
+    // Pula linhas completamente vazias (inclui qualquer linha com ao menos 1 célula preenchida)
+    if (!row.some(cell => String(cell).trim())) continue;
     const rec = {};
     headers.forEach((h, j) => {
       const v = row[j];
@@ -569,6 +572,139 @@ function onSheetEdit(e) {
       muteHttpExceptions: true,
     });
   } catch (_) {}
+}
+
+// ── EXPORT CSV ────────────────────────────────────────────────────────────────
+/**
+ * GET ?action=export
+ * Retorna TODOS os dados da aba DADOS_PÚBLICOS (linha 2 = cabeçalhos, linha 3+ = dados)
+ * como CSV com separador ';' e encoding UTF-8 com BOM.
+ */
+function exportCsv() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_DADOS);
+  if (!sheet) {
+    return ContentService.createTextOutput('Aba não encontrada')
+      .setMimeType(ContentService.MimeType.TEXT);
+  }
+  const data = sheet.getDataRange().getValues();
+  if (data.length < 2) {
+    return ContentService.createTextOutput('')
+      .setMimeType(ContentService.MimeType.CSV);
+  }
+
+  const SEP = ';';
+  const lines = [];
+
+  // Linha 2 (índice 1) = cabeçalhos reais
+  const headers = data[1].map(h => String(h || '').trim());
+  lines.push(headers.map(h => csvCell(h)).join(SEP));
+
+  // Linha 3+ = dados
+  for (let i = 2; i < data.length; i++) {
+    const row = data[i];
+    if (!row.some(cell => String(cell).trim())) continue;  // pula linhas vazias
+    const cols = headers.map((_, j) => {
+      const v = row[j];
+      if (v instanceof Date) {
+        return csvCell(Utilities.formatDate(v, 'America/Rio_Branco', 'dd/MM/yyyy'));
+      }
+      return csvCell(String(v !== undefined && v !== null ? v : ''));
+    });
+    lines.push(cols.join(SEP));
+  }
+
+  // BOM UTF-8 para Excel/LibreOffice abrir corretamente com acentos
+  const csv = '﻿' + lines.join('\r\n');
+  return ContentService.createTextOutput(csv)
+    .setMimeType(ContentService.MimeType.CSV);
+}
+
+function csvCell(val) {
+  const s = String(val === undefined || val === null ? '' : val);
+  // Envolve em aspas se contiver separador, aspas ou quebra de linha
+  if (s.includes(';') || s.includes('"') || s.includes('\n') || s.includes('\r')) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
+
+// ── REPLACE ALL ───────────────────────────────────────────────────────────────
+/**
+ * POST {action:'replaceAll', records:[], token}
+ * Apaga TODOS os dados da aba DADOS_PÚBLICOS (mantém linhas 1 e 2 intactas)
+ * e grava os novos registros a partir da linha 3.
+ *
+ * Cada elemento de records é um objeto {headerLabel: valor} onde headerLabel
+ * é o texto exato do cabeçalho na linha 2 da planilha (ou sua forma normalizada).
+ */
+function handleReplaceAll(p) {
+  const records = p.records;
+  if (!Array.isArray(records)) {
+    return { error: 'records deve ser um array' };
+  }
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_DADOS);
+  if (!sheet) return { error: `Aba '${SHEET_DADOS}' não encontrada` };
+
+  // Lê cabeçalhos reais (linha 2)
+  const lastCol = sheet.getLastColumn();
+  if (lastCol < 1) return { error: 'Planilha sem colunas' };
+  const sheetHeaders = sheet.getRange(2, 1, 1, lastCol).getValues()[0];
+
+  // Constrói mapa: variações do cabeçalho → índice de coluna (0-based)
+  const headerIdx = {};
+  sheetHeaders.forEach((h, i) => {
+    const label = String(h || '').trim();
+    if (!label) return;
+    const norm = label.toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+    headerIdx[label]            = i;  // exato
+    headerIdx[label.toLowerCase()] = i;  // lowercase
+    headerIdx[norm]             = i;  // normalizado
+    const canonical = HEADER_MAP[norm] || norm;
+    headerIdx[canonical]        = i;  // chave canônica (ex: 'num', 'inst')
+  });
+
+  // Mapeia cada registro para uma linha de acordo com os cabeçalhos da planilha
+  const rows = records.map(rec => {
+    const row = new Array(lastCol).fill('');
+    Object.entries(rec).forEach(([key, val]) => {
+      const kNorm = String(key).trim().toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+      const kCanon = HEADER_MAP[kNorm] || kNorm;
+
+      // Tenta várias formas de encontrar a coluna
+      let colIdx = -1;
+      for (const k of [key, key.toLowerCase(), kNorm, kCanon]) {
+        if (headerIdx[k] !== undefined) { colIdx = headerIdx[k]; break; }
+      }
+      if (colIdx < 0) return;  // coluna não encontrada — ignora
+
+      const v = String(val === undefined || val === null ? '' : val).trim();
+      // Tenta converter datas (dd/mm/yyyy ou yyyy-mm-dd) de volta para Date
+      const parsed = parseDate(v);
+      row[colIdx] = parsed instanceof Date ? parsed : v;
+    });
+    return row;
+  });
+
+  // Limpa linhas de dados (linha 3 em diante)
+  const lastRow = sheet.getLastRow();
+  if (lastRow >= 3) {
+    sheet.getRange(3, 1, lastRow - 2, lastCol).clearContent();
+  }
+
+  // Grava novos dados
+  if (rows.length > 0) {
+    sheet.getRange(3, 1, rows.length, lastCol).setValues(rows);
+  }
+
+  logInfo('replaceAll', `${rows.length} registros gravados em substituição`);
+  return { ok: true, replaced: rows.length };
 }
 
 // ── TESTE MANUAL ──────────────────────────────────────────────────────────────
