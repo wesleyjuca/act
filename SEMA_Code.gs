@@ -529,7 +529,7 @@ function parseDate(str) {
 
 function validateToken(token) {
   const stored = PropertiesService.getScriptProperties().getProperty('SYNC_TOKEN')
-              || '27f2b931-2773-4198-9edd-261047aa5ec7-9a263f1b-488d-4a6d-81a1-dfe1704acf29';
+              || '';
   if (!token || token.length !== stored.length) return false;
   let match = true;
   for (let i = 0; i < stored.length; i++) { if (token[i] !== stored[i]) match = false; }
