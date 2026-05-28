@@ -350,7 +350,7 @@ async function syncAll() {
   setStatus('syncing');
   loadingBar(30);
   try {
-    const [schemaRes, listRes] = await Promise.all([gasGet('schema'), gasGet('list')]);
+    const [schemaRes, listRes] = await Promise.all([gasJsonp('schema'), gasJsonp('list')]);
     loadingBar(80);
 
     if (schemaRes.error) throw new Error('GAS schema: ' + schemaRes.error);
@@ -377,6 +377,20 @@ async function syncAll() {
 }
 
 /* ─── API ─────────────────────────────────────────────────────────────────── */
+function gasJsonp(action) {
+  return new Promise((resolve, reject) => {
+    const cbName = '_sema_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    const url = GAS_URL + (GAS_URL.includes('?') ? '&' : '?') + 'action=' + action + '&callback=' + cbName;
+    const script = document.createElement('script');
+    const timer = setTimeout(() => { cleanup(); reject(new Error('Timeout ao conectar ao GAS')); }, 15000);
+    window[cbName] = (data) => { cleanup(); resolve(data); };
+    script.onerror = () => { cleanup(); reject(new Error('GAS inacessível (JSONP falhou)')); };
+    function cleanup() { clearTimeout(timer); delete window[cbName]; if (script.parentNode) script.remove(); }
+    script.src = url;
+    document.head.appendChild(script);
+  });
+}
+
 async function gasGet(action) {
   const url = GAS_URL + (GAS_URL.includes('?') ? '&' : '?') + 'action=' + action;
   const res = await fetch(url, { cache: 'no-store' });

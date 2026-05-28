@@ -169,40 +169,48 @@ function getSheet(sheetName) {
 // ─────────────────────────────────────────────────────────────
 
 function doGet(e) {
+  const callback = e.parameter?.callback;
   try {
 
     const action = (e.parameter?.action || 'list');
 
+    let data;
     switch (action) {
 
       case 'ping':
-        return jsonResponse(handlePing());
+        data = handlePing(); break;
 
       case 'list':
-        return jsonResponse(handleList(e.parameter));
+        data = handleList(e.parameter); break;
 
       case 'schema':
-        return jsonResponse(handleSchema());
+        data = handleSchema(); break;
 
       case 'status':
-        return jsonResponse(handleStatus());
+        data = handleStatus(); break;
 
       case 'export':
         return exportCsv();
 
       default:
-        return jsonResponse({
-          error: 'Ação desconhecida'
-        });
+        data = { error: 'Ação desconhecida' };
     }
+
+    if (callback) {
+      return ContentService.createTextOutput(callback + '(' + JSON.stringify(data) + ')')
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+    return jsonResponse(data);
 
   } catch (err) {
 
     logError('GET', err);
-
-    return jsonResponse({
-      error: err.message
-    });
+    const data = { error: err.message };
+    if (callback) {
+      return ContentService.createTextOutput(callback + '(' + JSON.stringify(data) + ')')
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+    return jsonResponse(data);
   }
 }
 
