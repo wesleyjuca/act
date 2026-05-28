@@ -76,8 +76,8 @@ const HEADER_MAP = {
 // ─────────────────────────────────────────────────────────────
 
 const FORMULA_COLS = {
-  'status':        (row) => `=IF(G${row}="","",IF(TODAY()>G${row},"Expirado",IF(G${row}-TODAY()<=30,"Vence em 30 dias",IF(G${row}-TODAY()<=90,"A vencer","Vigente"))))`,
-  'diasRestantes': (row) => `=IF(G${row}="","",G${row}-TODAY())`,
+  'status':        (row, col) => `=IF(${col}${row}="","",IF(TODAY()>${col}${row},"Expirado",IF(${col}${row}-TODAY()<=30,"Vence em 30 dias",IF(${col}${row}-TODAY()<=90,"A vencer","Vigente"))))`,
+  'diasRestantes': (row, col) => `=IF(${col}${row}="","",${col}${row}-TODAY())`,
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -646,13 +646,24 @@ function handleReplaceAll(records, sheetName = SHEET_DADOS) {
 // FORMULA HELPERS
 // ─────────────────────────────────────────────────────────────
 
+function colLetter(n) {
+  let s = '';
+  while (n > 0) { s = String.fromCharCode(64 + ((n - 1) % 26 + 1)) + s; n = Math.floor((n - 1) / 26); }
+  return s;
+}
+
 function applyFormulaRange(sheet, startRow, count, headers) {
+  const terminoIdx = headers.findIndex(h => headerKey(String(h)) === 'termino');
+  const terminoCol = terminoIdx >= 0 ? colLetter(terminoIdx + 1) : 'G';
+
   headers.forEach((h, colIdx) => {
-    const key = headerKey(h);
+    const key = headerKey(String(h));
     if (!FORMULA_COLS[key]) return;
     const formulas = [];
-    for (let r = 0; r < count; r++) formulas.push([FORMULA_COLS[key](startRow + r)]);
-    sheet.getRange(startRow, colIdx + 1, count, 1).setFormulas(formulas);
+    for (let r = 0; r < count; r++) formulas.push([FORMULA_COLS[key](startRow + r, terminoCol)]);
+    const range = sheet.getRange(startRow, colIdx + 1, count, 1);
+    range.setFormulas(formulas);
+    if (key === 'diasRestantes') range.setNumberFormat('0');
   });
 }
 

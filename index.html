@@ -361,7 +361,7 @@ async function syncAll() {
     else if (Array.isArray(schemaRes.publicColumns))
       _schema = schemaRes.publicColumns.map(k => ({ key: k, label: k }));
 
-    if (Array.isArray(listRes.records)) _records = listRes.records;
+    if (Array.isArray(listRes.records)) _records = listRes.records.map(computeStatusClientSide);
 
     _loading = false;
     saveCache();
@@ -374,6 +374,27 @@ async function syncAll() {
     loadingBar(100);
     setTimeout(() => loadingBar(0), 400);
   }
+}
+
+/* ─── STATUS CLIENT-SIDE ─────────────────────────────────────────────────── */
+function computeStatusClientSide(r) {
+  const termRaw = r.termino || '';
+  if (!termRaw) return r;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const end = new Date(termRaw);
+  if (isNaN(end.getTime())) return r;
+  const dias = Math.round((end - today) / 86400000);
+  const rec = Object.assign({}, r);
+  const badDias   = !rec.diasRestantes || /^#/.test(rec.diasRestantes) || /^\d{4}-\d{2}-\d{2}$/.test(rec.diasRestantes);
+  const badStatus = !rec.status || /^#/.test(rec.status);
+  if (badDias)   rec.diasRestantes = String(dias);
+  if (badStatus) {
+    if (dias < 0)        rec.status = 'Expirado';
+    else if (dias <= 30) rec.status = 'Vence em 30 dias';
+    else if (dias <= 90) rec.status = 'A vencer';
+    else                 rec.status = 'Vigente';
+  }
+  return rec;
 }
 
 /* ─── API ─────────────────────────────────────────────────────────────────── */
