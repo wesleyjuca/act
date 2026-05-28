@@ -154,9 +154,18 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
 
 <div id="error-banner" class="error-banner" hidden>
   <span>⚠️ Dados ao vivo indisponíveis.</span>
-  <span id="error-detail" style="font-size:.78rem;opacity:.75"></span>
+  <span id="error-detail" style="font-size:.78rem;opacity:.75;margin-left:.5rem"></span>
   <button class="btn-retry" onclick="manualRefresh()">🔄 Tentar novamente</button>
   <span id="cache-note" hidden></span>
+  <details id="setup-guide" style="width:100%;margin-top:.5rem" hidden>
+    <summary style="cursor:pointer;font-weight:600;font-size:.85rem">⚙️ Guia de configuração do Google Apps Script</summary>
+    <ol style="font-size:.82rem;margin:.5rem 0 0 1.2rem;line-height:1.8">
+      <li>Abra o <a href="https://script.google.com" target="_blank" style="color:inherit">Apps Script Editor</a> e cole o conteúdo de <code>SEMA_Code.gs</code></li>
+      <li>Execute a função <code>criarPlanilhaModelo()</code> — cria a aba <code>ACT - PAINEL PUBLICO</code></li>
+      <li>Vá em Configurações do projeto → Propriedades do script → adicione <code>SYNC_TOKEN</code></li>
+      <li>Reimplante: Deploy → Gerenciar implantações → Nova versão → Implantar</li>
+    </ol>
+  </details>
 </div>
 
 <div id="toast"></div>
@@ -284,12 +293,17 @@ async function syncWithRetry() {
     await syncAll();
     _retryCount = 0;
     document.getElementById('error-banner').hidden = true;
+    const _g = document.getElementById('setup-guide');
+    if (_g) _g.hidden = true;
     showCacheNote('');
   } catch (e) {
     console.error('[SEMA] syncWithRetry falhou:', e.message);
     setStatus('error');
     document.getElementById('error-banner').hidden = false;
     document.getElementById('error-detail').textContent = e.message || '';
+    const _setupKeywords = ['não encontrada', 'not found', 'HTTP 403', 'HTTP 404', 'Failed to fetch', 'NetworkError'];
+    const _guide = document.getElementById('setup-guide');
+    if (_guide) _guide.hidden = !_setupKeywords.some(s => (e.message || '').includes(s));
     // Show cached data if available and schema not yet loaded
     if (!_schema.length) {
       const cached = loadCache();
