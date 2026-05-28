@@ -72,6 +72,15 @@ const HEADER_MAP = {
 };
 
 // ─────────────────────────────────────────────────────────────
+// FORMULA COLS — colunas calculadas automaticamente pela planilha
+// ─────────────────────────────────────────────────────────────
+
+const FORMULA_COLS = {
+  'status':        (row) => `=IF(G${row}="","",IF(TODAY()>G${row},"Expirado",IF(G${row}-TODAY()<=30,"Vence em 30 dias",IF(G${row}-TODAY()<=90,"A vencer","Vigente"))))`,
+  'diasRestantes': (row) => `=IF(G${row}="","",G${row}-TODAY())`,
+};
+
+// ─────────────────────────────────────────────────────────────
 // HELPERS
 // ─────────────────────────────────────────────────────────────
 
@@ -338,7 +347,8 @@ function handleSchema() {
   const columns = headers.map((h, i) => ({
     key: headerKey(h),
     label: h,
-    col: i + 1
+    col: i + 1,
+    formula: !!FORMULA_COLS[headerKey(h)],
   }));
 
   return {
@@ -466,6 +476,8 @@ function handleUpsert(record, sheetName = SHEET_DADOS) {
       .getRange(targetRow, 1, 1, rowValues.length)
       .setValues([rowValues]);
 
+    applyFormulaRange(sheet, targetRow, 1, data[1]);
+
     return {
       ok: true,
       action: 'updated',
@@ -478,6 +490,8 @@ function handleUpsert(record, sheetName = SHEET_DADOS) {
   sheet
     .getRange(newRow, 1, 1, rowValues.length)
     .setValues([rowValues]);
+
+  applyFormulaRange(sheet, newRow, 1, data[1]);
 
   return {
     ok: true,
@@ -592,12 +606,28 @@ function handleReplaceAll(records, sheetName = SHEET_DADOS) {
     sheet
       .getRange(3, 1, rows.length, rows[0].length)
       .setValues(rows);
+
+    applyFormulaRange(sheet, 3, rows.length, headers);
   }
 
   return {
     ok: true,
     replaced: rows.length
   };
+}
+
+// ─────────────────────────────────────────────────────────────
+// FORMULA HELPERS
+// ─────────────────────────────────────────────────────────────
+
+function applyFormulaRange(sheet, startRow, count, headers) {
+  headers.forEach((h, colIdx) => {
+    const key = headerKey(h);
+    if (!FORMULA_COLS[key]) return;
+    const formulas = [];
+    for (let r = 0; r < count; r++) formulas.push([FORMULA_COLS[key](startRow + r)]);
+    sheet.getRange(startRow, colIdx + 1, count, 1).setFormulas(formulas);
+  });
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -613,6 +643,8 @@ function buildRowValues(record, sheet) {
   return headers.map(h => {
 
     const key = headerKey(h);
+
+    if (FORMULA_COLS[key]) return '';   // definido por applyFormulaRange
 
     const value = sanitizeCell(
       record[key] ?? ''
@@ -736,12 +768,8 @@ function criarPlanilhaModelo() {
     'Recursos Hídricos',
   ]]);
 
-  // Col I (9) = Status — fórmula automática baseada em Término (col G=7)
-  sh.getRange(3, 9).setFormula(
-    '=IF(G3="","",IF(TODAY()>G3,"Expirado",IF(G3-TODAY()<=30,"Vence em 30 dias",IF(G3-TODAY()<=90,"A vencer","Vigente"))))'
-  );
-  // Col J (10) = Dias Restantes
-  sh.getRange(3, 10).setFormula('=IF(G3="","",G3-TODAY())');
+  // Colunas I e J = fórmulas automáticas para 500 linhas de dados
+  applyFormulaRange(sh, 3, 500, headers);
 
   // DOE / DOU / SEI / Link / Observação — deixar em branco no exemplo
   sh.getRange(3, 11, 1, 5).setValues([['14.000', '000', '0820.000001/2025-00', 'https://sema.ac.gov.br', 'Exemplo inicial']]);
@@ -750,7 +778,7 @@ function criarPlanilhaModelo() {
   sh.getRange(3, 6, 500, 1).setNumberFormat('dd/mm/yyyy');   // Início (col F)
   sh.getRange(3, 7, 500, 1).setNumberFormat('dd/mm/yyyy');   // Término (col G)
   sh.getRange(3, 10, 500, 1).setNumberFormat('0');           // Dias Restantes como inteiro
-  sh.getRange(3, 2, 500, 1).setNumberFormat('@STRING@');     // Número como texto
+  sh.getRange(3, 2, 500, 1).setNumberFormat('@');             // Número como texto
 
   // Larguras de coluna (px): Tipo|Número|Objeto|Instituição|Esfera|Início|Término|Área|Status|Dias|DOE|DOU|SEI|Link|Obs
   [80, 100, 300, 200, 110, 90, 90, 150, 130, 80, 80, 80, 150, 180, 220]
