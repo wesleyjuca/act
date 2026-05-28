@@ -42,7 +42,7 @@ header h1 small { font-weight: 400; opacity: .75; font-size: .8rem; display: blo
   padding: 40px; width: 360px; box-shadow: var(--shadow);
 }
 .login-card h2 { font-size: 1.3rem; margin-bottom: 8px; color: var(--accent); }
-.login-card p { font-size: .85rem; color: var(--text2); margin-bottom: 24px; }
+.login-card p  { font-size: .85rem; color: var(--text2); margin-bottom: 24px; }
 .form-group { margin-bottom: 16px; }
 .form-group label { display: block; font-size: .8rem; font-weight: 600; margin-bottom: 4px; color: var(--text2); }
 .form-group input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); font-size: .9rem; outline: none; }
@@ -54,76 +54,114 @@ header h1 small { font-weight: 400; opacity: .75; font-size: .8rem; display: blo
 
 /* APP */
 #app-screen { display: none; }
-main { max-width: 1400px; margin: 0 auto; padding: 24px 16px; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px; }
 
-/* TOOLBAR */
-.toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
-.toolbar input[type="search"] {
-  flex: 1; min-width: 200px; padding: 8px 12px; border: 1px solid var(--border);
-  border-radius: var(--radius); background: var(--bg2); color: var(--text); font-size: .9rem; outline: none;
+/* SECTIONS */
+.admin-section {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px 24px;
+  margin-bottom: 20px; box-shadow: var(--shadow);
 }
-.toolbar input[type="search"]:focus { border-color: var(--accent); }
-.btn { padding: 8px 14px; border-radius: var(--radius); border: none; cursor: pointer; font-size: .85rem; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; transition: background .2s; }
+.admin-section h2 {
+  font-size: .95rem; font-weight: 700; margin-bottom: 4px;
+  color: var(--accent); display: flex; align-items: center; gap: 8px;
+}
+.section-num {
+  background: var(--accent); color: #fff; border-radius: 50%;
+  width: 22px; height: 22px; display: inline-flex; align-items: center;
+  justify-content: center; font-size: .78rem; font-weight: 700; flex-shrink: 0;
+}
+.hint { font-size: .82rem; color: var(--text2); margin: 6px 0 14px; line-height: 1.5; }
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* BUTTONS */
+.btn { padding: 9px 16px; border-radius: var(--radius); border: none; cursor: pointer; font-size: .85rem; font-weight: 500; display: inline-flex; align-items: center; gap: 7px; transition: background .2s; }
 .btn-primary { background: var(--accent); color: #fff; }
 .btn-primary:hover { background: var(--accent2); }
 .btn-outline { background: var(--bg2); border: 1px solid var(--border); color: var(--text); }
 .btn-outline:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
-.btn-danger { background: var(--red-light); color: var(--red); border: 1px solid var(--red); }
+.btn-danger  { background: var(--red-light); color: var(--red); border: 1px solid #e8b4b4; }
 .btn-danger:hover { background: var(--red); color: #fff; }
+.btn:disabled { opacity: .5; cursor: default; }
 
-/* TABLE */
-.table-wrap { overflow-x: auto; border-radius: var(--radius); box-shadow: var(--shadow); }
-table { width: 100%; border-collapse: collapse; background: var(--bg2); font-size: .85rem; }
-thead th { background: var(--accent); color: #fff; padding: 9px 12px; text-align: left; white-space: nowrap; font-weight: 600; position: sticky; top: 56px; }
-thead th:last-child { width: 130px; }
-tbody tr { border-bottom: 1px solid var(--border); }
-tbody tr:hover { background: var(--accent-light); }
-tbody td { padding: 8px 12px; vertical-align: middle; }
-tbody td:last-child { white-space: nowrap; }
-.empty-state { text-align: center; padding: 60px 20px; color: var(--text2); }
+/* MODELO TABLE */
+#modelo-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+#modelo-table th { background: var(--accent); color: #fff; padding: 8px 10px; text-align: left; font-weight: 600; }
+#modelo-table td { padding: 5px 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+#modelo-table tr:last-child td { border-bottom: none; }
+#modelo-table input[type="text"] {
+  width: 100%; padding: 5px 8px; border: 1px solid var(--border);
+  border-radius: 4px; background: var(--bg); color: var(--text); font-size: .85rem; outline: none;
+}
+#modelo-table input[type="text"]:focus { border-color: var(--accent); }
+#modelo-table select {
+  width: 100%; padding: 5px 6px; border: 1px solid var(--border);
+  border-radius: 4px; background: var(--bg); color: var(--text); font-size: .82rem; cursor: pointer;
+}
+.col-actions { display: flex; gap: 2px; justify-content: center; }
+.col-actions button { border: none; background: none; cursor: pointer; font-size: .9rem; padding: 2px 5px; border-radius: 4px; }
+.col-actions button:hover { background: var(--border); }
+.col-actions button:disabled { opacity: .25; cursor: default; }
+.col-actions button.del { color: var(--red); }
+.col-actions button.del:hover { background: var(--red-light); }
+.tipo-formula { font-size: .75rem; color: var(--text2); font-style: italic; }
 
-/* BADGE */
-.badge { display: inline-block; padding: 3px 8px; border-radius: 20px; font-size: .75rem; font-weight: 600; }
+/* FORMULA HINT */
+#formula-hint {
+  margin-top: 14px; background: var(--accent-light); border: 1px solid var(--accent);
+  border-radius: 6px; padding: 12px 14px; font-size: .82rem;
+}
+#formula-hint strong { color: var(--accent); }
+.formula-code {
+  font-family: monospace; font-size: .78rem; background: var(--bg);
+  padding: 8px 10px; border-radius: 4px; margin-top: 6px;
+  overflow-x: auto; white-space: pre; line-height: 1.6;
+}
+
+/* PREVIEW TABLE */
+.table-wrap { overflow-x: auto; border-radius: 6px; box-shadow: var(--shadow); }
+table.preview-table { width: 100%; border-collapse: collapse; background: var(--bg2); font-size: .83rem; }
+table.preview-table thead th { background: var(--accent); color: #fff; padding: 8px 10px; text-align: left; white-space: nowrap; font-weight: 600; position: sticky; top: 56px; }
+table.preview-table tbody tr { border-bottom: 1px solid var(--border); }
+table.preview-table tbody tr:hover { background: var(--accent-light); }
+table.preview-table tbody td { padding: 7px 10px; vertical-align: middle; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: .73rem; font-weight: 600; }
 .badge-vigente  { background: #e8f5ec; color: #1b6b2a; }
 .badge-avencer  { background: #fff3e0; color: #a0580a; }
 .badge-urgente  { background: #fce4ec; color: #b71c1c; }
 .badge-expirado { background: #fafafa; color: #666; border: 1px solid #ddd; }
 .badge-default  { background: var(--accent-light); color: var(--accent); }
-
-/* PAGINATION */
-.pagination { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 16px 0; font-size: .85rem; color: var(--text2); }
-.pagination button { padding: 6px 12px; border: 1px solid var(--border); background: var(--bg2); border-radius: 6px; cursor: pointer; color: var(--text); }
+.empty-state { text-align: center; padding: 40px; color: var(--text2); }
+.pagination { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 0; font-size: .83rem; color: var(--text2); }
+.pagination button { padding: 5px 11px; border: 1px solid var(--border); background: var(--bg2); border-radius: 6px; cursor: pointer; color: var(--text); font-size: .82rem; }
 .pagination button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 .pagination button:disabled { opacity: .4; cursor: default; }
 
-/* MODAL FORM */
-#modal-overlay {
+/* IMPORT MODAL */
+.modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 300;
   display: none; align-items: center; justify-content: center; padding: 16px;
 }
-#modal-overlay.open { display: flex; }
-.modal { background: var(--bg2); border-radius: var(--radius); max-width: 700px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,.3); }
-.modal-header { padding: 20px 24px 0; display: flex; justify-content: space-between; align-items: center; }
-.modal-header h2 { font-size: 1.1rem; font-weight: 600; }
-.modal-body { padding: 16px 24px; }
-.modal-footer { padding: 0 24px 20px; display: flex; gap: 8px; justify-content: flex-end; }
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-@media (max-width: 500px) { .form-grid { grid-template-columns: 1fr; } }
-.form-grid .form-group { margin-bottom: 0; }
-.form-grid .form-group.full { grid-column: 1 / -1; }
-.form-group textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); font-size: .9rem; outline: none; resize: vertical; min-height: 80px; font-family: inherit; }
-.form-group textarea:focus { border-color: var(--accent); }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--bg2); border-radius: var(--radius); max-width: 800px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,.3); }
+.modal-header { padding: 18px 22px 0; display: flex; justify-content: space-between; align-items: center; }
+.modal-header h2 { font-size: 1rem; font-weight: 600; }
+.modal-body { padding: 14px 22px; }
+.modal-footer { padding: 0 22px 18px; display: flex; gap: 8px; justify-content: flex-end; }
+.import-warning { background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; font-size: .85rem; color: #856404; }
+table.import-preview { width: 100%; border-collapse: collapse; font-size: .8rem; }
+table.import-preview thead th { background: var(--accent); color: #fff; padding: 7px 9px; white-space: nowrap; }
+table.import-preview tbody td { padding: 6px 9px; border-bottom: 1px solid var(--border); }
 
-/* LOADING BAR */
+/* LOADING + TOAST */
 #loading-bar { height: 3px; background: var(--accent); width: 0; transition: width .4s; position: fixed; top: 0; left: 0; z-index: 500; }
-
-/* IMPORT OVERLAY */
-#import-overlay.open { display: flex !important; }
-
-/* TOAST */
-#toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 10px 20px; border-radius: 20px; font-size: .88rem; z-index: 999; opacity: 0; transition: opacity .3s; pointer-events: none; white-space: nowrap; color: #fff; }
+#toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 10px 20px; border-radius: 20px; font-size: .88rem; z-index: 999; opacity: 0; transition: opacity .3s; pointer-events: none; color: #fff; }
 #toast.ok  { background: var(--accent); }
 #toast.err { background: var(--red); }
+
+#last-sync { font-size: .75rem; opacity: .8; }
+
+@media (max-width: 600px) { header h1 small { display: none; } }
 </style>
 </head>
 <body>
@@ -131,231 +169,227 @@ tbody td:last-child { white-space: nowrap; }
 <div id="loading-bar"></div>
 <div id="toast"></div>
 
-<!-- LOGIN -->
+<!-- ── LOGIN ──────────────────────────────────────────────── -->
 <div id="login-screen">
   <div class="login-card">
     <h2>🔒 SEMA/AC</h2>
-    <p>Painel Administrativo — Termos de Cooperação Técnica</p>
+    <p>Painel Administrativo — Configuração do Painel Público</p>
     <div class="form-group">
       <label>Senha</label>
-      <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+      <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password"
+        onkeydown="if(event.key==='Enter')doLogin()">
     </div>
     <div id="login-error">Senha incorreta. Tente novamente.</div>
     <button id="login-btn" onclick="doLogin()">Entrar</button>
   </div>
 </div>
 
-<!-- APP -->
+<!-- ── APP ────────────────────────────────────────────────── -->
 <div id="app-screen">
   <header>
     <div class="status-dot" id="status-dot"></div>
-    <h1>SEMA/AC — Administração
-      <small>Editor da Planilha de Cooperações</small>
+    <h1>SEMA/AC — Configuração
+      <small>Modelo da Planilha e Dados Públicos</small>
     </h1>
-    <span id="last-sync" style="font-size:.75rem;opacity:.8"></span>
-    <button class="btn-icon" onclick="syncAll()" title="Sincronizar agora">🔄</button>
-    <button class="btn-icon" onclick="abrirModelo()" title="Editar modelo da planilha">⚙️</button>
-    <button class="btn-icon" id="btn-theme" title="Alternar tema" onclick="toggleTheme()">🌙</button>
+    <span id="last-sync"></span>
+    <button class="btn-icon" onclick="syncAll()" title="Sincronizar com Sheets">🔄</button>
+    <button class="btn-icon" id="btn-theme" onclick="toggleTheme()" title="Alternar tema">🌙</button>
     <button class="btn-icon" onclick="doLogout()" title="Sair" style="background:rgba(255,0,0,.2)">⏏</button>
   </header>
 
   <main>
-    <div class="toolbar">
-      <input type="search" id="search-input" placeholder="🔍 Buscar…" oninput="applyFilters()">
-      <button class="btn btn-primary" onclick="openNew()">+ Novo registro</button>
-      <button class="btn btn-outline" onclick="exportCSV()" title="Exporta os registros visíveis como CSV">⬇ CSV local</button>
-      <button class="btn btn-outline" onclick="exportarPlanilha()" title="Baixa a planilha fonte completa do Google Sheets">⬇ Baixar planilha</button>
-      <button class="btn btn-outline" onclick="abrirImport()" title="Importa um CSV para substituir todos os dados da planilha fonte">⬆ Importar planilha</button>
+
+    <!-- ① DEFINIR MODELO -->
+    <div class="admin-section">
+      <h2><span class="section-num">1</span> Definir Modelo da Planilha</h2>
+      <p class="hint">
+        Configure as colunas que a sua planilha terá. Após definir,
+        baixe o modelo em branco (Etapa 2), preencha com os dados e importe (Etapa 3).
+        A estrutura reflete sempre o que está configurado no Google Sheets.
+      </p>
+
+      <div style="overflow-x:auto">
+        <table id="modelo-table">
+          <thead>
+            <tr>
+              <th style="width:36px">#</th>
+              <th>Nome da Coluna</th>
+              <th style="width:120px">Tipo</th>
+              <th style="width:96px;text-align:center">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="modelo-body"></tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:12px">
+        <button class="btn btn-outline" onclick="adicionarColuna()">+ Adicionar coluna</button>
+      </div>
+
+      <div id="formula-hint" style="display:none">
+        <strong>ℹ️ Colunas do tipo "fórmula"</strong> são excluídas do CSV gerado — elas devem ser
+        configuradas diretamente no Google Sheets.<br>
+        Copie as fórmulas abaixo para as células correspondentes (ajuste a coluna da data de término):
+        <div class="formula-code">Status           =SE(G3="";"";SE(HOJE()&gt;G3;"Expirado";SE(G3-HOJE()&lt;=30;"Vence em 30 dias";SE(G3-HOJE()&lt;=90;"A vencer";"Vigente"))))
+Dias Restantes   =SE(G3="";"";G3-HOJE())</div>
+      </div>
+    </div>
+
+    <!-- ② EXPORTAR -->
+    <div class="admin-section">
+      <h2><span class="section-num">2</span> Exportar</h2>
+      <p class="hint">
+        Baixe o <strong>modelo em branco</strong> para preencher com dados no Excel/LibreOffice,
+        ou baixe os <strong>dados atuais</strong> como backup ou para edição offline.
+      </p>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="baixarModeloCsv()">⬇ Modelo em branco</button>
+        <button class="btn btn-outline" onclick="exportarPlanilha()">⬇ Dados atuais do Sheets</button>
+      </div>
+    </div>
+
+    <!-- ③ IMPORTAR -->
+    <div class="admin-section">
+      <h2><span class="section-num">3</span> Importar Dados</h2>
+      <p class="hint">
+        Selecione um arquivo CSV preenchido para substituir <strong>todos os dados</strong>
+        da planilha no Google Sheets. Os cabeçalhos da linha 2 do Sheets são preservados.
+      </p>
       <input type="file" id="file-import" accept=".csv" style="display:none" onchange="lerArquivoImport(event)">
+      <button class="btn btn-outline" onclick="document.getElementById('file-import').click()">
+        ⬆ Selecionar planilha CSV
+      </button>
     </div>
 
-    <div class="table-wrap">
-      <table>
-        <thead><tr id="table-head"></tr></thead>
-        <tbody id="table-body"></tbody>
-      </table>
+    <!-- ④ PREVIEW (somente leitura) -->
+    <div class="admin-section">
+      <h2>
+        Dados atuais no Sheets
+        <span id="dados-count" style="font-weight:400;font-size:.82rem;color:var(--text2)"></span>
+      </h2>
+      <div class="table-wrap">
+        <table class="preview-table">
+          <thead><tr id="table-head"><th style="opacity:.6">Carregando…</th></tr></thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="pagination"></div>
     </div>
 
-    <div class="pagination" id="pagination"></div>
   </main>
 </div>
 
-<!-- Modal formulário -->
-<div id="modal-overlay" onclick="onOverlayClick(event)">
+<!-- ── MODAL DE PREVIEW DE IMPORTAÇÃO ─────────────────────── -->
+<div id="import-overlay" class="modal-overlay">
   <div class="modal">
     <div class="modal-header">
-      <h2 id="modal-title">Novo registro</h2>
-      <button class="btn-icon" onclick="closeModal()" style="color:var(--text2);background:var(--border)">✕</button>
+      <h2>⬆ Importar planilha — Confirmar</h2>
+      <button class="btn-icon" onclick="fecharImport()"
+        style="color:var(--text2);background:var(--border)">✕</button>
     </div>
     <div class="modal-body">
-      <div class="form-grid" id="form-fields"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-primary" id="save-btn" onclick="saveRecord()">💾 Salvar</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal de preview de importação -->
-<div id="import-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;display:none;align-items:center;justify-content:center;padding:16px">
-  <div class="modal" style="max-width:800px">
-    <div class="modal-header">
-      <h2>⬆ Importar planilha</h2>
-      <button class="btn-icon" onclick="fecharImport()" style="color:var(--text2);background:var(--border)">✕</button>
-    </div>
-    <div class="modal-body">
-      <div id="import-warning" style="background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:12px 16px;margin-bottom:16px;font-size:.88rem;color:#856404">
-        ⚠️ <strong>Atenção:</strong> ao confirmar, <strong>TODOS</strong> os dados atuais da planilha Google Sheets serão substituídos pelos dados do arquivo. Esta ação não pode ser desfeita.
+      <div class="import-warning">
+        ⚠️ <strong>Atenção:</strong> ao confirmar, <strong>TODOS</strong> os dados atuais
+        da planilha Google Sheets serão substituídos pelos dados do arquivo selecionado.
+        Esta ação não pode ser desfeita.
       </div>
-      <p id="import-count" style="margin-bottom:12px;font-size:.88rem;color:var(--text2)"></p>
-      <div style="overflow-x:auto;border-radius:6px;box-shadow:var(--shadow)">
-        <table style="width:100%;border-collapse:collapse;background:var(--bg2);font-size:.82rem">
-          <thead><tr id="import-preview-head" style="background:var(--accent);color:#fff"></tr></thead>
-          <tbody id="import-preview-body"></tbody>
+      <p id="import-count" style="margin-bottom:10px;font-size:.85rem;color:var(--text2)"></p>
+      <div style="overflow-x:auto;border-radius:4px;box-shadow:var(--shadow)">
+        <table class="import-preview">
+          <thead><tr id="import-head"></tr></thead>
+          <tbody id="import-body"></tbody>
         </table>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="fecharImport()">Cancelar</button>
-      <button class="btn btn-danger" id="import-confirm-btn" onclick="confirmarImport()">✅ Confirmar substituição</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal editor de modelo da planilha -->
-<div id="modelo-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;display:none;align-items:center;justify-content:center;padding:16px">
-  <div class="modal" style="max-width:680px">
-    <div class="modal-header">
-      <h2>⚙️ Modelo da Planilha</h2>
-      <button class="btn-icon" onclick="fecharModelo()" style="color:var(--text2);background:var(--border)">✕</button>
-    </div>
-    <div class="modal-body">
-      <p style="font-size:.85rem;color:var(--text2);margin-bottom:16px">
-        Defina as colunas da sua planilha. Após configurar, baixe o modelo em branco,
-        preencha com seus dados e importe via <strong>⬆ Importar planilha</strong>.
-      </p>
-
-      <div style="overflow-x:auto;border-radius:6px;box-shadow:var(--shadow);margin-bottom:12px">
-        <table style="width:100%;border-collapse:collapse;background:var(--bg2);font-size:.85rem">
-          <thead>
-            <tr style="background:var(--accent);color:#fff">
-              <th style="padding:8px 10px;width:36px">#</th>
-              <th style="padding:8px 10px">Nome da Coluna</th>
-              <th style="padding:8px 10px;width:130px">Tipo</th>
-              <th style="padding:8px 10px;width:100px;text-align:center">Ações</th>
-            </tr>
-          </thead>
-          <tbody id="modelo-table-body"></tbody>
-        </table>
-      </div>
-
-      <button class="btn btn-outline" style="margin-bottom:16px" onclick="adicionarColuna()">+ Adicionar coluna</button>
-
-      <div id="modelo-formula-hint" style="background:var(--accent-light);border:1px solid var(--accent);border-radius:6px;padding:12px;font-size:.82rem;display:none">
-        <strong>ℹ️ Colunas do tipo "fórmula"</strong> não são incluídas no CSV para download
-        (os valores são calculados pelo Google Sheets).<br><br>
-        <strong>Fórmulas recomendadas no Google Sheets</strong> (copiar nas células da coluna correspondente):<br>
-        <div style="margin-top:6px;font-family:monospace;font-size:.78rem;overflow-x:auto;white-space:nowrap;background:var(--bg);padding:8px;border-radius:4px">
-          Status = <span id="formula-status">=SE(G3="";"";SE(HOJE()&gt;G3;"Expirado";SE(G3-HOJE()&lt;=30;"Vence em 30 dias";SE(G3-HOJE()&lt;=90;"A vencer";"Vigente"))))</span><br>
-          Dias Restantes = <span>=SE(G3="";"";G3-HOJE())</span>
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="fecharModelo()">Fechar</button>
-      <button class="btn btn-primary" onclick="baixarModeloCsv()">⬇ Baixar modelo CSV</button>
+      <button class="btn btn-danger" id="import-confirm-btn" onclick="confirmarImport()">
+        ✅ Confirmar substituição
+      </button>
     </div>
   </div>
 </div>
 
 <script>
-/* ─── CONFIG ─────────────────────────────────────────────────────────────── */
-let GAS_URL   = 'https://script.google.com/macros/s/SEU_SCRIPT_ID/exec';
+/* ─── CONFIG ──────────────────────────────────────────────── */
+let GAS_URL    = 'https://script.google.com/macros/s/SEU_SCRIPT_ID/exec';
 let SYNC_TOKEN = '%%SYNC_TOKEN%%';
 let SENHA_HASH = '%%SENHA_HASH%%';
 
-// Valores injetados pelo CI (config.js carregado abaixo)
 if (typeof SEMA_CONFIG !== 'undefined') {
   if (SEMA_CONFIG.appsScriptUrl) GAS_URL    = SEMA_CONFIG.appsScriptUrl;
-  if (SEMA_CONFIG.syncToken)     SYNC_TOKEN  = SEMA_CONFIG.syncToken;
-  if (SEMA_CONFIG.senhaHash)     SENHA_HASH  = SEMA_CONFIG.senhaHash;
+  if (SEMA_CONFIG.syncToken)     SYNC_TOKEN = SEMA_CONFIG.syncToken;
+  if (SEMA_CONFIG.senhaHash)     SENHA_HASH = SEMA_CONFIG.senhaHash;
 }
 
 const POLL_MS = 120_000;
 
-/* ─── ESTADO ─────────────────────────────────────────────────────────────── */
-let _schema   = [];   // [{key, label, col}]
-let _records  = [];
-let _filtered = [];
-let _page     = 1;
-const PAGE    = 50;
-let _editRecord = null;   // registro sendo editado (null = novo)
-let _pollTimer  = null;
+/* ─── ESTADO ─────────────────────────────────────────────── */
+let _schema    = [];  // [{key, label, col}] — lido do Sheets
+let _modelCols = [];  // [{name, type}]      — sempre derivado de _schema, SEM localStorage
+let _records   = [];  // dados do Sheets (para preview)
+let _page      = 1;
+let _pollTimer = null;
+let _importRecords = [];
 
-/* ─── LOGIN ──────────────────────────────────────────────────────────────── */
+const PAGE = 50;
+const TIPOS_COLUNA = ['texto', 'data', 'url', 'número', 'fórmula'];
+const TIPO_EXEMPLOS = { 'texto':'Texto de exemplo', 'data':'dd/mm/aaaa', 'url':'https://exemplo.com', 'número':'0', 'fórmula':'' };
+
+/* ─── LOGIN ──────────────────────────────────────────────── */
 async function sha256(str) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
   return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
-let _failCount = 0;
-let _lockUntil = 0;
+let _failCount = 0, _lockUntil = 0;
 
 async function doLogin() {
   const pass = document.getElementById('login-pass').value;
   if (!pass) return;
-
   if (Date.now() < _lockUntil) {
-    showErr(`Aguarde ${Math.ceil((_lockUntil - Date.now())/1000)}s para tentar novamente`);
-    return;
+    showErr(`Aguarde ${Math.ceil((_lockUntil - Date.now())/1000)}s`); return;
   }
-
   const btn = document.getElementById('login-btn');
   btn.disabled = true; btn.textContent = 'Verificando…';
-
-  const hash = await sha256(pass);
+  const hash     = await sha256(pass);
   const expected = SENHA_HASH;
-
-  // Aceita qualquer senha se o hash não foi configurado (placeholder)
-  const ok = expected === '%%SENHA_HASH%%' || hash === expected;
-
+  const ok       = expected === '%%SENHA_HASH%%' || hash === expected;
   btn.disabled = false; btn.textContent = 'Entrar';
-
   if (!ok) {
     _failCount++;
     if (_failCount >= 3) { _lockUntil = Date.now() + 30_000; _failCount = 0; }
-    document.getElementById('login-error').style.display = 'block';
+    showErr('Senha incorreta. Tente novamente.');
     document.getElementById('login-pass').value = '';
     document.getElementById('login-pass').focus();
     return;
   }
-
   document.getElementById('login-error').style.display = 'none';
   document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app-screen').style.display = 'block';
+  document.getElementById('app-screen').style.display   = 'block';
   loadTheme();
   await startApp();
 }
 
-function doLogout() {
-  clearInterval(_pollTimer);
-  document.getElementById('app-screen').style.display = 'none';
-  document.getElementById('login-screen').style.display = 'flex';
-  document.getElementById('login-pass').value = '';
+function showErr(msg) {
+  const el = document.getElementById('login-error');
+  el.textContent = msg; el.style.display = 'block';
 }
 
-/* ─── APP ────────────────────────────────────────────────────────────────── */
+function doLogout() {
+  clearInterval(_pollTimer);
+  document.getElementById('app-screen').style.display   = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-pass').value = '';
+  _schema = []; _modelCols = []; _records = [];
+}
+
+/* ─── APP ────────────────────────────────────────────────── */
 async function startApp() {
   if (typeof SEMA_CONFIG !== 'undefined') {
-    if (SEMA_CONFIG.appsScriptUrl) GAS_URL   = SEMA_CONFIG.appsScriptUrl;
+    if (SEMA_CONFIG.appsScriptUrl) GAS_URL    = SEMA_CONFIG.appsScriptUrl;
     if (SEMA_CONFIG.syncToken)     SYNC_TOKEN = SEMA_CONFIG.syncToken;
   }
-  // Restaurar modelo salvo localmente
-  try {
-    const saved = localStorage.getItem('sema_model');
-    if (saved) _modelCols = JSON.parse(saved);
-  } catch (_) {}
   await syncAll();
   _pollTimer = setInterval(syncAll, POLL_MS);
 }
@@ -364,36 +398,33 @@ async function syncAll() {
   setStatus('syncing');
   loadingBar(30);
   try {
-    const [schemaRes, listRes] = await Promise.all([
-      gasGet('schema'),
-      gasGet('list'),
-    ]);
-    loadingBar(80);
+    const [schemaRes, listRes] = await Promise.all([gasGet('schema'), gasGet('list')]);
+    loadingBar(75);
 
     if (Array.isArray(schemaRes.columns) && schemaRes.columns.length) {
-      _schema = schemaRes.columns;
-    } else if (Array.isArray(schemaRes.publicColumns)) {
-      _schema = schemaRes.publicColumns.map(k => ({ key: k, label: k }));
+      _schema    = schemaRes.columns;
+      // _modelCols SEMPRE derivado do schema atual do Sheets — sem localStorage
+      _modelCols = schemaParaModelo(_schema);
+    } else if (!_modelCols.length) {
+      _modelCols = modeloPadrao();
     }
 
-    if (Array.isArray(listRes.records)) {
-      _records = listRes.records;
-    }
+    if (Array.isArray(listRes.records)) _records = listRes.records;
 
-    applyFilters();
+    renderModeloTable();
+    renderPreviewTable();
     setStatus('ok');
-    document.getElementById('last-sync').textContent =
-      'Sync: ' + new Date().toLocaleTimeString('pt-BR');
+    document.getElementById('last-sync').textContent = 'Sync: ' + new Date().toLocaleTimeString('pt-BR');
   } catch (e) {
     setStatus('error');
-    showToast('Erro ao carregar dados: ' + e.message, 'err');
+    showToast('Erro ao carregar: ' + e.message, 'err');
   } finally {
     loadingBar(100);
     setTimeout(() => loadingBar(0), 400);
   }
 }
 
-/* ─── API ────────────────────────────────────────────────────────────────── */
+/* ─── API ────────────────────────────────────────────────── */
 async function gasGet(action) {
   const url = GAS_URL + (GAS_URL.includes('?') ? '&' : '?') + 'action=' + action;
   const res = await fetch(url, { cache: 'no-store' });
@@ -403,9 +434,9 @@ async function gasGet(action) {
 
 async function gasPost(body) {
   const res = await fetch(GAS_URL, {
-    method: 'POST',
+    method:  'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: 'data=' + encodeURIComponent(JSON.stringify({ ...body, token: SYNC_TOKEN })),
+    body:    'data=' + encodeURIComponent(JSON.stringify({ ...body, token: SYNC_TOKEN })),
   });
   if (!res.ok) throw new Error('HTTP ' + res.status);
   const data = await res.json();
@@ -413,417 +444,156 @@ async function gasPost(body) {
   return data;
 }
 
-/* ─── RENDER ─────────────────────────────────────────────────────────────── */
-function applyFilters() {
-  const q = document.getElementById('search-input').value.toLowerCase().trim();
-  _filtered = q
-    ? _records.filter(r => Object.values(r).join(' ').toLowerCase().includes(q))
-    : [..._records];
-  _page = 1;
-  renderTable();
-  renderPagination();
+/* ─── MODELO ─────────────────────────────────────────────── */
+
+/** Inicializa _modelCols a partir do schema vindo do Sheets */
+function schemaParaModelo(schema) {
+  return schema.map(col => ({ name: col.label, type: inferTipo(col.key, col.label) }));
 }
 
-function renderTable() {
-  const thead = document.getElementById('table-head');
-  const tbody = document.getElementById('table-body');
-
-  if (!_schema.length) {
-    thead.innerHTML = '<th style="opacity:.6">Aguardando dados…</th>';
-    tbody.innerHTML = '';
-    return;
-  }
-
-  thead.innerHTML = _schema.map(c => `<th>${esc(c.label)}</th>`).join('') + '<th>Ações</th>';
-
-  const start = (_page - 1) * PAGE;
-  const rows  = _filtered.slice(start, start + PAGE);
-
-  if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="${_schema.length + 1}" class="empty-state">Nenhum registro encontrado</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = rows.map((r, i) => {
-    const cells = _schema.map(col => {
-      let raw = String(r[col.key] || '').trim();
-      const kL = col.key.toLowerCase();
-      let cell;
-      if (kL === 'status' || kL === 'situacao') cell = statusBadge(raw);
-      else if (raw.startsWith('http')) cell = `<a href="${esc(raw)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🔗</a>`;
-      else if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) cell = raw.split('-').reverse().join('/');
-      else cell = esc(raw) || '<span style="color:var(--text2)">—</span>';
-      return `<td>${cell}</td>`;
-    }).join('');
-
-    const idx = start + i;
-    return `<tr>
-      ${cells}
-      <td>
-        <button class="btn btn-outline" style="padding:4px 10px;font-size:.8rem" onclick="openEdit(${idx})">✏️</button>
-        <button class="btn btn-danger"  style="padding:4px 10px;font-size:.8rem;margin-left:4px" onclick="deleteRecord(${idx})">🗑️</button>
-      </td>
-    </tr>`;
-  }).join('');
-}
-
-function renderPagination() {
-  const total = _filtered.length;
-  const pages = Math.ceil(total / PAGE);
-  const pg = document.getElementById('pagination');
-  if (pages <= 1) {
-    pg.innerHTML = total ? `<span>${total} registro${total!==1?'s':''}</span>` : '';
-    return;
-  }
-  pg.innerHTML = `
-    <button onclick="goPage(${_page-1})" ${_page<=1?'disabled':''}>‹</button>
-    <span>Página ${_page} / ${pages} (${total} registros)</span>
-    <button onclick="goPage(${_page+1})" ${_page>=pages?'disabled':''}>›</button>
-  `;
-}
-
-function goPage(n) {
-  const pages = Math.ceil(_filtered.length / PAGE);
-  if (n < 1 || n > pages) return;
-  _page = n;
-  renderTable();
-  renderPagination();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-/* ─── MODAL FORMULÁRIO ───────────────────────────────────────────────────── */
-function openNew() {
-  _editRecord = null;
-  document.getElementById('modal-title').textContent = 'Novo registro';
-  buildForm({});
-  document.getElementById('modal-overlay').classList.add('open');
-}
-
-function openEdit(idx) {
-  _editRecord = { ..._filtered[idx] };
-  document.getElementById('modal-title').textContent = 'Editar registro';
-  buildForm(_editRecord);
-  document.getElementById('modal-overlay').classList.add('open');
-}
-
-function buildForm(data) {
-  const typeKey = findKey(['tipo','type']);
-  const numKey  = findKey(['num','numero','número']);
-  const longKeys = ['objeto','obs','notas','observacoes','observações','descricao','descrição'];
-
-  const html = _schema.map(col => {
-    const kL = col.key.toLowerCase();
-    const isLong = longKeys.some(k => kL.includes(k));
-    const isDate = kL.includes('inicio') || kL.includes('início') || kL.includes('termino') || kL.includes('término') || kL.includes('data');
-    const isUrl  = kL.includes('link') || kL.includes('url');
-    const isReq  = col.key === typeKey || col.key === numKey;
-
-    let raw = String(data[col.key] || '').trim();
-    // Converte yyyy-mm-dd para input[type=date]
-    const dateVal = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : '';
-    const fullClass = isLong ? 'full' : '';
-
-    let input;
-    if (isLong) {
-      input = `<textarea id="f_${col.key}" rows="3">${esc(raw)}</textarea>`;
-    } else if (isDate) {
-      input = `<input type="date" id="f_${col.key}" value="${esc(dateVal)}">`;
-    } else if (isUrl) {
-      input = `<input type="url" id="f_${col.key}" value="${esc(raw)}" placeholder="https://…">`;
-    } else {
-      input = `<input type="text" id="f_${col.key}" value="${esc(raw)}"${isReq?' required':''}>`;
-    }
-
-    return `<div class="form-group ${fullClass}">
-      <label>${esc(col.label)}${isReq?' <span style="color:var(--red)">*</span>':''}</label>
-      ${input}
-    </div>`;
-  }).join('');
-
-  document.getElementById('form-fields').innerHTML = html;
-  // Focus no primeiro campo
-  const first = document.querySelector('#form-fields input, #form-fields textarea');
-  if (first) setTimeout(() => first.focus(), 100);
-}
-
-function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
-function onOverlayClick(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
-
-async function saveRecord() {
-  const btn = document.getElementById('save-btn');
-  btn.disabled = true; btn.textContent = 'Salvando…';
-
-  try {
-    const rec = {};
-    _schema.forEach(col => {
-      const el = document.getElementById('f_' + col.key);
-      if (el) rec[col.key] = el.value.trim();
-    });
-
-    const typeKey = findKey(['tipo','type']);
-    const numKey  = findKey(['num','numero','número']);
-    const tipo = typeKey && rec[typeKey] ? rec[typeKey] : (rec.tipo || '');
-    const num  = numKey  && rec[numKey]  ? rec[numKey]  : (rec.num || rec.numero || '');
-
-    if (!tipo || !num) {
-      showToast('Tipo e Número são obrigatórios', 'err');
-      btn.disabled = false; btn.textContent = '💾 Salvar';
-      return;
-    }
-
-    // Normalizar chaves para o backend
-    const record = { ...rec, tipo, num };
-
-    await gasPost({ action: 'upsert', record });
-    showToast(_editRecord ? 'Registro atualizado ✓' : 'Registro inserido ✓', 'ok');
-    closeModal();
-    await syncAll();
-  } catch (e) {
-    showToast('Erro ao salvar: ' + e.message, 'err');
-  } finally {
-    btn.disabled = false; btn.textContent = '💾 Salvar';
-  }
-}
-
-async function deleteRecord(idx) {
-  const r = _filtered[idx];
-  if (!r) return;
-
-  const typeKey = findKey(['tipo','type']);
-  const numKey  = findKey(['num','numero','número']);
-  const tipo = typeKey ? r[typeKey] : (r.tipo || '');
-  const num  = numKey  ? r[numKey]  : (r.num || r.numero || '');
-
-  if (!tipo || !num) { showToast('Registro sem tipo/número — não é possível deletar', 'err'); return; }
-  if (!confirm(`Deletar ${tipo} ${num}?\n\nEsta ação remove a linha da planilha Google Sheets e não pode ser desfeita.`)) return;
-
-  try {
-    setStatus('syncing');
-    await gasPost({ action: 'delete', tipo, num });
-    showToast(`${tipo} ${num} deletado ✓`, 'ok');
-    await syncAll();
-  } catch (e) {
-    showToast('Erro ao deletar: ' + e.message, 'err');
-    setStatus('error');
-  }
-}
-
-/* ─── EDITOR DE MODELO ───────────────────────────────────────────────────── */
-
-let _modelCols = null;  // [{name, type}] — null = não inicializado
-
-const TIPOS_COLUNA = ['texto', 'data', 'url', 'número', 'fórmula'];
-const TIPO_EXEMPLOS = {
-  'texto':   'Texto de exemplo',
-  'data':    'dd/mm/aaaa',
-  'url':     'https://exemplo.com',
-  'número':  '0',
-  'fórmula': '',  // excluída do CSV
-};
-
-/** Abre o modal de modelo; popula a partir do schema atual se ainda não foi editado */
-function abrirModelo() {
-  if (!_modelCols || !_modelCols.length) {
-    // Inicializa a partir do schema atual do Sheets (ou modelo padrão se não houver dados)
-    if (_schema.length) {
-      _modelCols = _schema.map(col => ({
-        name: col.label,
-        type: inferTipo(col.key, col.label),
-      }));
-    } else {
-      _modelCols = modeloPadrao();
-    }
-    salvarModeloLocal();
-  }
-  renderModeloTable();
-  document.getElementById('modelo-overlay').style.display = 'flex';
-}
-
-function fecharModelo() {
-  document.getElementById('modelo-overlay').style.display = 'none';
-}
-
-/** Infere o tipo da coluna a partir da chave/label */
 function inferTipo(key, label) {
-  const k = (key || '').toLowerCase();
+  const k = (key   || '').toLowerCase();
   const l = (label || '').toLowerCase();
   if (k.includes('inicio') || k.includes('termino') || k.includes('data') ||
       l.includes('início') || l.includes('término') || l.includes('data')) return 'data';
   if (k.includes('link') || k.includes('url') || l.includes('link')) return 'url';
-  if (k === 'diasrestantes' || l.includes('dias restantes')) return 'fórmula';
-  if (k === 'status' || l.includes('status') || l.includes('situação')) return 'fórmula';
+  if (k === 'diasrestantes' || l === 'dias restantes') return 'fórmula';
+  if (k === 'status' || l === 'status' || l === 'situação') return 'fórmula';
   return 'texto';
 }
 
-/** Modelo padrão SEMA/AC para novos setups */
 function modeloPadrao() {
   return [
-    { name: 'Tipo',               type: 'texto'   },
-    { name: 'Número',             type: 'texto'   },
-    { name: 'Objeto',             type: 'texto'   },
-    { name: 'Instituição',        type: 'texto'   },
-    { name: 'Esfera',             type: 'texto'   },
-    { name: 'Início',             type: 'data'    },
-    { name: 'Término',            type: 'data'    },
-    { name: 'Área',               type: 'texto'   },
-    { name: 'SEI',                type: 'texto'   },
-    { name: 'Link Documentação',  type: 'url'     },
-    { name: 'Observações',        type: 'texto'   },
-    { name: 'Status',             type: 'fórmula' },
-    { name: 'Dias Restantes',     type: 'fórmula' },
+    { name: 'Tipo',              type: 'texto'   },
+    { name: 'Número',            type: 'texto'   },
+    { name: 'Objeto',            type: 'texto'   },
+    { name: 'Instituição',       type: 'texto'   },
+    { name: 'Esfera',            type: 'texto'   },
+    { name: 'Início',            type: 'data'    },
+    { name: 'Término',           type: 'data'    },
+    { name: 'Área',              type: 'texto'   },
+    { name: 'SEI',               type: 'texto'   },
+    { name: 'Link Documentação', type: 'url'     },
+    { name: 'Observações',       type: 'texto'   },
+    { name: 'Status',            type: 'fórmula' },
+    { name: 'Dias Restantes',    type: 'fórmula' },
   ];
 }
 
-/** Salva o modelo no localStorage */
-function salvarModeloLocal() {
-  try { localStorage.setItem('sema_model', JSON.stringify(_modelCols)); } catch (_) {}
-}
-
-/** Renderiza a tabela de colunas do modelo */
 function renderModeloTable() {
-  const tbody  = document.getElementById('modelo-table-body');
-  const hint   = document.getElementById('modelo-formula-hint');
-  const hasFormula = (_modelCols || []).some(c => c.type === 'fórmula');
-  if (hint) hint.style.display = hasFormula ? 'block' : 'none';
-
-  if (!_modelCols || !_modelCols.length) {
-    tbody.innerHTML = `<tr><td colspan="4" style="padding:20px;text-align:center;color:var(--text2)">Nenhuma coluna definida. Clique em "+ Adicionar coluna".</td></tr>`;
+  const tbody  = document.getElementById('modelo-body');
+  const hint   = document.getElementById('formula-hint');
+  if (!_modelCols.length) {
+    tbody.innerHTML = `<tr><td colspan="4" class="empty-state">Nenhuma coluna definida.</td></tr>`;
+    if (hint) hint.style.display = 'none';
     return;
   }
 
-  tbody.innerHTML = _modelCols.map((col, idx) => {
+  const hasFormula = _modelCols.some(c => c.type === 'fórmula');
+  if (hint) hint.style.display = hasFormula ? 'block' : 'none';
+
+  tbody.innerHTML = _modelCols.map((col, i) => {
     const opts = TIPOS_COLUNA.map(t =>
       `<option value="${t}"${col.type === t ? ' selected' : ''}>${t}</option>`
     ).join('');
-    return `<tr style="border-bottom:1px solid var(--border)">
-      <td style="padding:6px 10px;color:var(--text2);text-align:center">${idx + 1}</td>
-      <td style="padding:4px 8px">
-        <input type="text" value="${esc(col.name)}" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:.85rem"
-          onchange="_modelCols[${idx}].name=this.value;salvarModeloLocal();renderModeloTable()">
+    const isLast  = i === _modelCols.length - 1;
+    return `<tr>
+      <td style="color:var(--text2);text-align:center">${i + 1}</td>
+      <td>
+        <input type="text" value="${esc(col.name)}"
+          onchange="_modelCols[${i}].name=this.value">
       </td>
-      <td style="padding:4px 8px">
-        <select style="width:100%;padding:5px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:.82rem"
-          onchange="_modelCols[${idx}].type=this.value;salvarModeloLocal();renderModeloTable()">${opts}</select>
+      <td>
+        <select onchange="_modelCols[${i}].type=this.value;renderModeloTable()">${opts}</select>
       </td>
-      <td style="padding:4px 8px;text-align:center;white-space:nowrap">
-        <button title="Mover para cima"  style="border:none;background:none;cursor:pointer;font-size:.9rem;opacity:${idx===0?'.3':'1'}"
-          ${idx===0?'disabled':''} onclick="moverColuna(${idx},-1)">↑</button>
-        <button title="Mover para baixo" style="border:none;background:none;cursor:pointer;font-size:.9rem;opacity:${idx===_modelCols.length-1?'.3':'1'}"
-          ${idx===_modelCols.length-1?'disabled':''} onclick="moverColuna(${idx},1)">↓</button>
-        <button title="Remover coluna"   style="border:none;background:none;cursor:pointer;font-size:.9rem;color:var(--red)"
-          onclick="removerColuna(${idx})">×</button>
+      <td>
+        <div class="col-actions">
+          <button title="Subir"  ${i===0?'disabled':''} onclick="moverColuna(${i},-1)">↑</button>
+          <button title="Descer" ${isLast?'disabled':''} onclick="moverColuna(${i},1)">↓</button>
+          <button title="Remover" class="del" onclick="removerColuna(${i})">×</button>
+        </div>
       </td>
     </tr>`;
   }).join('');
 }
 
 function adicionarColuna() {
-  if (!_modelCols) _modelCols = [];
   _modelCols.push({ name: 'Nova Coluna', type: 'texto' });
-  salvarModeloLocal();
   renderModeloTable();
+  // Foca o input da nova linha
+  const inputs = document.querySelectorAll('#modelo-body input[type="text"]');
+  if (inputs.length) setTimeout(() => { inputs[inputs.length-1].select(); }, 50);
 }
 
 function removerColuna(idx) {
-  if (!_modelCols) return;
   _modelCols.splice(idx, 1);
-  salvarModeloLocal();
   renderModeloTable();
 }
 
 function moverColuna(idx, dir) {
-  if (!_modelCols) return;
-  const newIdx = idx + dir;
-  if (newIdx < 0 || newIdx >= _modelCols.length) return;
-  [_modelCols[idx], _modelCols[newIdx]] = [_modelCols[newIdx], _modelCols[idx]];
-  salvarModeloLocal();
+  const j = idx + dir;
+  if (j < 0 || j >= _modelCols.length) return;
+  [_modelCols[idx], _modelCols[j]] = [_modelCols[j], _modelCols[idx]];
   renderModeloTable();
 }
 
-/**
- * Baixa um CSV em branco com os cabeçalhos definidos no modelo.
- * Colunas do tipo "fórmula" são excluídas (calculadas pelo Sheets).
- * Inclui uma linha de exemplo com dicas por tipo.
- */
+/* ─── EXPORTAR ───────────────────────────────────────────── */
+
+/** Gera CSV em branco com os cabeçalhos do modelo (exclui colunas do tipo 'fórmula') */
 function baixarModeloCsv() {
-  if (!_modelCols || !_modelCols.length) {
-    showToast('Modelo sem colunas. Adicione ao menos uma coluna.', 'err'); return;
-  }
+  // Captura os valores atuais dos inputs antes de gerar
+  document.querySelectorAll('#modelo-body input[type="text"]').forEach((el, i) => {
+    if (_modelCols[i]) _modelCols[i].name = el.value.trim() || _modelCols[i].name;
+  });
+
   const cols = _modelCols.filter(c => c.type !== 'fórmula');
   if (!cols.length) {
-    showToast('Todas as colunas são do tipo fórmula — nenhuma coluna editável para exportar.', 'err'); return;
+    showToast('Todas as colunas são do tipo fórmula — sem colunas para exportar.', 'err'); return;
   }
   const sep     = ';';
   const headers = cols.map(c => `"${c.name.replace(/"/g,'""')}"`).join(sep);
-  const exemplo = cols.map(c => `"${(TIPO_EXEMPLOS[c.type] || '').replace(/"/g,'""')}"`).join(sep);
+  const exemplo = cols.map(c => `"${(TIPO_EXEMPLOS[c.type]||'').replace(/"/g,'""')}"`).join(sep);
   const csv     = '﻿' + headers + '\r\n' + exemplo;
-  const blob    = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-  const a       = Object.assign(document.createElement('a'), {
-    href:     URL.createObjectURL(blob),
-    download: `modelo_planilha_${new Date().toISOString().slice(0,10)}.csv`,
-  });
-  a.click(); URL.revokeObjectURL(a.href);
-  showToast(`Modelo baixado com ${cols.length} coluna${cols.length !== 1 ? 's' : ''} ✓`, 'ok');
+
+  _download(csv, `modelo_planilha_${_today()}.csv`, 'text/csv;charset=utf-8');
+  showToast(`Modelo baixado: ${cols.length} coluna${cols.length!==1?'s':''} ✓`, 'ok');
 }
 
-/* ─── EXPORT/IMPORT ──────────────────────────────────────────────────────── */
-
-/** Export local: CSV dos registros filtrados atualmente visíveis na tabela */
-function exportCSV() {
-  if (!_filtered.length) { showToast('Nenhum dado para exportar'); return; }
-  const sep = ';';
-  const header = _schema.map(c => `"${c.label}"`).join(sep);
-  const rows   = _filtered.map(r =>
-    _schema.map(c => `"${String(r[c.key]||'').replace(/"/g,'""')}"`).join(sep)
-  );
-  const blob = new Blob(['﻿' + [header,...rows].join('\r\n')], { type: 'text/csv;charset=utf-8' });
-  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `ADMIN_TCT_${new Date().toISOString().slice(0,10)}.csv` });
-  a.click(); URL.revokeObjectURL(a.href);
-  showToast(`${_filtered.length} registros exportados`);
-}
-
-/**
- * Download da planilha fonte completa via endpoint ?action=export do Apps Script.
- * Retorna CSV com TODOS os dados + cabeçalhos reais da aba DADOS_PÚBLICOS.
- */
+/** Baixa os dados atuais do Sheets via ?action=export */
 async function exportarPlanilha() {
-  showToast('Baixando planilha…', 'ok', 60000);
+  showToast('Baixando dados do Sheets…', 'ok', 60000);
   try {
     const url = GAS_URL + (GAS_URL.includes('?') ? '&' : '?') + 'action=export';
     const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const text = await res.text();
     if (!text.trim()) throw new Error('Planilha vazia ou aba não encontrada');
-
-    const blob = new Blob([text], { type: 'text/csv;charset=utf-8' });
-    const a = Object.assign(document.createElement('a'), {
-      href: URL.createObjectURL(blob),
-      download: `planilha_SEMA_${new Date().toISOString().slice(0,10)}.csv`,
-    });
-    a.click(); URL.revokeObjectURL(a.href);
-    showToast('Planilha baixada ✓', 'ok');
+    _download(text, `dados_sema_${_today()}.csv`, 'text/csv;charset=utf-8');
+    showToast('Dados baixados ✓', 'ok');
   } catch (e) {
     showToast('Erro ao baixar: ' + e.message, 'err');
   }
 }
 
-/** Abre o file picker para selecionar o CSV de importação */
-function abrirImport() {
-  const input = document.getElementById('file-import');
-  input.value = '';  // reseta para permitir re-selecionar o mesmo arquivo
-  input.click();
+function _download(content, filename, type) {
+  const blob = new Blob([content], { type });
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(blob), download: filename,
+  });
+  a.click(); URL.revokeObjectURL(a.href);
 }
 
-/** Chamado quando o usuário seleciona um arquivo CSV */
+function _today() { return new Date().toISOString().slice(0,10); }
+
+/* ─── IMPORTAR ───────────────────────────────────────────── */
+
 function lerArquivoImport(event) {
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
     let text = e.target.result;
-    // Remove BOM se presente
-    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);  // remove BOM
     try {
       _importRecords = parseCsv(text);
       mostrarPreviewImport(_importRecords);
@@ -834,46 +604,39 @@ function lerArquivoImport(event) {
   reader.readAsText(file, 'UTF-8');
 }
 
-let _importRecords = [];  // registros lidos do CSV aguardando confirmação
-
-/** Exibe o modal de preview com os primeiros 5 registros */
 function mostrarPreviewImport(records) {
   if (!records.length) { showToast('Nenhum registro encontrado no arquivo', 'err'); return; }
-
-  const overlay = document.getElementById('import-overlay');
-  const countEl = document.getElementById('import-count');
-  const thead   = document.getElementById('import-preview-head');
-  const tbody   = document.getElementById('import-preview-body');
-
-  const headers = records.length > 0 ? Object.keys(records[0]) : [];
+  const headers = Object.keys(records[0]);
   const preview = records.slice(0, 5);
 
-  countEl.textContent = `${records.length} registro${records.length !== 1 ? 's' : ''} detectado${records.length !== 1 ? 's' : ''} no arquivo (exibindo os primeiros ${Math.min(5, records.length)}).`;
+  document.getElementById('import-count').textContent =
+    `${records.length} registro${records.length!==1?'s':''} detectado${records.length!==1?'s':''} ` +
+    `(exibindo primeiros ${Math.min(5, records.length)}).`;
 
-  thead.innerHTML = headers.map(h => `<th style="padding:8px 10px;white-space:nowrap">${esc(h)}</th>`).join('');
-  tbody.innerHTML = preview.map(r =>
-    `<tr style="border-bottom:1px solid var(--border)">${headers.map(h =>
-      `<td style="padding:7px 10px">${esc(String(r[h] || ''))}</td>`
-    ).join('')}</tr>`
-  ).join('');
+  document.getElementById('import-head').innerHTML =
+    headers.map(h => `<th>${esc(h)}</th>`).join('');
 
-  overlay.style.display = 'flex';
+  document.getElementById('import-body').innerHTML =
+    preview.map(r =>
+      `<tr>${headers.map(h => `<td>${esc(String(r[h]||''))}</td>`).join('')}</tr>`
+    ).join('');
+
+  document.getElementById('import-overlay').classList.add('open');
 }
 
 function fecharImport() {
-  document.getElementById('import-overlay').style.display = 'none';
+  document.getElementById('import-overlay').classList.remove('open');
+  document.getElementById('file-import').value = '';
   _importRecords = [];
 }
 
-/** Envia os registros para o Apps Script substituindo toda a planilha */
 async function confirmarImport() {
   if (!_importRecords.length) return;
   const btn = document.getElementById('import-confirm-btn');
   btn.disabled = true; btn.textContent = 'Enviando…';
-
   try {
-    const result = await gasPost({ action: 'replaceAll', records: _importRecords });
-    showToast(`Planilha substituída: ${result.replaced} registro${result.replaced !== 1 ? 's' : ''} gravado${result.replaced !== 1 ? 's' : ''} ✓`, 'ok', 5000);
+    const res = await gasPost({ action: 'replaceAll', records: _importRecords });
+    showToast(`Planilha substituída: ${res.replaced} registro${res.replaced!==1?'s':''} ✓`, 'ok', 5000);
     fecharImport();
     await syncAll();
   } catch (e) {
@@ -883,76 +646,105 @@ async function confirmarImport() {
   }
 }
 
-/* ─── PARSER CSV ─────────────────────────────────────────────────────────── */
-/**
- * Converte texto CSV em array de objetos {header: valor}.
- * Detecta automaticamente separador ';' ou ','.
- * Suporta campos entre aspas duplas (incluindo aspas escapadas "" e quebras de linha).
- */
+/* ─── CSV PARSER ─────────────────────────────────────────── */
 function parseCsv(text) {
-  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-  const firstLine = lines.split('\n')[0] || '';
-  const sep = firstLine.split(';').length > firstLine.split(',').length ? ';' : ',';
-
-  const rows = splitCsvRows(lines, sep);
-  if (rows.length < 2) throw new Error('CSV deve ter ao menos 1 linha de cabeçalho e 1 linha de dados');
-
+  const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  const sep   = (lines.split('\n')[0]||'').split(';').length > (lines.split('\n')[0]||'').split(',').length ? ';' : ',';
+  const rows  = splitCsvRows(lines, sep);
+  if (rows.length < 2) throw new Error('CSV precisa de ao menos 1 cabeçalho e 1 linha de dados');
   const headers = rows[0].map(h => h.trim());
-  const records = [];
-  for (let i = 1; i < rows.length; i++) {
-    const vals = rows[i];
-    if (vals.every(v => !v.trim())) continue;  // pula linhas vazias
-    const rec = {};
-    headers.forEach((h, j) => { rec[h] = (vals[j] || '').trim(); });
-    records.push(rec);
-  }
-  return records;
+  return rows.slice(1)
+    .filter(r => r.some(v => v.trim()))
+    .map(r => Object.fromEntries(headers.map((h, j) => [h, (r[j]||'').trim()])));
 }
 
-/** Divide texto CSV em linhas e colunas respeitando campos entre aspas */
 function splitCsvRows(text, sep) {
   const rows = [];
-  let cur = [];
-  let field = '';
-  let inQuote = false;
-  let i = 0;
-
+  let cur = [], field = '', inQ = false, i = 0;
   while (i < text.length) {
     const ch = text[i];
-    if (inQuote) {
+    if (inQ) {
       if (ch === '"') {
-        if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
-        inQuote = false; i++; continue;
+        if (text[i+1] === '"') { field += '"'; i += 2; continue; }
+        inQ = false; i++; continue;
       }
       field += ch; i++; continue;
     }
-    if (ch === '"') { inQuote = true; i++; continue; }
-    if (ch === sep) { cur.push(field); field = ''; i++; continue; }
-    if (ch === '\n') {
-      cur.push(field); field = '';
-      rows.push(cur); cur = []; i++; continue;
-    }
+    if (ch === '"')  { inQ = true; i++; continue; }
+    if (ch === sep)  { cur.push(field); field = ''; i++; continue; }
+    if (ch === '\n') { cur.push(field); field = ''; rows.push(cur); cur = []; i++; continue; }
     field += ch; i++;
   }
-  // Última célula/linha
   cur.push(field);
   if (cur.some(v => v.trim())) rows.push(cur);
   return rows;
 }
 
-/* ─── HELPERS ────────────────────────────────────────────────────────────── */
-function findKey(candidates) {
-  for (const c of candidates) {
-    const col = _schema.find(s =>
-      s.key === c ||
-      s.key.replace(/_/g,'') === c.replace(/_/g,'') ||
-      s.label.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,'_') === c
-    );
-    if (col) return col.key;
+/* ─── PREVIEW TABLE (somente leitura) ───────────────────── */
+function renderPreviewTable() {
+  const thead = document.getElementById('table-head');
+  const tbody = document.getElementById('table-body');
+  const count = document.getElementById('dados-count');
+
+  if (!_schema.length) {
+    thead.innerHTML = '<th style="opacity:.6">Aguardando dados do Sheets…</th>';
+    tbody.innerHTML = '';
+    if (count) count.textContent = '';
+    return;
   }
-  return null;
+
+  if (count) count.textContent = `(${_records.length} registro${_records.length!==1?'s':''})`;
+  thead.innerHTML = _schema.map(c => `<th>${esc(c.label)}</th>`).join('');
+
+  const start = (_page - 1) * PAGE;
+  const rows  = _records.slice(start, start + PAGE);
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="${_schema.length}" class="empty-state">
+      Nenhum dado encontrado na planilha.</td></tr>`;
+  } else {
+    tbody.innerHTML = rows.map(r => {
+      const cells = _schema.map(col => {
+        const raw = String(r[col.key] || '').trim();
+        const kL  = col.key.toLowerCase();
+        let cell;
+        if (kL === 'status' || kL === 'situacao') cell = statusBadge(raw);
+        else if (raw.startsWith('http')) cell = `<a href="${esc(raw)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🔗</a>`;
+        else if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) cell = raw.split('-').reverse().join('/');
+        else cell = esc(raw) || '<span style="color:var(--text2)">—</span>';
+        return `<td>${cell}</td>`;
+      }).join('');
+      return `<tr>${cells}</tr>`;
+    }).join('');
+  }
+
+  renderPagination();
 }
 
+function renderPagination() {
+  const total = _records.length;
+  const pages = Math.ceil(total / PAGE);
+  const pg    = document.getElementById('pagination');
+  if (pages <= 1) {
+    pg.innerHTML = total ? `<span>${total} registro${total!==1?'s':''}</span>` : '';
+    return;
+  }
+  pg.innerHTML = `
+    <button onclick="goPage(${_page-1})" ${_page<=1?'disabled':''}>‹ Anterior</button>
+    <span>Página ${_page} / ${pages}</span>
+    <button onclick="goPage(${_page+1})" ${_page>=pages?'disabled':''}>Próxima ›</button>
+  `;
+}
+
+function goPage(n) {
+  const pages = Math.ceil(_records.length / PAGE);
+  if (n < 1 || n > pages) return;
+  _page = n;
+  renderPreviewTable();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ─── HELPERS ────────────────────────────────────────────── */
 function statusBadge(st) {
   const sL = (st||'').toLowerCase();
   let cls = 'badge-default';
@@ -969,28 +761,22 @@ function esc(s) {
 
 function setStatus(s) {
   const d = document.getElementById('status-dot');
-  if (d) d.className = 'status-dot' + (s==='ok' ? '' : s==='syncing' ? ' syncing' : ' error');
+  if (d) d.className = 'status-dot' + (s==='ok'?'':s==='syncing'?' syncing':' error');
 }
 
 function loadingBar(pct) {
   const b = document.getElementById('loading-bar');
   b.style.width = pct + '%';
-  b.style.opacity = pct > 0 && pct < 100 ? '1' : '0';
-}
-
-function showErr(msg) {
-  const el = document.getElementById('login-error');
-  el.textContent = msg; el.style.display = 'block';
+  b.style.opacity = (pct > 0 && pct < 100) ? '1' : '0';
 }
 
 let _toastT;
-function showToast(msg, type = 'ok', dur = 3500) {
+function showToast(msg, type='ok', dur=3500) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.className = type; t.style.opacity = '1';
   clearTimeout(_toastT); _toastT = setTimeout(() => { t.style.opacity = '0'; }, dur);
 }
 
-/* ─── TEMA ───────────────────────────────────────────────────────────────── */
 function loadTheme() {
   const s = localStorage.getItem('sema_theme') || 'light';
   document.documentElement.setAttribute('data-theme', s);
@@ -1004,7 +790,7 @@ function toggleTheme() {
   const b = document.getElementById('btn-theme'); if (b) b.textContent = next==='dark' ? '☀️' : '🌙';
 }
 
-/* ─── START ──────────────────────────────────────────────────────────────── */
+/* ─── START ──────────────────────────────────────────────── */
 loadTheme();
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('login-pass').focus();
@@ -1013,9 +799,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <script src="js/config.js" onerror=""></script>
 <script>
-// Re-aplicar config após carregamento do config.js
 if (typeof SEMA_CONFIG !== 'undefined') {
-  if (SEMA_CONFIG.appsScriptUrl) GAS_URL   = SEMA_CONFIG.appsScriptUrl;
+  if (SEMA_CONFIG.appsScriptUrl) GAS_URL    = SEMA_CONFIG.appsScriptUrl;
   if (SEMA_CONFIG.syncToken)     SYNC_TOKEN = SEMA_CONFIG.syncToken;
   if (SEMA_CONFIG.senhaHash)     SENHA_HASH = SEMA_CONFIG.senhaHash;
 }
