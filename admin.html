@@ -320,12 +320,22 @@ Dias Restantes   =SE(G3="";"";G3-HOJE())</div>
   </div>
 </div>
 
+<script src="js/config.js"></script>
 <script>
 /* ─── CONFIG ──────────────────────────────────────────────── */
 let GAS_URL    = 'https://script.google.com/macros/s/SEU_SCRIPT_ID/exec';
 let SYNC_TOKEN = '%%SYNC_TOKEN%%';
 // SHA-256 de SEMA@2026 — sobrescrito pelo Secret SENHA_HASH no CI/CD se configurado
 let SENHA_HASH = 'ec2a985f5a4af70e1974f5c3fa0e5fd0e5397b5a73d411c9c054204d1f6b75d5';
+
+// Aplicar config.js imediatamente (carregado antes deste script)
+if (typeof SEMA_CONFIG !== 'undefined') {
+  if (SEMA_CONFIG.appsScriptUrl) GAS_URL    = SEMA_CONFIG.appsScriptUrl;
+  if (SEMA_CONFIG.syncToken && SEMA_CONFIG.syncToken !== '%%SYNC_TOKEN%%')
+    SYNC_TOKEN = SEMA_CONFIG.syncToken;
+  if (SEMA_CONFIG.senhaHash && SEMA_CONFIG.senhaHash !== '%%SENHA_HASH%%')
+    SENHA_HASH = SEMA_CONFIG.senhaHash;
+}
 
 const POLL_MS = 120_000;
 
@@ -808,15 +818,5 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
-<script src="js/config.js" onerror=""></script>
-<script>
-if (typeof SEMA_CONFIG !== 'undefined') {
-  if (SEMA_CONFIG.appsScriptUrl) GAS_URL    = SEMA_CONFIG.appsScriptUrl;
-  if (SEMA_CONFIG.syncToken)     SYNC_TOKEN = SEMA_CONFIG.syncToken;
-  // só sobrescreve se o CI injetou um hash real (não o placeholder)
-  if (SEMA_CONFIG.senhaHash && SEMA_CONFIG.senhaHash !== '%%SENHA_HASH%%')
-    SENHA_HASH = SEMA_CONFIG.senhaHash;
-}
-</script>
 </body>
 </html>

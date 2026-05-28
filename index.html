@@ -154,6 +154,7 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
 
 <div id="error-banner" class="error-banner" hidden>
   <span>⚠️ Dados ao vivo indisponíveis.</span>
+  <span id="error-detail" style="font-size:.78rem;opacity:.75"></span>
   <button class="btn-retry" onclick="manualRefresh()">🔄 Tentar novamente</button>
   <span id="cache-note" hidden></span>
 </div>
@@ -285,8 +286,10 @@ async function syncWithRetry() {
     document.getElementById('error-banner').hidden = true;
     showCacheNote('');
   } catch (e) {
+    console.error('[SEMA] syncWithRetry falhou:', e.message);
     setStatus('error');
     document.getElementById('error-banner').hidden = false;
+    document.getElementById('error-detail').textContent = e.message || '';
     // Show cached data if available and schema not yet loaded
     if (!_schema.length) {
       const cached = loadCache();
@@ -319,6 +322,9 @@ async function syncAll() {
   try {
     const [schemaRes, listRes] = await Promise.all([gasGet('schema'), gasGet('list')]);
     loadingBar(80);
+
+    if (schemaRes.error) throw new Error('GAS schema: ' + schemaRes.error);
+    if (listRes.error)   throw new Error('GAS list: '   + listRes.error);
 
     if (Array.isArray(schemaRes.columns) && schemaRes.columns.length)
       _schema = schemaRes.columns;

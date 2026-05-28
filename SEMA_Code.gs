@@ -98,14 +98,8 @@ function jsonResponse(data) {
 }
 
 function validateToken(token) {
-  const stored = PropertiesService
-    .getScriptProperties()
-    .getProperty('SYNC_TOKEN');
-
-  if (!stored) {
-    throw new Error('SYNC_TOKEN não configurado');
-  }
-
+  const stored = PropertiesService.getScriptProperties().getProperty('SYNC_TOKEN');
+  if (!stored) return false;
   return token === stored;
 }
 
@@ -180,6 +174,9 @@ function doGet(e) {
 
       case 'status':
         return jsonResponse(handleStatus());
+
+      case 'export':
+        return exportCsv();
 
       default:
         return jsonResponse({
@@ -261,6 +258,11 @@ function handleList(params = {}) {
 
   const sheetName = params.sheet || SHEET_DADOS;
 
+  const cache = CacheService.getScriptCache();
+  const cKey  = 'list_' + sheetName;
+  const hit   = cache.get(cKey);
+  if (hit) { try { return JSON.parse(hit); } catch (_) {} }
+
   const sheet = getSheet(sheetName);
 
   const data = sheet.getDataRange().getValues();
@@ -316,11 +318,9 @@ function handleList(params = {}) {
     records.push(rec);
   }
 
-  return {
-    records,
-    count: records.length,
-    updated: new Date().toISOString()
-  };
+  const result = { records, count: records.length, updated: new Date().toISOString() };
+  try { cache.put(cKey, JSON.stringify(result), 30); } catch (_) {}
+  return result;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -364,6 +364,44 @@ function handleStatus() {
 }
 
 // ─────────────────────────────────────────────────────────────
+// EXPORT CSV
+// ─────────────────────────────────────────────────────────────
+
+function exportCsv() {
+  const sheet = getSheet(SHEET_DADOS);
+  const data  = sheet.getDataRange().getValues();
+  if (data.length < 2) {
+    return ContentService.createTextOutput('').setMimeType(ContentService.MimeType.CSV);
+  }
+
+  const SEP  = ';';
+  const hdrs = data[1].map(h => String(h || '').trim());
+  const lines = [hdrs.map(csvCell).join(SEP)];
+
+  for (let i = 2; i < data.length; i++) {
+    const row = data[i];
+    if (!row.some(c => String(c).trim())) continue;
+    lines.push(hdrs.map((_, j) => {
+      const v = row[j];
+      return csvCell(v instanceof Date
+        ? Utilities.formatDate(v, 'America/Rio_Branco', 'dd/MM/yyyy')
+        : String(v !== undefined && v !== null ? v : ''));
+    }).join(SEP));
+  }
+
+  return ContentService.createTextOutput('﻿' + lines.join('\r\n'))
+    .setMimeType(ContentService.MimeType.CSV);
+}
+
+function csvCell(val) {
+  const s = String(val === undefined || val === null ? '' : val);
+  if (s.includes(';') || s.includes('"') || s.includes('\n') || s.includes('\r')) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
+
+// ─────────────────────────────────────────────────────────────
 // UPSERT
 // ─────────────────────────────────────────────────────────────
 
@@ -372,6 +410,8 @@ function handleUpsert(record, sheetName = SHEET_DADOS) {
   if (!record) {
     throw new Error('Registro inválido');
   }
+
+  CacheService.getScriptCache().remove('list_' + sheetName);
 
   const sheet = getSheet(sheetName);
 
@@ -452,6 +492,8 @@ function handleUpsert(record, sheetName = SHEET_DADOS) {
 
 function handleDelete(tipo, num, sheetName = SHEET_DADOS) {
 
+  CacheService.getScriptCache().remove('list_' + sheetName);
+
   const sheet = getSheet(sheetName);
 
   const data = sheet.getDataRange().getValues();
@@ -506,6 +548,8 @@ function handleReplaceAll(records, sheetName = SHEET_DADOS) {
   if (!Array.isArray(records)) {
     throw new Error('records deve ser array');
   }
+
+  CacheService.getScriptCache().remove('list_' + sheetName);
 
   const sheet = getSheet(sheetName);
 
