@@ -272,6 +272,15 @@ function init() {
   if (typeof SEMA_CONFIG !== 'undefined' && SEMA_CONFIG.appsScriptUrl)
     GAS_URL = SEMA_CONFIG.appsScriptUrl;
 
+  if (GAS_URL.includes('SEU_SCRIPT_ID')) {
+    document.getElementById('error-banner').hidden = false;
+    document.getElementById('error-detail').textContent =
+      'URL do GAS não configurada — edite js/config.js com a URL do seu Web App implantado';
+    const g = document.getElementById('setup-guide');
+    if (g) { g.hidden = false; g.open = true; }
+    return;
+  }
+
   // Render cache immediately for instant page load
   const cached = loadCache();
   if (cached) {
@@ -300,10 +309,17 @@ async function syncWithRetry() {
     console.error('[SEMA] syncWithRetry falhou:', e.message);
     setStatus('error');
     document.getElementById('error-banner').hidden = false;
-    document.getElementById('error-detail').textContent = e.message || '';
-    const _setupKeywords = ['não encontrada', 'not found', 'HTTP 403', 'HTTP 404', 'Failed to fetch', 'NetworkError'];
+    const _urlHint = GAS_URL.includes('SEU_SCRIPT_ID') ? '' : ' [GAS: …' + GAS_URL.slice(-20) + ']';
+    document.getElementById('error-detail').textContent = (e.message || '') + _urlHint;
+    const _setupKeywords = [
+      'não encontrada', 'not found',
+      'HTTP 403', 'HTTP 404', 'HTTP 302',
+      'Failed to fetch', 'NetworkError',
+      'HTML', 'inválida', 'JSON',
+    ];
+    const _isSetupError = _setupKeywords.some(s => (e.message || '').includes(s));
     const _guide = document.getElementById('setup-guide');
-    if (_guide) _guide.hidden = !_setupKeywords.some(s => (e.message || '').includes(s));
+    if (_guide) { _guide.hidden = !_isSetupError; if (!_guide.hidden) _guide.open = true; }
     // Show cached data if available and schema not yet loaded
     if (!_schema.length) {
       const cached = loadCache();
@@ -365,7 +381,15 @@ async function gasGet(action) {
   const url = GAS_URL + (GAS_URL.includes('?') ? '&' : '?') + 'action=' + action;
   const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok) throw new Error('HTTP ' + res.status);
-  return res.json();
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    const isHtml = text.trimStart().startsWith('<');
+    throw new Error(isHtml
+      ? 'GAS retornou HTML — reimplante o Web App com acesso "Qualquer pessoa"'
+      : 'Resposta inválida do GAS (não é JSON)');
+  }
 }
 
 /* ─── CACHE ───────────────────────────────────────────────────────────────── */
