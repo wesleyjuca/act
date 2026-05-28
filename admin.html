@@ -2,847 +2,411 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>SEMA/AC — Painel Admin · Termos de Cooperação v2</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23095C18'/><text x='50%' y='62%' font-size='18' font-weight='900' fill='%231FAD35' text-anchor='middle' font-family='Arial'>S</text></svg>">
-<meta property="og:title" content="SEMA/AC — Painel Admin · Termos de Cooperação">
-<meta name="description" content="Painel administrativo interno SEMA/AC — Assessoria Jurídica. Gestão de Termos de Cooperação Técnica.">
-<meta name="theme-color" content="#095C18">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="js/config.js"></script>
-<script src="js/sync.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEMA/AC — Administração</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;}
-:focus-visible{outline:3px solid var(--g);outline-offset:2px;}
-:root{
-  --g:#1FAD35;--gd:#095C18;--gm:#0F7A21;--gl:#E8F7EB;--gb:#6DCA7E;
-  --y:#F5C71A;--yl:#FFFAE6;
-  --r:#C62828;--rl:#FDECEA;
-  --a:#B07D00;--al:#FFF8E5;
-  --ok:#0A7A2E;--okl:#E6F9EE;
-  --b:#1565C0;--bl:#E3F2FD;
-  --tx:#4A4A4A;--tx2:#888;--bdr:#DDD;--bg:#F0F2F0;
-  --card:#fff;--modal-bg:#fff;
+:root {
+  --bg: #f5f7fa; --bg2: #fff; --border: #dde3ec; --text: #1a2233;
+  --text2: #5a6880; --accent: #095C18; --accent2: #0d7a22; --accent-light: #e8f5ec;
+  --red: #c0392b; --red-light: #fce4ec; --radius: 8px; --shadow: 0 2px 8px rgba(0,0,0,.08);
 }
-[data-theme="dark"]{
-  --tx:#E2E2E2;--tx2:#AAA;--bdr:#3A3A3A;--bg:#1A1A1A;
-  --card:#242424;--modal-bg:#2A2A2A;
-  --gl:#1A2E1D;--yl:#2A2500;--rl:#2A1010;--bl:#0D1E38;--al:#2A1F00;--okl:#0A1E10;
+[data-theme="dark"] {
+  --bg: #0f1117; --bg2: #1a1d27; --border: #2a2f3f; --text: #e8ecf4;
+  --text2: #8899bb; --accent: #1aad3a; --accent2: #23d44e; --accent-light: #0d2015;
+  --red-light: #2d0a0a;
 }
-[data-theme="dark"] .kpi,[data-theme="dark"] .card-sec,[data-theme="dark"] .modal-box,
-[data-theme="dark"] .confirm-card,[data-theme="dark"] .modal-bd{background:var(--card);}
-[data-theme="dark"] body{background:var(--bg);color:var(--tx);}
-[data-theme="dark"] .fg input,[data-theme="dark"] .fg select,[data-theme="dark"] .fg textarea{
-  background:#1E1E1E;color:var(--tx);border-color:var(--bdr);}
-[data-theme="dark"] .import-zone{background:#1E1E1E;border-color:var(--bdr);}
-[data-theme="dark"] table{color:var(--tx);}
-[data-theme="dark"] th,[data-theme="dark"] td{border-color:var(--bdr);}
-[data-theme="dark"] tr:hover{background:rgba(255,255,255,.04)!important;}
-.p-online{background:rgba(31,173,53,.25);color:#6DCA7E;border:1px solid rgba(31,173,53,.35);}
-.p-offline{background:rgba(198,40,40,.25);color:#ffb3b3;border:1px solid rgba(198,40,40,.35);}
-.btn-icon{background:transparent;border:1px solid rgba(255,255,255,.28);color:rgba(255,255,255,.75);padding:4px 9px;border-radius:20px;font-size:13px;cursor:pointer;line-height:1;}
-/* Confirm modal */
-.confirm-modal{background:rgba(0,0,0,.55);position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:9999;}
-.confirm-modal.open{display:flex;}
-.confirm-modal-box{background:var(--modal-bg);border-radius:12px;padding:28px 32px;max-width:380px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.25);}
-.confirm-modal-title{font-size:16px;font-weight:800;color:var(--tx);margin-bottom:10px;}
-.confirm-modal-msg{font-size:13px;color:var(--tx2);margin-bottom:22px;line-height:1.5;}
-.confirm-modal-btns{display:flex;gap:8px;justify-content:flex-end;}
-/* Help modal */
-.help-modal{background:rgba(0,0,0,.55);position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:9999;}
-.help-modal.open{display:flex;}
-.help-modal-box{background:var(--modal-bg);border-radius:12px;padding:28px 32px;max-width:480px;width:92%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.25);}
-.help-modal-title{font-size:16px;font-weight:800;color:var(--gd);margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;}
-.help-table{width:100%;border-collapse:collapse;font-size:12.5px;}
-.help-table td{padding:6px 8px;border-bottom:1px solid var(--bdr);}
-.help-table td:first-child{font-family:monospace;background:var(--bg);border-radius:4px;font-weight:700;white-space:nowrap;}
-.help-section{font-size:11px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.5px;padding:12px 0 4px;}
-/* Logo */
-.sl{display:flex;align-items:center;}
-.sl-s{font-size:20px;font-weight:900;color:var(--g);letter-spacing:-1px;}
-.sl-d{width:2px;height:24px;background:var(--y);margin:0 9px;flex-shrink:0;}
-.sl-f{display:flex;flex-direction:column;}
-.sl-f span{font-size:7px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;line-height:1.8;color:rgba(255,255,255,.75);}
-/* Login */
-body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;}
-#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--gd);}
-.login-card{background:#fff;border-radius:14px;padding:38px 42px;width:400px;max-width:95vw;}
-.login-logo{text-align:center;margin-bottom:20px;}
-.login-logo-inner{display:inline-flex;align-items:center;gap:0;}
-.login-logo-s{font-size:36px;font-weight:900;color:var(--g);letter-spacing:-1px;}
-.login-logo-d{width:2px;height:40px;background:var(--y);margin:0 12px;}
-.login-logo-f{display:flex;flex-direction:column;text-align:left;}
-.login-logo-f span{font-size:9px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;line-height:1.75;color:var(--tx2);}
-.login-badge{display:inline-block;background:var(--rl);color:var(--r);font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;margin-bottom:18px;}
-.login-title{font-size:17px;font-weight:800;color:var(--gd);text-align:center;margin-bottom:4px;}
-.login-sub{font-size:12px;color:var(--tx2);text-align:center;margin-bottom:26px;}
-.fg{margin-bottom:16px;}
-.fg label{display:block;font-size:11px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;}
-.fg input{width:100%;padding:11px 14px;border:1.5px solid var(--bdr);border-radius:8px;font-size:14px;outline:none;transition:border-color .2s;}
-.fg input:focus{border-color:var(--g);}
-.btn-login{width:100%;padding:13px;background:var(--gd);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:800;cursor:pointer;transition:background .2s;letter-spacing:.3px;}
-.btn-login:hover{background:var(--gm);}
-.login-err{background:var(--rl);color:var(--r);font-size:12px;padding:9px 12px;border-radius:7px;margin-bottom:14px;display:none;border:1px solid #f5c6c6;}
-.login-hint{font-size:11px;color:var(--tx2);text-align:center;margin-top:16px;line-height:1.7;}
-/* App */
-#app{display:none;min-height:100vh;flex-direction:column;}
-.app-header{background:var(--gd);border-bottom:3px solid var(--y);}
-.app-header-inner{max-width:1400px;margin:0 auto;padding:11px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
-.hpills{display:flex;align-items:center;gap:8px;}
-.pill{font-size:10px;padding:4px 11px;border-radius:20px;font-weight:700;}
-.p-lock{background:rgba(198,40,40,.3);color:#ffb3b3;border:1px solid rgba(198,40,40,.4);}
-.p-user{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.2);}
-.btn-logout{background:transparent;border:1px solid rgba(255,255,255,.28);color:rgba(255,255,255,.75);padding:4px 11px;border-radius:20px;font-size:10px;font-weight:700;cursor:pointer;}
-.app-subbar{background:var(--gm);padding:6px 24px;}
-.app-subbar-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;font-size:10.5px;color:rgba(255,255,255,.75);}
-.sync-pill{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:3px 9px;font-size:10px;color:rgba(255,255,255,.85);}
-.live-dot{width:6px;height:6px;border-radius:50%;background:#4cff80;animation:pulse 1.6s infinite;}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-.main{max-width:1400px;margin:0 auto;padding:22px 24px;flex:1;}
-/* Alert */
-.alert-strip{background:var(--rl);border:1.5px solid var(--r);border-radius:9px;padding:11px 16px;display:flex;align-items:flex-start;gap:11px;margin-bottom:18px;}
-.alert-strip svg{flex-shrink:0;margin-top:1px;}
-/* KPIs */
-.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px;}
-@media(max-width:900px){.kpi-row{grid-template-columns:repeat(3,1fr);}}
-.kpi{background:#fff;border-radius:9px;border:1px solid var(--bdr);padding:13px 15px;position:relative;overflow:hidden;}
-.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;}
-.kg::before{background:var(--g);}.ky::before{background:var(--y);}.kr::before{background:var(--r);}.kb::before{background:var(--b);}.kp::before{background:#7B1FA2;}
-.kpi-l{font-size:9.5px;color:var(--tx2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;}
-.kpi-v{font-size:26px;font-weight:800;color:var(--tx);line-height:1;}
-.kpi-s{font-size:9.5px;color:var(--tx2);margin-top:3px;}
-/* Toolbar */
-.toolbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;}
-.toolbar input,.toolbar select{padding:7px 12px;border:1.5px solid var(--bdr);border-radius:7px;font-size:12px;color:var(--tx);background:#fff;outline:none;}
-.toolbar input:focus,.toolbar select:focus{border-color:var(--g);}
-.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 15px;border-radius:7px;font-size:12px;font-weight:700;border:none;cursor:pointer;transition:filter .15s;white-space:nowrap;}
-.btn:hover{filter:brightness(.92);}
-.btn-g{background:var(--g);color:#fff;}
-.btn-y{background:var(--y);color:var(--gd);}
-.btn-dk{background:var(--gd);color:#fff;}
-.btn-o{background:#fff;color:var(--tx);border:1.5px solid var(--bdr);}
-.btn-r{background:var(--r);color:#fff;}
-.btn-mail{background:var(--b);color:#fff;}
-/* Bulk bar */
-.bulk-bar{background:var(--gl);border:1px solid var(--gb);border-radius:7px;padding:9px 14px;display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:12px;color:var(--gd);font-weight:700;flex-wrap:wrap;}
-.bulk-bar.hidden{display:none;}
-/* Undo bar */
-.undo-bar{background:var(--al);border-top:1px solid #e8c96a;padding:9px 16px;display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--a);flex-wrap:wrap;gap:8px;}
-.undo-bar.hidden{display:none;}
-/* Table */
-.tbl-wrap{background:#fff;border-radius:10px;border:1px solid var(--bdr);overflow:hidden;}
-.tbl-scroll{overflow-x:auto;}
-table{width:100%;border-collapse:collapse;font-size:11.5px;}
-thead th{text-align:left;padding:10px 11px;font-size:9.5px;font-weight:700;color:var(--gd);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--gb);background:var(--gl);white-space:nowrap;cursor:pointer;user-select:none;transition:background .1s;}
-thead th:hover{background:#d5f0db;}
-thead th.int-col{background:#fdecea;color:var(--r);}
-thead th.int-col:hover{background:#f8d0d0;}
-thead th .si{margin-left:3px;opacity:.4;font-size:10px;}
-thead th.sorted .si{opacity:1;}
-tbody td{padding:9px 11px;border-bottom:1px solid #f0f0f0;color:var(--tx);vertical-align:middle;}
-tbody tr:hover td{background:#f7fdf8;}
-tbody tr.row-alt td{background:#f9f9f9;}
-tbody tr.row-alt:hover td{background:#f7fdf8;}
-tbody tr.row-sel td{background:#e8f7eb;}
-.cb-cell{width:32px;text-align:center;}
-.cb-cell input{width:14px;height:14px;cursor:pointer;accent-color:var(--g);}
-.tipo-tag{display:inline-block;font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:4px;background:var(--gl);color:var(--gd);}
-.st{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;padding:3px 8px;border-radius:20px;}
-.st-ok{background:var(--okl);color:var(--ok);}
-.st-warn{background:var(--al);color:var(--a);}
-.st-err{background:var(--rl);color:var(--r);}
-.st-soon{background:#fce4ec;color:#880e4f;}
-.sei-cell{font-family:monospace;font-size:9px;color:var(--r);font-weight:700;cursor:help;white-space:nowrap;}
-.alert-cell{font-size:9px;font-weight:700;color:var(--r);background:var(--rl);padding:2px 7px;border-radius:4px;display:inline-block;}
-.resp-cell{font-size:10px;font-weight:700;color:var(--gm);}
-.btn-sm{display:inline-flex;align-items:center;gap:3px;font-size:9.5px;font-weight:700;padding:4px 8px;border-radius:5px;border:none;cursor:pointer;margin-right:2px;}
-.btn-e{background:var(--al);color:var(--a);border:1px solid #e8c96a;}
-.btn-m{background:var(--bl);color:var(--b);border:1px solid #90caf9;}
-.btn-d{background:var(--rl);color:var(--r);border:1px solid #f0a0a0;}
-.tbl-foot{background:#fafafa;border-top:1px solid #f0f0f0;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--tx2);flex-wrap:wrap;gap:6px;}
-.no-data{padding:48px;text-align:center;color:var(--tx2);font-size:13px;}
-/* Modais */
-.modal-bd{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;display:none;}
-.modal-bd.open{display:flex;}
-.modal{background:#fff;border-radius:14px;width:800px;max-width:100%;max-height:90vh;overflow-y:auto;}
-.modal-hd{background:var(--gd);padding:15px 22px;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;}
-.modal-title{font-size:14px;font-weight:800;color:#fff;}
-.modal-x{background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:15px;}
-.modal-body{padding:24px;}
-.msec{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;border-left:3px solid var(--g);padding-left:8px;color:var(--gd);margin:18px 0 12px;}
-.msec.int{border-left-color:var(--r);color:var(--r);}
-.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-.mgrid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
-.mg1{grid-column:1/-1;}
-.mf{display:flex;flex-direction:column;gap:5px;}
-.mf label{font-size:11px;font-weight:700;color:var(--tx2);}
-.mf input,.mf select,.mf textarea{padding:9px 12px;border:1.5px solid var(--bdr);border-radius:7px;font-size:13px;color:var(--tx);outline:none;font-family:inherit;transition:border-color .15s;}
-.mf input:focus,.mf select:focus,.mf textarea:focus{border-color:var(--g);}
-.mf textarea{min-height:72px;resize:vertical;}
-.mf .int-f{border-color:#f5c6c6;}
-.mf .int-f:focus{border-color:var(--r);}
-.mf .ferr{border-color:var(--r);background:#fff8f8;}
-.ferrmsg{font-size:10px;color:var(--r);margin-top:3px;display:none;}
-.ferrmsg.show{display:block;}
-.modal-ft{padding:14px 22px;background:#fafafa;border-top:1px solid var(--bdr);display:flex;gap:10px;justify-content:flex-end;border-radius:0 0 14px 14px;}
-/* Import modal */
-.import-zone{border:2.5px dashed var(--gb);border-radius:10px;padding:36px 20px;text-align:center;cursor:pointer;transition:background .2s;background:var(--gl);}
-.import-zone:hover,.import-zone.drag{background:#d5f0db;border-color:var(--g);}
-.import-prev{background:var(--gl);border-radius:7px;padding:12px 15px;margin-top:12px;font-size:12px;color:var(--gd);display:none;}
-.import-warn{background:var(--al);border:1px solid #e8c96a;border-radius:7px;padding:10px 14px;font-size:11px;color:var(--a);margin-top:10px;display:none;}
-/* Confirm modal */
-.confirm-card{background:#fff;border-radius:14px;padding:32px;max-width:420px;text-align:center;}
-.confirm-icon{font-size:42px;margin-bottom:12px;}
-.confirm-title{font-size:16px;font-weight:800;color:var(--r);margin-bottom:8px;}
-.confirm-sub{font-size:12px;color:var(--tx2);margin-bottom:22px;line-height:1.6;}
-.confirm-btns{display:flex;gap:10px;justify-content:center;}
-/* Settings */
-.settings-box{background:var(--yl);border:1.5px solid var(--y);border-radius:10px;padding:16px 18px;margin-top:24px;}
-.settings-title{font-size:12px;font-weight:700;color:var(--a);margin-bottom:12px;}
-.settings-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
-/* ── SYNC DASHBOARD ─────────────────────── */
-.log-line{display:flex;align-items:flex-start;gap:10px;padding:7px 14px;
-  border-bottom:1px solid #f4f4f4;font-size:10.5px;}
-.log-line:last-child{border-bottom:none;}
-.log-line:hover{background:#fafafa;}
-.log-ts{color:var(--tx2);flex-shrink:0;min-width:54px;}
-.log-lvl{font-weight:700;flex-shrink:0;min-width:44px;text-align:center;
-  padding:1px 5px;border-radius:3px;font-size:9.5px;}
-.ll-ok{background:var(--okl);color:var(--ok);}
-.ll-info{background:var(--bl);color:var(--b);}
-.ll-warn{background:var(--al);color:var(--a);}
-.ll-error{background:var(--rl);color:var(--r);}
-.log-msg{color:var(--tx);line-height:1.4;}
+/* HEADER */
+header {
+  background: var(--accent); color: #fff; padding: 0 24px;
+  display: flex; align-items: center; gap: 16px; height: 56px;
+  position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,.25);
+}
+header h1 { font-size: 1rem; font-weight: 600; flex: 1; }
+header h1 small { font-weight: 400; opacity: .75; font-size: .8rem; display: block; }
+.status-dot { width: 10px; height: 10px; border-radius: 50%; background: #4caf50; box-shadow: 0 0 0 2px rgba(76,175,80,.3); transition: background .4s; }
+.status-dot.syncing { background: #ffc107; }
+.status-dot.error   { background: #f44336; }
+.btn-icon { background: rgba(255,255,255,.15); border: none; color: #fff; border-radius: 6px; width: 34px; height: 34px; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; transition: background .2s; }
+.btn-icon:hover { background: rgba(255,255,255,.3); }
 
-/* Print */
-@media print{.app-header,.app-subbar,.toolbar,.bulk-bar,.undo-bar,.settings-box,
-  .btn-sm,.cb-cell,thead th:last-child,thead th.int-col,
-  td:nth-child(1),td.sei-cell,td.resp-cell,.alert-strip{display:none!important;}
-  .tbl-wrap{border:1px solid #ccc!important;}body{background:#fff!important;}}
-.skip-link{position:absolute;top:-100px;left:8px;background:var(--gd);color:#fff;padding:8px 14px;border-radius:0 0 6px 6px;font-size:12px;font-weight:700;transition:top .15s;z-index:9999;text-decoration:none;}
-.skip-link:focus{top:0;}
-/* Toast */
-.toast{position:fixed;bottom:24px;right:24px;padding:12px 18px;border-radius:8px;font-size:13px;font-weight:600;z-index:99999;max-width:380px;box-shadow:0 4px 16px rgba(0,0,0,.18);animation:toastIn .2s ease;pointer-events:none;}
-.toast-ok{background:var(--okl);color:var(--ok);border:1px solid var(--gb);}
-.toast-err{background:var(--rl);color:var(--r);border:1px solid var(--r);}
-.toast-warn{background:var(--al);color:var(--a);border:1px solid var(--a);}
-.toast-info{background:#e3f2fd;color:#1565C0;border:1px solid #90caf9;}
-@keyframes toastIn{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}
-/* Session warn */
-.session-warn{display:none;position:fixed;top:0;left:0;right:0;z-index:9998;background:#b07d00;color:#fff;font-size:12px;font-weight:600;padding:8px 20px;align-items:center;justify-content:space-between;gap:12px;}
-.session-warn button{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;padding:4px 12px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;}
-/* Mobile */
-@media(max-width:900px){
-  .int-col,.sei-cell,.resp-cell,thead th.int-col{display:none!important;}
-  .tbl-scroll{-webkit-overflow-scrolling:touch;}
-  .tbl-scroll::after{content:'← deslize para ver mais →';display:block;text-align:center;font-size:10px;color:var(--tx2);padding:6px;background:#f8f8f8;}
+/* LOGIN */
+#login-screen {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; align-items: center; justify-content: center; z-index: 200;
 }
-@media(max-width:600px){
-  .kpi-grid{grid-template-columns:1fr 1fr!important;}
-  .toolbar{flex-direction:column;}
-  .toolbar input,.toolbar select{width:100%;}
+.login-card {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 40px; width: 360px; box-shadow: var(--shadow);
 }
+.login-card h2 { font-size: 1.3rem; margin-bottom: 8px; color: var(--accent); }
+.login-card p  { font-size: .85rem; color: var(--text2); margin-bottom: 24px; }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: .8rem; font-weight: 600; margin-bottom: 4px; color: var(--text2); }
+.form-group input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); font-size: .9rem; outline: none; }
+.form-group input:focus { border-color: var(--accent); }
+#login-error { color: var(--red); font-size: .85rem; margin-bottom: 12px; display: none; }
+#login-btn { width: 100%; padding: 11px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-size: 1rem; font-weight: 600; cursor: pointer; }
+#login-btn:hover { background: var(--accent2); }
+#login-btn:disabled { opacity: .6; cursor: default; }
+
+/* APP */
+#app-screen { display: none; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px; }
+
+/* SECTIONS */
+.admin-section {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px 24px;
+  margin-bottom: 20px; box-shadow: var(--shadow);
+}
+.admin-section h2 {
+  font-size: .95rem; font-weight: 700; margin-bottom: 4px;
+  color: var(--accent); display: flex; align-items: center; gap: 8px;
+}
+.section-num {
+  background: var(--accent); color: #fff; border-radius: 50%;
+  width: 22px; height: 22px; display: inline-flex; align-items: center;
+  justify-content: center; font-size: .78rem; font-weight: 700; flex-shrink: 0;
+}
+.hint { font-size: .82rem; color: var(--text2); margin: 6px 0 14px; line-height: 1.5; }
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* BUTTONS */
+.btn { padding: 9px 16px; border-radius: var(--radius); border: none; cursor: pointer; font-size: .85rem; font-weight: 500; display: inline-flex; align-items: center; gap: 7px; transition: background .2s; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent2); }
+.btn-outline { background: var(--bg2); border: 1px solid var(--border); color: var(--text); }
+.btn-outline:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+.btn-danger  { background: var(--red-light); color: var(--red); border: 1px solid #e8b4b4; }
+.btn-danger:hover { background: var(--red); color: #fff; }
+.btn:disabled { opacity: .5; cursor: default; }
+
+/* MODELO TABLE */
+#modelo-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+#modelo-table th { background: var(--accent); color: #fff; padding: 8px 10px; text-align: left; font-weight: 600; }
+#modelo-table td { padding: 5px 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+#modelo-table tr:last-child td { border-bottom: none; }
+#modelo-table input[type="text"] {
+  width: 100%; padding: 5px 8px; border: 1px solid var(--border);
+  border-radius: 4px; background: var(--bg); color: var(--text); font-size: .85rem; outline: none;
+}
+#modelo-table input[type="text"]:focus { border-color: var(--accent); }
+#modelo-table select {
+  width: 100%; padding: 5px 6px; border: 1px solid var(--border);
+  border-radius: 4px; background: var(--bg); color: var(--text); font-size: .82rem; cursor: pointer;
+}
+.col-actions { display: flex; gap: 2px; justify-content: center; }
+.col-actions button { border: none; background: none; cursor: pointer; font-size: .9rem; padding: 2px 5px; border-radius: 4px; }
+.col-actions button:hover { background: var(--border); }
+.col-actions button:disabled { opacity: .25; cursor: default; }
+.col-actions button.del { color: var(--red); }
+.col-actions button.del:hover { background: var(--red-light); }
+.tipo-formula { font-size: .75rem; color: var(--text2); font-style: italic; }
+
+/* FORMULA HINT */
+#formula-hint {
+  margin-top: 14px; background: var(--accent-light); border: 1px solid var(--accent);
+  border-radius: 6px; padding: 12px 14px; font-size: .82rem;
+}
+#formula-hint strong { color: var(--accent); }
+.formula-code {
+  font-family: monospace; font-size: .78rem; background: var(--bg);
+  padding: 8px 10px; border-radius: 4px; margin-top: 6px;
+  overflow-x: auto; white-space: pre; line-height: 1.6;
+}
+
+/* PREVIEW TABLE */
+.table-wrap { overflow-x: auto; border-radius: 6px; box-shadow: var(--shadow); }
+table.preview-table { width: 100%; border-collapse: collapse; background: var(--bg2); font-size: .83rem; }
+table.preview-table thead th { background: var(--accent); color: #fff; padding: 8px 10px; text-align: left; white-space: nowrap; font-weight: 600; position: sticky; top: 56px; }
+table.preview-table tbody tr { border-bottom: 1px solid var(--border); }
+table.preview-table tbody tr:hover { background: var(--accent-light); }
+table.preview-table tbody td { padding: 7px 10px; vertical-align: middle; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: .73rem; font-weight: 600; }
+.badge-vigente  { background: #e8f5ec; color: #1b6b2a; }
+.badge-avencer  { background: #fff3e0; color: #a0580a; }
+.badge-urgente  { background: #fce4ec; color: #b71c1c; }
+.badge-expirado { background: #fafafa; color: #666; border: 1px solid #ddd; }
+.badge-default  { background: var(--accent-light); color: var(--accent); }
+.empty-state { text-align: center; padding: 40px; color: var(--text2); }
+.pagination { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 0; font-size: .83rem; color: var(--text2); }
+.pagination button { padding: 5px 11px; border: 1px solid var(--border); background: var(--bg2); border-radius: 6px; cursor: pointer; color: var(--text); font-size: .82rem; }
+.pagination button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.pagination button:disabled { opacity: .4; cursor: default; }
+
+/* IMPORT MODAL */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 300;
+  display: none; align-items: center; justify-content: center; padding: 16px;
+}
+.modal-overlay.open { display: flex; }
+.modal { background: var(--bg2); border-radius: var(--radius); max-width: 800px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,.3); }
+.modal-header { padding: 18px 22px 0; display: flex; justify-content: space-between; align-items: center; }
+.modal-header h2 { font-size: 1rem; font-weight: 600; }
+.modal-body { padding: 14px 22px; }
+.modal-footer { padding: 0 22px 18px; display: flex; gap: 8px; justify-content: flex-end; }
+.import-warning { background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; font-size: .85rem; color: #856404; }
+table.import-preview { width: 100%; border-collapse: collapse; font-size: .8rem; }
+table.import-preview thead th { background: var(--accent); color: #fff; padding: 7px 9px; white-space: nowrap; }
+table.import-preview tbody td { padding: 6px 9px; border-bottom: 1px solid var(--border); }
+
+/* LOADING + TOAST */
+#loading-bar { height: 3px; background: var(--accent); width: 0; transition: width .4s; position: fixed; top: 0; left: 0; z-index: 500; }
+#toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 10px 20px; border-radius: 20px; font-size: .88rem; z-index: 999; opacity: 0; transition: opacity .3s; pointer-events: none; color: #fff; }
+#toast.ok  { background: var(--accent); }
+#toast.err { background: var(--red); }
+
+#last-sync { font-size: .75rem; opacity: .8; }
+
+@media (max-width: 600px) { header h1 small { display: none; } }
 </style>
 </head>
 <body>
 
-<a href="#main-content" class="skip-link">Pular para o conteúdo principal</a>
-<div id="session-warn" class="session-warn" role="alert">
-  <span></span>
-  <button onclick="_resetActivity();document.getElementById('session-warn').style.display='none';">Manter sessão</button>
-</div>
-<!-- ══ LOGIN ══════════════════════════════════════════════════════════════════ -->
-<div id="login-screen" role="main" aria-label="Tela de login">
+<div id="loading-bar"></div>
+<div id="toast"></div>
+
+<!-- ── LOGIN ──────────────────────────────────────────────── -->
+<div id="login-screen">
   <div class="login-card">
-    <div class="login-logo">
-      <div class="login-logo-inner" aria-label="SEMA — Secretaria de Estado do Meio Ambiente do Acre">
-        <span class="login-logo-s">SEMA</span>
-        <div class="login-logo-d" aria-hidden="true"></div>
-        <div class="login-logo-f">
-          <span>Secretaria</span><span>de Estado do</span><span>Meio Ambiente</span>
-        </div>
-      </div>
+    <h2>🔒 SEMA/AC</h2>
+    <p>Painel Administrativo — Configuração do Painel Público</p>
+    <div class="form-group">
+      <label>Senha</label>
+      <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password"
+        onkeydown="if(event.key==='Enter')doLogin()">
     </div>
-    <div style="text-align:center;margin-bottom:14px;">
-      <span class="login-badge" role="note">🔒 Área restrita — ASJUR</span>
-    </div>
-    <p class="login-title">Painel Administrativo</p>
-    <p class="login-sub">Termos de Cooperação Técnica · v2</p>
-    <div id="login-err" class="login-err" role="alert">Senha incorreta. Tente novamente.</div>
-    <div class="fg">
-      <label for="pwd-input">Senha de acesso</label>
-      <input type="password" id="pwd-input" placeholder="••••••••"
-             onkeydown="if(event.key==='Enter')doLogin()"
-             autocomplete="current-password" aria-required="true"/>
-    </div>
-    <button class="btn-login" onclick="doLogin()">Entrar no painel</button>
-    <p class="login-hint">
-      Acesso restrito à Assessoria Jurídica da SEMA/AC<br>
-      Em caso de dúvidas: sema.gabin@gmail.com
-    </p>
+    <div id="login-error">Senha incorreta. Tente novamente.</div>
+    <button id="login-btn" onclick="doLogin()">Entrar</button>
   </div>
 </div>
 
-<!-- ══ APP ════════════════════════════════════════════════════════════════════ -->
-<div id="app" style="display:none;flex-direction:column;" role="application" aria-label="Painel administrativo SEMA">
-
-  <header class="app-header" role="banner">
-    <div class="app-header-inner">
-      <div class="sl" aria-label="SEMA — Secretaria de Estado do Meio Ambiente do Acre">
-        <span class="sl-s">SEMA</span><div class="sl-d" aria-hidden="true"></div>
-        <div class="sl-f"><span>Secretaria de Estado</span><span>do Meio Ambiente — AC</span></div>
-      </div>
-      <div class="hpills">
-        <span class="pill p-lock" role="note">🔒 Admin — ASJUR</span>
-        <span class="pill p-online" id="h-online" aria-live="polite">● Online</span>
-        <span class="pill p-user" id="h-date" aria-live="polite"></span>
-        <button class="btn-icon" onclick="toggleDarkMode()" id="btn-theme" title="Alternar modo escuro" aria-label="Alternar tema claro/escuro">☀</button>
-        <button class="btn-icon" onclick="document.getElementById('modal-help').classList.add('open')" title="Atalhos e ajuda (F1)" aria-label="Ajuda e atalhos de teclado">?</button>
-        <button class="btn-logout" onclick="doLogout()" aria-label="Encerrar sessão">Sair</button>
-      </div>
-    </div>
+<!-- ── APP ────────────────────────────────────────────────── -->
+<div id="app-screen">
+  <header>
+    <div class="status-dot" id="status-dot"></div>
+    <h1>SEMA/AC — Configuração
+      <small>Modelo da Planilha e Dados Públicos</small>
+    </h1>
+    <span id="last-sync"></span>
+    <button class="btn-icon" onclick="syncAll()" title="Sincronizar com Sheets">🔄</button>
+    <button class="btn-icon" id="btn-theme" onclick="toggleTheme()" title="Alternar tema">🌙</button>
+    <button class="btn-icon" onclick="doLogout()" title="Sair" style="background:rgba(255,0,0,.2)">⏏</button>
   </header>
 
-  <div class="app-subbar" role="navigation" aria-label="Navegação estrutural">
-    <div class="app-subbar-inner">
-      <span>Termos de Cooperação &rsaquo; <strong style="color:#fff;">Administração interna</strong>
-        &nbsp;|&nbsp; <span id="import-info" aria-live="polite">Nenhuma importação nesta sessão</span>
-      </span>
-      <div class="sync-pill"><span class="live-dot" aria-hidden="true"></span>Sessão ativa</div>
-    </div>
-  </div>
+  <main>
 
-  <main class="main" id="main-content" role="main">
+    <!-- ① DEFINIR MODELO -->
+    <div class="admin-section">
+      <h2><span class="section-num">1</span> Definir Modelo da Planilha</h2>
+      <p class="hint">
+        Configure as colunas que a sua planilha terá. Após definir,
+        baixe o modelo em branco (Etapa 2), preencha com os dados e importe (Etapa 3).
+        A estrutura reflete sempre o que está configurado no Google Sheets.
+      </p>
 
-    <!-- Alert vencimentos -->
-    <div id="alert-strip" class="alert-strip" role="alert" aria-live="polite" style="display:none;">
-      <svg width="18" height="18" fill="none" stroke="var(--r)" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      <div>
-        <div id="alert-text" style="font-size:12px;color:var(--r);font-weight:700;"></div>
-        <div id="alert-sub" style="font-size:10.5px;color:var(--r);opacity:.85;margin-top:2px;"></div>
-      </div>
-    </div>
-
-    <!-- KPIs -->
-    <div class="kpi-row" role="region" aria-label="Indicadores">
-      <div class="kpi kg"><div class="kpi-l">Total</div><div class="kpi-v" id="kpi-total" aria-live="polite">0</div><div class="kpi-s">registros</div></div>
-      <div class="kpi kg"><div class="kpi-l">Vigentes</div><div class="kpi-v" id="kpi-vig" aria-live="polite">0</div><div class="kpi-s">em vigência</div></div>
-      <div class="kpi ky"><div class="kpi-l">A vencer</div><div class="kpi-v" id="kpi-avenc" aria-live="polite">0</div><div class="kpi-s">90 dias</div></div>
-      <div class="kpi kr"><div class="kpi-l">30 dias</div><div class="kpi-v" id="kpi-30" aria-live="polite">0</div><div class="kpi-s">urgente</div></div>
-      <div class="kpi kp"><div class="kpi-l">Expirados</div><div class="kpi-v" id="kpi-exp" aria-live="polite">0</div><div class="kpi-s">sem renovação</div></div>
-    </div>
-
-    <!-- Toolbar -->
-    <div class="toolbar" role="toolbar" aria-label="Ações e filtros">
-      <input type="text" id="busca" placeholder="🔍 Objeto, SEI, instituição…" style="min-width:240px;" oninput="renderTable()" aria-label="Busca"/>
-      <select id="f-tipo" onchange="renderTable()" aria-label="Filtrar por tipo">
-        <option value="">Todos os tipos</option>
-        <option>ACT</option><option>Convênio</option><option>Protocolo</option><option>TAD</option><option>TCT</option>
-      </select>
-      <select id="f-status" onchange="renderTable()" aria-label="Filtrar por status">
-        <option value="">Todos os status</option>
-        <option>Vigente</option><option>A vencer</option><option>Vence em 30 dias</option><option>Expirado</option>
-      </select>
-      <select id="f-ano" onchange="renderTable()" aria-label="Filtrar por ano">
-        <option value="">Todos os anos</option>
-      </select>
-      <select id="f-resp" onchange="renderTable()" aria-label="Filtrar por responsável">
-        <option value="">Todos os responsáveis</option>
-      </select>
-      <div style="margin-left:auto;display:flex;gap:7px;flex-wrap:wrap;">
-        <button class="btn btn-g" onclick="openForm()" aria-label="Novo instrumento">+ Novo</button>
-        <button class="btn btn-y" onclick="openImport()" aria-label="Importar planilha Excel">↑ Importar</button>
-        <div style="position:relative;display:inline-flex;">
-          <button class="btn btn-dk" onclick="exportarFiltrados()" aria-label="Exportar filtrado XLSX" title="Exportar registros visíveis (XLSX)">↓ XLSX</button>
-          <button class="btn btn-dk" style="padding:7px 8px;" onclick="exportarFiltradosCSV()" aria-label="Exportar filtrado CSV" title="Exportar registros visíveis (CSV)">CSV</button>
-          <button class="btn btn-dk" style="padding:7px 8px;" onclick="exportarFiltradosPDF()" aria-label="Exportar filtrado PDF" title="Exportar registros visíveis (PDF)">PDF</button>
-          <button class="btn btn-dk" style="padding:7px 8px;" onclick="baixarBackup()" aria-label="Backup JSON" title="Backup completo em JSON">⬇</button>
-          <button class="btn btn-mail" style="padding:7px 10px;font-size:11px;" onclick="exportarParaSheets()" aria-label="Exportar para importação no Sheets" title="Gera XLSX no formato exato do Google Sheets para importação manual">📥 p/ Sheets</button>
-          <button class="btn btn-g" style="padding:7px 10px;font-size:11px;" onclick="baixarPlanilhaSheets()" aria-label="Baixar planilha atualizada do Sheets" title="Baixa os dados atuais diretamente do Google Sheets como XLSX">⬇ Sheets</button>
-        </div>
-        <button class="btn btn-mail" onclick="enviarAlertaLote()" aria-label="Enviar alerta por e-mail para vencimentos">✉ Alertar</button>
-        <button class="btn btn-o" onclick="limparFiltros()" aria-label="Limpar filtros">Limpar</button>
-      </div>
-    </div>
-
-    <!-- Bulk bar -->
-    <div id="bulk-bar" class="bulk-bar hidden" role="toolbar" aria-label="Ações em lote">
-      <span id="bulk-count">0 selecionados</span>
-      <button class="btn btn-r" style="font-size:11px;" onclick="excluirSelecionados()" aria-label="Excluir selecionados">🗑 Excluir selecionados</button>
-      <button class="btn btn-dk" style="font-size:11px;" onclick="exportarSelecionados()" aria-label="Exportar selecionados XLSX">↓ XLSX</button>
-      <button class="btn btn-dk" style="font-size:11px;" onclick="exportarSelecionadosCSV()" aria-label="Exportar selecionados CSV">CSV</button>
-      <button class="btn btn-dk" style="font-size:11px;" onclick="exportarSelecionadosPDF()" aria-label="Exportar selecionados PDF">PDF</button>
-      <button class="btn btn-mail" style="font-size:11px;" onclick="alertarSelecionados()" aria-label="Enviar alerta para selecionados">✉ E-mail selecionados</button>
-    </div>
-
-    <!-- Undo bar -->
-    <div id="undo-bar" class="undo-bar hidden" role="status" aria-live="polite">
-      <span id="undo-msg">Registro excluído</span>
-      <button id="btn-undo" class="btn btn-y" style="font-size:11px;" onclick="undo()" aria-label="Desfazer">↩ Desfazer (<span id="undo-timer">5</span>s)</button>
-      <button class="btn btn-o" style="font-size:11px;" onclick="redo()" aria-label="Refazer">↪ Refazer</button>
-    </div>
-
-    <!-- Table -->
-    <div class="tbl-wrap" role="region" aria-label="Tabela de instrumentos">
-      <div class="tbl-scroll">
-        <table aria-label="Termos de Cooperação — administração interna">
+      <div style="overflow-x:auto">
+        <table id="modelo-table">
           <thead>
             <tr>
-              <th scope="col" class="cb-cell"><input type="checkbox" id="sel-all" onchange="toggleSelectAll()" aria-label="Selecionar todos"/></th>
-              <th scope="col" onclick="sortBy('tipo')">Tipo <span class="si">↕</span></th>
-              <th scope="col" onclick="sortBy('num')">Nº <span class="si">↕</span></th>
-              <th scope="col">Objeto</th>
-              <th scope="col" onclick="sortBy('inst')">Instituição <span class="si">↕</span></th>
-              <th scope="col" onclick="sortBy('esfera')">Esfera <span class="si">↕</span></th>
-              <th scope="col" onclick="sortBy('termino')" class="sorted">Término <span class="si">↑</span></th>
-              <th scope="col" onclick="sortBy('status')">Status <span class="si">↕</span></th>
-              <th scope="col">Dias</th>
-              <th scope="col" class="int-col" onclick="sortBy('sei')">SEI <span class="si">↕</span></th>
-              <th scope="col" class="int-col" onclick="sortBy('resp')">Responsável <span class="si">↕</span></th>
-              <th scope="col" class="int-col">Alerta</th>
-              <th scope="col" class="int-col">Situação</th>
-              <th scope="col">Ações</th>
+              <th style="width:36px">#</th>
+              <th>Nome da Coluna</th>
+              <th style="width:120px">Tipo</th>
+              <th style="width:96px;text-align:center">Ações</th>
             </tr>
           </thead>
-          <tbody id="tbody" aria-live="polite"></tbody>
+          <tbody id="modelo-body"></tbody>
         </table>
       </div>
-      <div class="tbl-foot">
-        <span id="tbl-count" aria-live="polite">Carregando…</span>
-        <span style="color:#ccc;font-size:10px;">Cabeçalhos vermelhos = dados internos · SEI com tooltip ao passar o mouse · clique nos cabeçalhos para ordenar</span>
+
+      <div style="margin-top:12px">
+        <button class="btn btn-outline" onclick="adicionarColuna()">+ Adicionar coluna</button>
+      </div>
+
+      <div id="formula-hint" style="display:none">
+        <strong>ℹ️ Colunas do tipo "fórmula"</strong> são excluídas do CSV gerado — elas devem ser
+        configuradas diretamente no Google Sheets.<br>
+        Copie as fórmulas abaixo para as células correspondentes (ajuste a coluna da data de término):
+        <div class="formula-code">Status           =SE(G3="";"";SE(HOJE()&gt;G3;"Expirado";SE(G3-HOJE()&lt;=30;"Vence em 30 dias";SE(G3-HOJE()&lt;=90;"A vencer";"Vigente"))))
+Dias Restantes   =SE(G3="";"";G3-HOJE())</div>
       </div>
     </div>
 
-    <!-- Configurações -->
-    <div class="settings-box" role="region" aria-label="Configurações de acesso">
-      <p class="settings-title">🔒 Alterar senha do painel admin</p>
-      <div class="settings-row">
-        <div class="mf" style="flex:1;min-width:150px;"><label for="pwd-atual">Senha atual</label><input type="password" id="pwd-atual" placeholder="Senha atual"/></div>
-        <div class="mf" style="flex:1;min-width:150px;"><label for="pwd-nova">Nova senha</label><input type="password" id="pwd-nova" placeholder="Nova senha (mín. 6 chars)"/></div>
-        <div class="mf" style="flex:1;min-width:150px;"><label for="pwd-conf">Confirmar</label><input type="password" id="pwd-conf" placeholder="Repetir nova senha"/></div>
-        <button class="btn btn-y" onclick="alterarSenha()" aria-label="Salvar nova senha">Alterar</button>
+    <!-- ② EXPORTAR -->
+    <div class="admin-section">
+      <h2><span class="section-num">2</span> Exportar</h2>
+      <p class="hint">
+        Baixe o <strong>modelo em branco</strong> para preencher com dados no Excel/LibreOffice,
+        ou baixe os <strong>dados atuais</strong> como backup ou para edição offline.
+      </p>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="baixarModeloCsv()">⬇ Modelo em branco</button>
+        <button class="btn btn-outline" onclick="exportarPlanilha()">⬇ Dados atuais do Sheets</button>
       </div>
-      <p id="pwd-msg" style="font-size:11px;margin-top:8px;display:none;" aria-live="polite"></p>
-      <p style="font-size:10.5px;color:var(--a);margin-top:10px;">⚠ A senha é armazenada com hash SHA-256 na sessão. Para tornar permanente: edite a constante SENHA_HASH no código-fonte.</p>
     </div>
 
-    <!-- Visibilidade Pública -->
-    <div class="settings-box" style="margin-top:16px;" role="region" aria-label="Visibilidade de campos no painel público">
-      <p class="settings-title">👁 Visibilidade de campos no painel público</p>
-      <p style="font-size:11px;color:var(--tx2);margin-bottom:12px;">Marque os campos que devem aparecer no painel público. Tipo e Número são sempre exibidos.</p>
-      <div id="field-visibility-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin-bottom:14px;">
-        <!-- Preenchido por loadFieldConfig() -->
-        <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;"><input type="checkbox" id="fv-objeto" checked> Objeto / Descrição</label>
-        <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;"><input type="checkbox" id="fv-inst" checked> Instituição Parceira</label>
-        <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;"><input type="checkbox" id="fv-esfera" checked> Esfera</label>
-        <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;"><input type="checkbox" id="fv-inicio" checked> Data de Início</label>
-        <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;"><input type="checkbox" id="fv-termino" checked> Data de Término</label>
-        <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;"><input type="checkbox" id="fv-area" checked> Área Temática</label>
-        <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;"><input type="checkbox" id="fv-obs" checked> Observações</label>
-        <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;"><input type="checkbox" id="fv-sei" checked> Número SEI</label>
-        <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;"><input type="checkbox" id="fv-linkDoc" checked> Link do Documento</label>
-        <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;"><input type="checkbox" id="fv-dias" checked> Coluna Dias</label>
-        <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;"><input type="checkbox" id="fv-status" checked> Status</label>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <button class="btn btn-g" onclick="salvarFieldConfig()" aria-label="Salvar configuração de visibilidade">💾 Salvar configuração</button>
-        <span id="fv-status-msg" style="font-size:11px;color:var(--tx2);"></span>
-      </div>
-      <p style="font-size:10.5px;color:var(--tx2);margin-top:8px;">A configuração é salva no Google Apps Script e aplicada automaticamente no painel público.</p>
+    <!-- ③ IMPORTAR -->
+    <div class="admin-section">
+      <h2><span class="section-num">3</span> Importar Dados</h2>
+      <p class="hint">
+        Selecione um arquivo CSV preenchido para substituir <strong>todos os dados</strong>
+        da planilha no Google Sheets. Os cabeçalhos da linha 2 do Sheets são preservados.
+      </p>
+      <input type="file" id="file-import" accept=".csv" style="display:none" onchange="lerArquivoImport(event)">
+      <button class="btn btn-outline" onclick="document.getElementById('file-import').click()">
+        ⬆ Selecionar planilha CSV
+      </button>
     </div>
 
-    <!-- ══ SYNC DASHBOARD ═══════════════════════════════════════════════════ -->
-    <div class="divider" style="margin-top:24px;"></div>
-    <div id="sync-dashboard" role="region" aria-label="Painel de sincronização">
-      <div class="section-hd">
-        <span class="section-title">🔄 Sincronização com Google Sheets</span>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-g" onclick="doManualSync()" id="btn-sync" aria-label="Sincronizar agora">⟳ Sync manual</button>
-          <button class="btn btn-o" onclick="publicarTudo()" id="btn-publicar" aria-label="Publicar todos os registros no Google Sheets">☁ Publicar tudo no Sheets</button>
-          <button class="btn btn-s" onclick="testarConexao()" id="btn-testar" aria-label="Testar conexão com Apps Script">🔌 Testar Conexão</button>
-          <button class="btn btn-o" onclick="clearLogs()" aria-label="Limpar logs">🗑 Limpar logs</button>
-        </div>
+    <!-- ④ PREVIEW (somente leitura) -->
+    <div class="admin-section">
+      <h2>
+        Dados atuais no Sheets
+        <span id="dados-count" style="font-weight:400;font-size:.82rem;color:var(--text2)"></span>
+      </h2>
+      <div class="table-wrap">
+        <table class="preview-table">
+          <thead><tr id="table-head"><th style="opacity:.6">Carregando…</th></tr></thead>
+          <tbody id="table-body"></tbody>
+        </table>
       </div>
-
-      <!-- Status cards -->
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;">
-        <div class="kpi kg">
-          <div class="kpi-l">Status</div>
-          <div id="sd-status" class="kpi-v" style="font-size:16px;line-height:1.3;" aria-live="polite">—</div>
-        </div>
-        <div class="kpi kb">
-          <div class="kpi-l">Último sync</div>
-          <div id="sd-last" class="kpi-v" style="font-size:14px;line-height:1.4;" aria-live="polite">—</div>
-        </div>
-        <div class="kpi ky">
-          <div class="kpi-l">Registros</div>
-          <div id="sd-count" class="kpi-v" aria-live="polite">—</div>
-          <div id="sd-dirty" class="kpi-s"></div>
-        </div>
-        <div class="kpi kr">
-          <div class="kpi-l">Erros totais</div>
-          <div id="sd-errs" class="kpi-v" aria-live="polite">0</div>
-          <div id="sd-connected" class="kpi-s"></div>
-        </div>
-      </div>
-
-      <!-- Interval config -->
-      <div style="background:var(--gl);border:1px solid var(--gb);border-radius:8px;padding:14px 16px;margin-bottom:16px;">
-        <div style="font-size:11px;font-weight:700;color:var(--gd);margin-bottom:10px;">⚙️  Configuração de sincronização</div>
-        <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
-          <div class="mf" style="flex-shrink:0;">
-            <label for="sd-interval">Intervalo de auto-sync</label>
-            <select id="sd-interval" onchange="updateInterval()" aria-label="Intervalo de sincronização automática">
-              <option value="0">Manual (desabilitado)</option>
-              <option value="60000">1 minuto</option>
-              <option value="300000" selected>5 minutos</option>
-              <option value="600000">10 minutos</option>
-              <option value="1800000">30 minutos</option>
-            </select>
-          </div>
-          <div class="mf" style="flex-shrink:0;">
-            <label for="sd-conflict">Resolução de conflito</label>
-            <select id="sd-conflict" onchange="updateConflict()" aria-label="Modo de resolução de conflito">
-              <option value="newest">Mais recente vence</option>
-              <option value="local">Local sempre vence</option>
-              <option value="remote">Remoto sempre vence</option>
-            </select>
-          </div>
-          <div id="sd-url-status" style="font-size:11px;padding:8px 12px;border-radius:6px;align-self:flex-end;"></div>
-        </div>
-      </div>
-
-      <!-- Log panel -->
-      <div style="background:#fff;border:1px solid var(--bdr);border-radius:10px;overflow:hidden;">
-        <div style="background:var(--gl);padding:10px 14px;border-bottom:1px solid var(--gb);
-          display:flex;align-items:center;justify-content:space-between;">
-          <span style="font-size:11px;font-weight:700;color:var(--gd);">📋 Log de eventos — últimas 50 entradas</span>
-          <span id="sd-log-count" style="font-size:10px;color:var(--tx2);">0 eventos</span>
-        </div>
-        <div id="sync-log" style="max-height:240px;overflow-y:auto;font-family:monospace;font-size:10.5px;padding:0;"
-             role="log" aria-live="polite" aria-label="Log de eventos de sincronização">
-          <div style="padding:20px;text-align:center;color:var(--tx2);">Aguardando eventos…</div>
-        </div>
-      </div>
+      <div class="pagination" id="pagination"></div>
     </div>
 
   </main>
 </div>
 
-<!-- ══ MODAL FORM ═════════════════════════════════════════════════════════════ -->
-<div id="modal-form" class="modal-bd" role="dialog" aria-modal="true" aria-labelledby="form-title"
-     onclick="if(event.target===this)closeForm()">
+<!-- ── MODAL DE PREVIEW DE IMPORTAÇÃO ─────────────────────── -->
+<div id="import-overlay" class="modal-overlay">
   <div class="modal">
-    <div class="modal-hd">
-      <span class="modal-title" id="form-title">Novo Instrumento</span>
-      <button class="modal-x" onclick="closeForm()" aria-label="Fechar formulário">✕</button>
+    <div class="modal-header">
+      <h2>⬆ Importar planilha — Confirmar</h2>
+      <button class="btn-icon" onclick="fecharImport()"
+        style="color:var(--text2);background:var(--border)">✕</button>
     </div>
     <div class="modal-body">
-      <div class="msec">Dados públicos</div>
-      <div class="mgrid">
-        <div class="mf"><label for="f-tipo2">Tipo *</label>
-          <select id="f-tipo2"><option value="">Selecionar…</option><option>ACT</option><option>Convênio</option><option>Protocolo</option><option>TAD</option><option>TCU</option><option>TCT</option><option>Rescisão</option></select>
-          <div class="ferrmsg" id="err-tipo">Campo obrigatório</div></div>
-        <div class="mf"><label for="f-num">Número *</label>
-          <input type="text" id="f-num" placeholder="Ex: 49/2025"/>
-          <div class="ferrmsg" id="err-num">Campo obrigatório</div></div>
+      <div class="import-warning">
+        ⚠️ <strong>Atenção:</strong> ao confirmar, <strong>TODOS</strong> os dados atuais
+        da planilha Google Sheets serão substituídos pelos dados do arquivo selecionado.
+        Esta ação não pode ser desfeita.
       </div>
-      <div class="mgrid" style="margin-top:12px;">
-        <div class="mf mg1"><label for="f-objeto">Objeto público * <span style="color:var(--tx2);font-weight:400;">(máx. 200 chars)</span></label>
-          <textarea id="f-objeto" placeholder="Descrição visível ao cidadão…" oninput="countChars(this,200,'cnt-obj')"></textarea>
-          <span id="cnt-obj" style="font-size:10px;color:var(--tx2);">0/200</span>
-          <div class="ferrmsg" id="err-obj">Campo obrigatório</div></div>
-      </div>
-      <div class="mgrid" style="margin-top:12px;">
-        <div class="mf"><label for="f-inst">Instituição parceira *</label>
-          <input type="text" id="f-inst" placeholder="Nome completo — sigla"/>
-          <div class="ferrmsg" id="err-inst">Campo obrigatório</div></div>
-        <div class="mf"><label for="f-esfera">Esfera</label>
-          <select id="f-esfera"><option value="">Selecionar…</option><option>Federal</option><option>Estadual</option><option>Municipal</option><option>Misto</option></select></div>
-      </div>
-      <div class="mgrid3" style="margin-top:12px;">
-        <div class="mf"><label for="f-inicio">Data início *</label>
-          <input type="date" id="f-inicio" onchange="validarDatas()"/>
-          <div class="ferrmsg" id="err-inicio">Obrigatório</div></div>
-        <div class="mf"><label for="f-termino">Data término *</label>
-          <input type="date" id="f-termino" onchange="validarDatas()"/>
-          <div class="ferrmsg" id="err-termino">Deve ser após o início</div></div>
-        <div class="mf"><label for="f-area">Área temática</label>
-          <select id="f-area">
-            <option value="">Selecionar…</option>
-            <option>Gestão ambiental</option><option>Monitoramento ambiental</option>
-            <option>Educação ambiental</option><option>Recuperação de áreas degradadas</option>
-            <option>Biodiversidade</option><option>ZEE / Ordenamento territorial</option>
-            <option>Recursos hídricos</option><option>Mudanças climáticas</option>
-            <option>Floresta / REDD+</option><option>Fiscalização ambiental</option><option>Gestão institucional</option>
-          </select></div>
-      </div>
-      <div class="mgrid" style="margin-top:12px;">
-        <div class="mf"><label for="f-link">Link documento (PDF)</label>
-          <input type="url" id="f-link" placeholder="https://…"/></div>
-        <div class="mf"><label for="f-obs">Obs. públicas</label>
-          <input type="text" id="f-obs" placeholder="Opcional"/></div>
-      </div>
-      <div class="msec int" style="margin-top:18px;">Dados internos — uso exclusivo ASJUR</div>
-      <div class="mgrid">
-        <div class="mf"><label for="f-sei">Nº Processo SEI</label>
-          <input type="text" id="f-sei" class="int-f" placeholder="0007444-12.2025.8.01.0000"/></div>
-        <div class="mf"><label for="f-resp2">Servidor responsável</label>
-          <input type="text" id="f-resp2" class="int-f" placeholder="Ex: Wesley Jucá"/></div>
-      </div>
-      <div class="mgrid" style="margin-top:12px;">
-        <div class="mf"><label for="f-statusint">Situação interna</label>
-          <select id="f-statusint" class="int-f">
-            <option value="">Selecionar…</option>
-            <option>Rascunho</option><option>Em elaboração</option>
-            <option>Em análise jurídica</option><option>Assinado / Vigente</option>
-            <option>Rescindido / Encerrado</option>
-          </select></div>
-        <div class="mf"><label for="f-alerta">Alerta manual (aparece em vermelho)</label>
-          <input type="text" id="f-alerta" class="int-f" placeholder="Ex: RENOVAR — contato urgente"/></div>
-      </div>
-      <div class="mgrid" style="margin-top:12px;">
-        <div class="mf mg1"><label for="f-notas">Notas internas</label>
-          <textarea id="f-notas" class="int-f" placeholder="Histórico, pendências, contatos…"></textarea></div>
+      <p id="import-count" style="margin-bottom:10px;font-size:.85rem;color:var(--text2)"></p>
+      <div style="overflow-x:auto;border-radius:4px;box-shadow:var(--shadow)">
+        <table class="import-preview">
+          <thead><tr id="import-head"></tr></thead>
+          <tbody id="import-body"></tbody>
+        </table>
       </div>
     </div>
-    <div class="modal-ft">
-      <button class="btn btn-o" onclick="closeForm()">Cancelar</button>
-      <button class="btn btn-g" onclick="salvar()">Salvar registro</button>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="fecharImport()">Cancelar</button>
+      <button class="btn btn-danger" id="import-confirm-btn" onclick="confirmarImport()">
+        ✅ Confirmar substituição
+      </button>
     </div>
-  </div>
-</div>
-
-<!-- ══ MODAL IMPORTAR ═════════════════════════════════════════════════════════ -->
-<div id="modal-import" class="modal-bd" role="dialog" aria-modal="true" aria-label="Importar planilha"
-     onclick="if(event.target===this)closeImport()">
-  <div class="modal" style="max-width:560px;">
-    <div class="modal-hd">
-      <span class="modal-title">Importar planilha Excel (.xlsx)</span>
-      <button class="modal-x" onclick="closeImport()" aria-label="Fechar">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="import-zone" id="drop-zone" tabindex="0" role="button"
-           aria-label="Clique ou arraste para importar planilha"
-           onclick="document.getElementById('file-input').click()"
-           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('file-input').click();}"
-           ondragover="event.preventDefault();this.classList.add('drag')"
-           ondragleave="this.classList.remove('drag')"
-           ondrop="handleDrop(event)">
-        <div style="font-size:36px;margin-bottom:10px;" aria-hidden="true">📂</div>
-        <p style="font-size:14px;font-weight:700;color:var(--gd);margin-bottom:4px;">Clique ou arraste a planilha aqui</p>
-        <span style="font-size:12px;color:var(--tx2);">SEMA_Planilha_TCT_v1.xlsx · aceita .xlsx e .xls</span>
-      </div>
-      <input type="file" id="file-input" accept=".xlsx,.xls" style="display:none" onchange="handleFile(event)" aria-label="Selecionar arquivo"/>
-      <div id="import-prev" class="import-prev" aria-live="polite"></div>
-      <div id="import-warn" class="import-warn" aria-live="polite"></div>
-      <div style="margin-top:14px;background:#f4f4f4;border-radius:7px;padding:11px 14px;font-size:11px;color:var(--tx2);">
-        <strong>Como funciona:</strong> a aba <em>DADOS_PÚBLICOS</em> é lida. Registros com número já existente são detectados como duplicatas — você escolhe o que fazer.
-      </div>
-    </div>
-    <div class="modal-ft">
-      <button class="btn btn-o" onclick="closeImport()">Cancelar</button>
-      <button class="btn btn-g" id="btn-import-ok" style="display:none;" onclick="confirmarImport()">Carregar dados</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══ MODAL CONFIRMAR EXCLUIR ════════════════════════════════════════════════ -->
-<div id="modal-del" class="modal-bd" role="dialog" aria-modal="true" aria-label="Confirmar exclusão"
-     onclick="if(event.target===this)cancelDel()">
-  <div class="confirm-card">
-    <div class="confirm-icon" aria-hidden="true">🗑</div>
-    <div class="confirm-title">Confirmar exclusão</div>
-    <div class="confirm-sub" id="del-sub">Este registro será removido.</div>
-    <div class="confirm-btns">
-      <button class="btn btn-o" onclick="cancelDel()">Cancelar</button>
-      <button class="btn btn-r" onclick="confirmarDel()">Excluir</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══ MODAL CONFIRMAR GENÉRICO ══════════════════════════════════════════════ -->
-<div id="modal-confirm" class="confirm-modal" role="dialog" aria-modal="true" aria-label="Confirmação">
-  <div class="confirm-modal-box">
-    <div class="confirm-modal-title" id="modal-confirm-title">Confirmar</div>
-    <div class="confirm-modal-msg" id="modal-confirm-msg"></div>
-    <div class="confirm-modal-btns">
-      <button class="btn btn-o" id="modal-confirm-cancel">Cancelar</button>
-      <button class="btn btn-r" id="modal-confirm-ok">Confirmar</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══ MODAL AJUDA / ATALHOS ══════════════════════════════════════════════════ -->
-<div id="modal-help" class="help-modal" role="dialog" aria-modal="true" aria-label="Ajuda — Atalhos de teclado"
-     onclick="if(event.target===this)this.classList.remove('open')">
-  <div class="help-modal-box">
-    <div class="help-modal-title">
-      <span>Atalhos de teclado</span>
-      <button class="btn-icon" style="color:var(--tx2)" onclick="document.getElementById('modal-help').classList.remove('open')" aria-label="Fechar ajuda">✕</button>
-    </div>
-    <table class="help-table" aria-label="Atalhos de teclado disponíveis">
-      <tr><td colspan="2" class="help-section">Navegação</td></tr>
-      <tr><td>Esc</td><td>Fechar modal aberto</td></tr>
-      <tr><td>F1 / ?</td><td>Abrir este painel de ajuda</td></tr>
-      <tr><td colspan="2" class="help-section">Tabela</td></tr>
-      <tr><td>Ctrl + F</td><td>Focar campo de busca</td></tr>
-      <tr><td>Del</td><td>Excluir registros selecionados</td></tr>
-      <tr><td colspan="2" class="help-section">Import / Export</td></tr>
-      <tr><td>Ctrl + I</td><td>Abrir importação de planilha</td></tr>
-      <tr><td>Ctrl + E</td><td>Exportar XLSX (filtrado)</td></tr>
-      <tr><td colspan="2" class="help-section">Admin</td></tr>
-      <tr><td>Ctrl + S</td><td>Salvar registro em edição</td></tr>
-      <tr><td>Ctrl + Z</td><td>Desfazer última ação</td></tr>
-      <tr><td>Ctrl + Y</td><td>Refazer</td></tr>
-    </table>
-    <p style="font-size:11px;color:var(--tx2);margin-top:14px;">☀/🌙 = alternar tema claro/escuro (botão no cabeçalho)</p>
   </div>
 </div>
 
 <script>
-// ── SEGURANÇA — SHA-256 ────────────────────────────────────────────────────────
-// Hash SHA-256 de "SEMA@2026" (gerado via: echo -n "SEMA@2026" | sha256sum)
-// Prioridade: SEMA_CONFIG.senhaHash (injetado pelo CI/CD) > constante local
-const _SENHA_HASH_LOCAL = 'ec2a985f5a4af70e1974f5c3fa0e5fd0e5397b5a73d411c9c054204d1f6b75d5';
-function getSenhaHash() {
-  const cfg = (typeof SEMA_CONFIG !== 'undefined') ? SEMA_CONFIG : {};
-  const h = cfg.senhaHash || '';
-  return (h && !h.startsWith('%%')) ? h : _SENHA_HASH_LOCAL;
+/* ─── CONFIG ──────────────────────────────────────────────── */
+let GAS_URL    = 'https://script.google.com/macros/s/SEU_SCRIPT_ID/exec';
+let SYNC_TOKEN = '%%SYNC_TOKEN%%';
+let SENHA_HASH = '%%SENHA_HASH%%';
+
+if (typeof SEMA_CONFIG !== 'undefined') {
+  if (SEMA_CONFIG.appsScriptUrl) GAS_URL    = SEMA_CONFIG.appsScriptUrl;
+  if (SEMA_CONFIG.syncToken)     SYNC_TOKEN = SEMA_CONFIG.syncToken;
+  if (SEMA_CONFIG.senhaHash)     SENHA_HASH = SEMA_CONFIG.senhaHash;
 }
 
-async function hashSenha(senha){
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(senha));
-  return [...new Uint8Array(buf)].map(x=>x.toString(16).padStart(2,'0')).join('');
+const POLL_MS = 120_000;
+
+/* ─── ESTADO ─────────────────────────────────────────────── */
+let _schema    = [];  // [{key, label, col}] — lido do Sheets
+let _modelCols = [];  // [{name, type}]      — sempre derivado de _schema, SEM localStorage
+let _records   = [];  // dados do Sheets (para preview)
+let _page      = 1;
+let _pollTimer = null;
+let _importRecords = [];
+
+const PAGE = 50;
+const TIPOS_COLUNA = ['texto', 'data', 'url', 'número', 'fórmula'];
+const TIPO_EXEMPLOS = { 'texto':'Texto de exemplo', 'data':'dd/mm/aaaa', 'url':'https://exemplo.com', 'número':'0', 'fórmula':'' };
+
+/* ─── LOGIN ──────────────────────────────────────────────── */
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
-// ── ESTADO ────────────────────────────────────────────────────────────────────
-let dados=[], filtrados=[], sortField='termino', sortAsc=true;
-let editIdx=null, delIdx=null, pendImport=null, undoTimer=null;
-let _undoStack=[], _redoStack=[];
-let selSet=new Set();
-let _editOriginal=null;
+let _failCount = 0, _lockUntil = 0;
 
-function _autosave(){try{sessionStorage.setItem('sema_dados_cache',JSON.stringify(dados));}catch(_){}}
-function _pushUndo(){if(_undoStack.length>=10)_undoStack.shift();_undoStack.push(JSON.stringify(dados));_redoStack=[];_updateUndoBtn();}
-function _updateUndoBtn(){const b=document.getElementById('btn-undo');if(b)b.textContent=`↩ Desfazer${_undoStack.length>0?' ('+_undoStack.length+')':''}`;}
-function undo(){
-  if(!_undoStack.length)return;
-  _redoStack.push(JSON.stringify(dados));
-  dados=JSON.parse(_undoStack.pop());
-  clearInterval(undoTimer);document.getElementById('undo-bar').classList.add('hidden');
-  _autosave();popularFiltros();renderTable();updateKPIs();_updateUndoBtn();
-  showToast('Desfeito','ok',2000);
-}
-function redo(){
-  if(!_redoStack.length){showToast('Nada para refazer','warn',2000);return;}
-  _undoStack.push(JSON.stringify(dados));
-  dados=JSON.parse(_redoStack.pop());
-  _autosave();popularFiltros();renderTable();updateKPIs();_updateUndoBtn();
-  showToast('Refeito','ok',2000);
-}
-
-// ── DADOS INICIAIS (extraídos da planilha oficial) ────────────────────────────
-const DEMO=[
-  // 2021
-  {tipo:'ACT',num:'01/2021',ano:2021,objeto:'Cooperação técnica para implementação de ações ambientais no Município de Jordão',inst:'Prefeitura Municipal de Jordão',esfera:'Municipal',inicio:'2021-01-01',termino:'2023-12-31',area:'Gestão ambiental',link:'',obs:'Não possui extrato de publicação nos autos',sei:'0820.009813.00122/2021-21',resp:'',statusInt:'Vencido',alerta:'',notas:''},
-  {tipo:'ACT',num:'02/2021',ano:2021,objeto:'Cooperação técnica para implementação de ações ambientais no Município de Senador Guiomard',inst:'Prefeitura Municipal de Senador Guiomard',esfera:'Municipal',inicio:'2021-01-01',termino:'2023-12-31',area:'Gestão ambiental',link:'',obs:'Não possui extrato de publicação nos autos',sei:'0820.009813.00122/2021-21',resp:'',statusInt:'Vencido',alerta:'',notas:''},
-  // 2022
-  {tipo:'ACT',num:'01/2022',ano:2022,objeto:'Cooperação técnica para gestão ambiental integrada entre SEMA e IMAC',inst:'Instituto de Meio Ambiente do Acre – IMAC',esfera:'Estadual',inicio:'2022-01-01',termino:'2022-12-31',area:'Gestão ambiental',link:'',obs:'DOE Nº 13.214',sei:'0820.009813.00014/2022-30',resp:'',statusInt:'Vencido',alerta:'',notas:''},
-  {tipo:'ACT',num:'02/2022',ano:2022,objeto:'Cooperação técnica para implementação de ações ambientais no Município de Sena Madureira',inst:'Prefeitura Municipal de Sena Madureira',esfera:'Municipal',inicio:'2022-01-01',termino:'2023-12-31',area:'Gestão ambiental',link:'',obs:'Processo na Div. de Patrimônio sem assinatura da prefeitura',sei:'0820.009813.00111/2022-22',resp:'',statusInt:'Vencido',alerta:'',notas:''},
-  // 2023
-  {tipo:'ACT',num:'01/2023',ano:2023,objeto:'Cooperação técnica para conservação, proteção da biodiversidade e implementação de programas ambientais',inst:'Conservation International do Brasil',esfera:'Privado',inicio:'2023-01-01',termino:'2024-04-30',area:'Biodiversidade',link:'',obs:'DOE Nº 13.667',sei:'0820.009813.00037/2023-25',resp:'Claudio Cavalcante',statusInt:'Vencido',alerta:'',notas:''},
-  {tipo:'ACT',num:'02/2023',ano:2023,objeto:'Cooperação técnica entre CBMAC e FGV para desenvolvimento de projetos de pesquisa e capacitação',inst:'Fundação Getúlio Vargas – FGV / CBMAC',esfera:'Federal',inicio:'2023-01-01',termino:'2025-02-17',area:'Pesquisa e inovação',link:'',obs:'DOE Nº 13.717',sei:'0820.013300.00019/2023-73',resp:'',statusInt:'Vencido',alerta:'',notas:''},
-  {tipo:'ACT',num:'03/2023',ano:2023,objeto:'Cooperação técnica para monitoramento e proteção ambiental por meio de sistemas de vigilância',inst:'CENSIPAM – Centro Gestor e Operacional do SIPAM/MD',esfera:'Federal',inicio:'2023-01-01',termino:'2025-05-15',area:'Monitoramento ambiental',link:'',obs:'DOU Nº 92/2020',sei:'0820.017129.00009/2023-45',resp:'',statusInt:'Vencido',alerta:'',notas:''},
-  {tipo:'ACT',num:'04/2023',ano:2023,objeto:'Cooperação técnica para pesquisa, desenvolvimento e inovação em tecnologias agropecuárias e ambientais',inst:'EMBRAPA',esfera:'Federal',inicio:'2023-01-01',termino:'2026-04-18',area:'Pesquisa e inovação',link:'',obs:'DOU Nº 77/2024',sei:'0820.008309.00061/2023-92',resp:'',statusInt:'Assinado / Vigente',alerta:'',notas:''},
-  {tipo:'ACT',num:'05/2023',ano:2023,objeto:'Cooperação técnica para monitoramento hidrometeorológico e climático no estado do Acre',inst:'INMET – Instituto Nacional de Meteorologia',esfera:'Federal',inicio:'2023-01-01',termino:'2029-10-16',area:'Monitoramento ambiental',link:'',obs:'DOU Nº 202/2024',sei:'0820.009800.00524/2023-09',resp:'',statusInt:'Assinado / Vigente',alerta:'',notas:''},
-  {tipo:'ACT',num:'06/2023',ano:2023,objeto:'Cooperação técnica para monitoramento e gestão dos recursos hídricos do estado do Acre',inst:'ANA – Agência Nacional de Águas e Saneamento Básico',esfera:'Federal',inicio:'2023-01-01',termino:'2030-01-15',area:'Monitoramento ambiental',link:'',obs:'DOU Nº 22/2025',sei:'0820.009800.00612/2023-01',resp:'Edvaldo de Araújo Paiva (titular) / Ylza Marluce Silva de Lima (suplente)',statusInt:'Assinado / Vigente',alerta:'',notas:''},
-  {tipo:'ACT',num:'07/2023',ano:2023,objeto:'Cooperação técnica para o Projeto ASL Fase 2 em parceria com FGV',inst:'Fundação Getúlio Vargas – FGV (ASL Fase 2)',esfera:'Federal',inicio:'2023-01-01',termino:'',area:'Pesquisa e inovação',link:'',obs:'',sei:'0820.009800.00495/2023-77',resp:'',statusInt:'Aguardando Assinaturas',alerta:'',notas:''},
-  {tipo:'ACT',num:'08/2023',ano:2023,objeto:'Cooperação técnica para conservação da Amazônia e implementação de projetos de sustentabilidade ambiental',inst:'WWF-Brasil',esfera:'Privado',inicio:'2023-01-01',termino:'',area:'Biodiversidade',link:'',obs:'',sei:'0820.013300.00023/2023-31',resp:'',statusInt:'Em Tratativas',alerta:'',notas:''},
-  {tipo:'ACT',num:'09/2023',ano:2023,objeto:'Cooperação técnica entre SEMA, MPAC e UFAC para ações de proteção e gestão ambiental',inst:'MPAC / UFAC',esfera:'Estadual',inicio:'2023-01-01',termino:'',area:'Gestão ambiental',link:'',obs:'',sei:'0820.009800.00582/2023-24',resp:'Ylza Lima',statusInt:'Aguardando Assinaturas',alerta:'',notas:''},
-  {tipo:'ACT',num:'10/2023',ano:2023,objeto:'Cooperação técnica para o Programa de Estagiários entre SEMA e UFAC',inst:'UFAC – Universidade Federal do Acre (Estagiários)',esfera:'Estadual',inicio:'2023-01-01',termino:'',area:'Educação ambiental',link:'',obs:'',sei:'0820.017145.00001/2023-62',resp:'',statusInt:'Publicado',alerta:'',notas:''},
-  {tipo:'ACT',num:'11/2023',ano:2023,objeto:'Cooperação técnica para desenvolvimento de inteligência territorial e geoespacial',inst:'Centro de Inteligência Territorial',esfera:'Privado',inicio:'2023-01-01',termino:'',area:'ZEE / Ordenamento territorial',link:'',obs:'',sei:'0820.013300.00023/2023-31',resp:'',statusInt:'Em Tratativas',alerta:'',notas:''},
-  // 2024
-  {tipo:'ACT',num:'01/2024',ano:2024,objeto:'Cooperação técnica entre SEMA e IAPEN para ações de educação e recuperação ambiental',inst:'IAPEN – Instituto de Administração Penitenciária do Acre',esfera:'Estadual',inicio:'2024-01-01',termino:'2027-10-03',area:'Educação ambiental',link:'',obs:'DOE Nº 14.127',sei:'4005.014144.00040/2024-36',resp:'',statusInt:'Assinado / Vigente',alerta:'',notas:''},
-  {tipo:'ACT',num:'02/2024',ano:2024,objeto:'Cooperação técnica para conservação e desenvolvimento sustentável da Amazônia',inst:'FAS – Fundação Amazônia Sustentável',esfera:'Privado',inicio:'2024-01-01',termino:'2024-11-30',area:'Biodiversidade',link:'',obs:'DOE Nº 13.865',sei:'0820.009800.00408/2024-62',resp:'André Schatz Pellicciotti',statusInt:'Vencido',alerta:'RENOVAÇÃO PENDENTE',notas:''},
-  {tipo:'ACT',num:'03/2024',ano:2024,objeto:'Cooperação técnica para implementação do Programa Áreas Protegidas da Amazônia – ARPA',inst:'FUNBIO / MMA / ARPA',esfera:'Federal',inicio:'2024-01-01',termino:'2027-03-07',area:'Biodiversidade',link:'',obs:'DOU Nº 44/2023',sei:'0820.013318.00100/2024-27',resp:'',statusInt:'Assinado / Vigente',alerta:'',notas:''},
-  {tipo:'ACT',num:'04/2024',ano:2024,objeto:'Cooperação técnica entre SEMA e IMC para gestão ambiental e conservação',inst:'IMC – Instituto de Mudanças Climáticas e Regulação de Serviços Ambientais',esfera:'Estadual',inicio:'2024-01-01',termino:'2028-10-23',area:'Gestão ambiental',link:'',obs:'DOE Nº 13.964',sei:'0820.016260.00018/2024-94',resp:'',statusInt:'Assinado / Vigente',alerta:'',notas:''},
-  {tipo:'ACT',num:'05/2024',ano:2024,objeto:'Cooperação técnica entre SEMA, IMC, IMAC, CBMAC e CEPDEC para defesa civil e gestão ambiental integrada',inst:'IMC / IMAC / CBMAC / CEPDEC',esfera:'Estadual',inicio:'2024-01-01',termino:'2028-12-31',area:'Gestão ambiental',link:'',obs:'DOE Nº 13.798',sei:'0820.013305.00034/2024-06',resp:'',statusInt:'Assinado / Vigente',alerta:'',notas:''},
-  {tipo:'ACT',num:'06/2024',ano:2024,objeto:'Cooperação técnica para ações de regularização fundiária e ordenamento territorial',inst:'INCRA – Instituto Nacional de Colonização e Reforma Agrária',esfera:'Federal',inicio:'2024-01-01',termino:'2030-02-21',area:'ZEE / Ordenamento territorial',link:'',obs:'DOU Nº 42/2025',sei:'0820.015573.00015/2024-19',resp:'Cláudio Roberto da Silva Cavalcante / Silvia Maria Machado Uszacki',statusInt:'Assinado / Vigente',alerta:'',notas:''},
-  {tipo:'ACT',num:'07/2024',ano:2024,objeto:'Cooperação técnica entre SEMA e DERACRE para recuperação e conservação de áreas degradadas ao longo de rodovias',inst:'DERACRE – Departamento de Estradas de Rodagem do Acre',esfera:'Estadual',inicio:'2024-01-01',termino:'',area:'Recuperação de áreas degradadas',link:'',obs:'DOE Nº 13.944',sei:'0820.008313.00035/2024-31',resp:'',statusInt:'Assinado / Vigente',alerta:'',notas:'Vigência condicionada ao prazo final do convênio 890830/2019'},
-  {tipo:'ACT',num:'08/2024',ano:2024,objeto:'Cooperação técnica entre SEMA, SEOP e SANEACRE para ações integradas de saneamento e meio ambiente',inst:'SEOP / SANEACRE',esfera:'Estadual',inicio:'2024-01-01',termino:'',area:'Gestão ambiental',link:'',obs:'',sei:'0820.008313.00032/2024-05',resp:'',statusInt:'Em Tratativas',alerta:'',notas:''},
-  {tipo:'ACT',num:'09/2024',ano:2024,objeto:'Cooperação técnica entre SEMA, SEOP, AMAC e SANEACRE para ações ambientais urbanas integradas',inst:'SEOP / AMAC / SANEACRE',esfera:'Estadual',inicio:'2024-01-01',termino:'',area:'Gestão ambiental',link:'',obs:'',sei:'4016.011925.00055/2024-35',resp:'',statusInt:'Aguardando Assinaturas',alerta:'',notas:''},
-  {tipo:'ACT',num:'10/2024',ano:2024,objeto:'Cooperação técnica para pesquisa em biologia e ciências ambientais entre SEMA e UFAC/DBIO',inst:'UFAC – Departamento de Biologia (DBIO)',esfera:'Estadual',inicio:'2024-01-01',termino:'',area:'Pesquisa e inovação',link:'',obs:'',sei:'0820.013314.00052/2024-71',resp:'',statusInt:'Em Tratativas',alerta:'',notas:''},
-  {tipo:'ACT',num:'11/2024',ano:2024,objeto:'Cooperação técnica entre SEMA e FUNTAC para pesquisa, inovação e capacitação ambiental',inst:'FUNTAC – Fundação de Tecnologia do Acre',esfera:'Estadual',inicio:'2024-01-01',termino:'2028-07-07',area:'Pesquisa e inovação',link:'',obs:'DOE Nº 14.090',sei:'0043.006514.00058/2024-56',resp:'',statusInt:'Assinado / Vigente',alerta:'',notas:''},
-  // 2025
-  {tipo:'ACT',num:'01/2025',ano:2025,objeto:'Cooperação técnica entre SEMA e Instituto Semeia para gestão de unidades de conservação',inst:'Instituto Semeia',esfera:'Privado',inicio:'2025-01-01',termino:'2027-06-06',area:'Biodiversidade',link:'',obs:'',sei:'0820.006046.00058/2025-15',resp:'',statusInt:'Assinado / Vigente',alerta:'',notas:''},
-  {tipo:'ACT',num:'02/2025',ano:2025,objeto:'Cooperação técnica entre SEMA e SEPI para proteção e valorização dos povos indígenas e meio ambiente',inst:'SEPI – Secretaria de Estado dos Povos Indígenas',esfera:'Estadual',inicio:'2025-01-01',termino:'2027-12-31',area:'Gestão ambiental',link:'',obs:'DOE Nº 14.022',sei:'0820.017140.00003/2025-18',resp:'',statusInt:'Assinado / Vigente',alerta:'',notas:''},
-  {tipo:'ACT',num:'03/2025',ano:2025,objeto:'Cooperação técnica entre SEMA e IDAF para fiscalização e controle ambiental integrado',inst:'IDAF – Instituto de Defesa Agropecuária e Florestal do Acre',esfera:'Estadual',inicio:'2025-01-01',termino:'2026-05-20',area:'Gestão ambiental',link:'',obs:'DOE Nº 14.065',sei:'0820.017144.00018/2025-82',resp:'',statusInt:'Assinado / Vigente',alerta:'VENCE EM BREVE',notas:''},
-  {tipo:'ACT',num:'04/2025',ano:2025,objeto:'Cooperação técnica entre SEMA e Instituto Semeia para gestão compartilhada de unidades de conservação',inst:'Instituto Semeia',esfera:'Privado',inicio:'2025-01-01',termino:'2028-05-07',area:'Biodiversidade',link:'',obs:'DOE Nº 14.263',sei:'0820.008313.00024/2025-31',resp:'',statusInt:'Assinado / Vigente',alerta:'',notas:''},
-  // 2026
-  {tipo:'ACT',num:'01/2026',ano:2026,objeto:'Cooperação técnica entre SEMA e CBMAC para ações integradas de combate a incêndios e desastres ambientais',inst:'CBMAC – Corpo de Bombeiros Militar do Acre',esfera:'Estadual',inicio:'2026-01-30',termino:'2031-01-30',area:'Gestão ambiental',link:'',obs:'DOE Nº 14.198',sei:'0820.017137.00001/2026-13',resp:'',statusInt:'Assinado / Vigente',alerta:'',notas:''},
-];
-
-// ── UTILS ─────────────────────────────────────────────────────────────────────
-function calcStatus(termino){
-  if(!termino) return {label:'Sem data',cls:'st-warn',dias:null};
-  const hoje=new Date();hoje.setHours(0,0,0,0);
-  const fim=new Date(termino);
-  const dias=Math.round((fim-hoje)/86400000);
-  if(dias<0)    return {label:'Expirado',cls:'st-err',dias};
-  if(dias<=30)  return {label:'Vence em 30 dias',cls:'st-soon',dias};
-  if(dias<=90)  return {label:'A vencer',cls:'st-warn',dias};
-  return             {label:'Vigente',cls:'st-ok',dias};
-}
-function fmtDate(iso){if(!iso)return '';const[y,m,d]=iso.split('-');return`${d}/${m}/${y}`;}
-function escHtml(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function hl(text,q){if(!q)return escHtml(text);const re=new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');return escHtml(text).replace(re,'<mark style="background:#fff3a3;border-radius:2px;padding:0 1px;">$1</mark>');}
-function countChars(el,max,cntId){const n=el.value.length;const cnt=document.getElementById(cntId);if(cnt){cnt.textContent=`${n}/${max}`;cnt.style.color=n>max?'var(--r)':'var(--tx2)';}}
-
-// ── LOGIN / LOGOUT ─────────────────────────────────────────────────────────────
-let _loginAttempts = 0, _loginLockUntil = 0;
-let _lastActivity = Date.now();
-const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 min
-
-function _resetActivity(){ _lastActivity = Date.now(); }
-['keydown','click','mousemove','touchstart'].forEach(e =>
-  document.addEventListener(e, _resetActivity, { passive: true }));
-
-function _initSessionTimer(){
-  setInterval(()=>{
-    if(sessionStorage.getItem('sema_auth')!=='1') return;
-    const idle = Date.now() - _lastActivity;
-    const remaining = SESSION_TIMEOUT_MS - idle;
-    // Aviso 5 min antes
-    const warnEl = document.getElementById('session-warn');
-    if(warnEl){
-      if(remaining < 5*60*1000 && remaining > 0){
-        warnEl.style.display='flex';
-        warnEl.querySelector('span').textContent =
-          `Sessão expira em ${Math.ceil(remaining/60000)} min por inatividade.`;
-      } else {
-        warnEl.style.display='none';
-      }
-    }
-    if(remaining <= 0){
-      doLogout();
-      showToast('Sessão encerrada por inatividade (30 min). Faça login novamente.','warn',6000);
-    }
-  }, 30_000);
-}
-
-async function doLogin(){
-  // Rate limiting: bloquear após 3 tentativas por 30s
-  if(Date.now() < _loginLockUntil){
-    const s = Math.ceil((_loginLockUntil - Date.now())/1000);
-    const err=document.getElementById('login-err');
-    err.textContent=`Muitas tentativas. Aguarde ${s}s.`;
-    err.style.display='block';
+async function doLogin() {
+  const pass = document.getElementById('login-pass').value;
+  if (!pass) return;
+  if (Date.now() < _lockUntil) {
+    showErr(`Aguarde ${Math.ceil((_lockUntil - Date.now())/1000)}s`); return;
+  }
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.textContent = 'Verificando…';
+  const hash     = await sha256(pass);
+  const expected = SENHA_HASH;
+  const ok       = expected === '%%SENHA_HASH%%' || hash === expected;
+  btn.disabled = false; btn.textContent = 'Entrar';
+  if (!ok) {
+    _failCount++;
+    if (_failCount >= 3) { _lockUntil = Date.now() + 30_000; _failCount = 0; }
+    showErr('Senha incorreta. Tente novamente.');
+    document.getElementById('login-pass').value = '';
+    document.getElementById('login-pass').focus();
     return;
   }
+  document.getElementById('login-error').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display   = 'block';
+  loadTheme();
+  await startApp();
+}
+
+function showErr(msg) {
+  const el = document.getElementById('login-error');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+function doLogout() {
+  clearInterval(_pollTimer);
+  document.getElementById('app-screen').style.display   = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-pass').value = '';
+  _schema = []; _modelCols = []; _records = [];
+}
+
+/* ─── APP ────────────────────────────────────────────────── */
+async function startApp() {
+  if (typeof SEMA_CONFIG !== 'undefined') {
+    if (SEMA_CONFIG.appsScriptUrl) GAS_URL    = SEMA_CONFIG.appsScriptUrl;
+    if (SEMA_CONFIG.syncToken)     SYNC_TOKEN = SEMA_CONFIG.syncToken;
+  }
+  await syncAll();
+  _pollTimer = setInterval(syncAll, POLL_MS);
+}
+
+async function syncAll() {
+  setStatus('syncing');
+  loadingBar(30);
+  try {
+    const [schemaRes, listRes] = await Promise.all([gasGet('schema'), gasGet('list')]);
+    loadingBar(75);
+
+    if (Array.isArray(schemaRes.columns) && schemaRes.columns.length) {
+      _schema    = schemaRes.columns;
+      // _modelCols SEMPRE derivado do schema atual do Sheets — sem localStorage
+      _modelCols = schemaParaModelo(_schema);
+    } else if (!_modelCols.length) {
+      _modelCols = modeloPadrao();
   const v=document.getElementById('pwd-input').value;
   const h=await hashSenha(v);
   const storedHash=sessionStorage.getItem('sema_pwd_hash')||getSenhaHash();
@@ -892,851 +456,402 @@ async function doLogin(){
     } else {
       err.textContent=`Senha incorreta (${_loginAttempts}/3).`;
     }
-    err.style.display='block';
-    setTimeout(()=>err.style.display='none',4000);
+
+    if (Array.isArray(listRes.records)) _records = listRes.records;
+
+    renderModeloTable();
+    renderPreviewTable();
+    setStatus('ok');
+    document.getElementById('last-sync').textContent = 'Sync: ' + new Date().toLocaleTimeString('pt-BR');
+  } catch (e) {
+    setStatus('error');
+    showToast('Erro ao carregar: ' + e.message, 'err');
+  } finally {
+    loadingBar(100);
+    setTimeout(() => loadingBar(0), 400);
   }
 }
-function doLogout(){
-  sessionStorage.removeItem('sema_auth');
-  sessionStorage.removeItem('sema_pwd_hash');
-  sessionStorage.removeItem('sema_dados_cache');
-  _undoStack=[];_redoStack=[];
-  document.getElementById('app').style.display='none';
-  document.getElementById('login-screen').style.display='flex';
-  document.getElementById('pwd-input').value='';
-}
-function toggleDarkMode(){
-  const dark = document.documentElement.getAttribute('data-theme')==='dark';
-  const next = dark ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  document.getElementById('btn-theme').textContent = next==='dark' ? '🌙' : '☀';
-  localStorage.setItem('sema_theme', next);
-}
-(()=>{
-  const t = localStorage.getItem('sema_theme');
-  if(t==='dark'){document.documentElement.setAttribute('data-theme','dark');document.getElementById('btn-theme')&&(document.getElementById('btn-theme').textContent='🌙');}
-})();
-function showConfirm(msg, title, btnLabel, onOk){
-  const modal = document.getElementById('modal-confirm');
-  document.getElementById('modal-confirm-title').textContent = title || 'Confirmar';
-  document.getElementById('modal-confirm-msg').textContent   = msg;
-  const okBtn = document.getElementById('modal-confirm-ok');
-  okBtn.textContent = btnLabel || 'Confirmar';
-  okBtn.className = btnLabel==='Excluir' ? 'btn btn-r' : 'btn btn-g';
-  modal.classList.add('open');
-  const close = () => { modal.classList.remove('open'); okBtn.onclick = null; document.getElementById('modal-confirm-cancel').onclick = null; };
-  okBtn.onclick = () => { close(); onOk(); };
-  document.getElementById('modal-confirm-cancel').onclick = close;
-}
-// Restore session (SYNC já estará inicializado pelo DOMContentLoaded)
-if(sessionStorage.getItem('sema_auth')==='1'){
-  window.addEventListener('DOMContentLoaded',()=>{
-    document.getElementById('login-screen').style.display='none';
-    const app=document.getElementById('app'); app.style.display='flex';
-    document.getElementById('h-date').textContent=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
-    // Inicia com dados locais; SYNC substituirá ao conectar com Sheets
-    dados=[...DEMO];
-    popularFiltros(); renderTable(); updateKPIs();
-  });
+
+/* ─── API ────────────────────────────────────────────────── */
+async function gasGet(action) {
+  const url = GAS_URL + (GAS_URL.includes('?') ? '&' : '?') + 'action=' + action;
+  const res = await fetch(url, { cache: 'no-store' });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
 }
 
-// ── KPIs + ALERTAS ────────────────────────────────────────────────────────────
-function updateKPIs(){
-  let tot=dados.length,vig=0,av=0,s30=0,exp=0,crit=[];
-  dados.forEach(r=>{
-    const s=calcStatus(r.termino);
-    if(s.label==='Vigente')vig++;
-    else if(s.label==='A vencer')av++;
-    else if(s.label==='Vence em 30 dias'){s30++;crit.push(r);}
-    else if(s.label==='Expirado'){exp++;crit.push(r);}
+async function gasPost(body) {
+  const res = await fetch(GAS_URL, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body:    'data=' + encodeURIComponent(JSON.stringify({ ...body, token: SYNC_TOKEN })),
   });
-  document.getElementById('kpi-total').textContent=tot;
-  document.getElementById('kpi-vig').textContent=vig;
-  document.getElementById('kpi-avenc').textContent=av;
-  document.getElementById('kpi-30').textContent=s30;
-  document.getElementById('kpi-exp').textContent=exp;
-  const strip=document.getElementById('alert-strip');
-  if(crit.length){
-    strip.style.display='flex';
-    document.getElementById('alert-text').textContent=`${s30} instrumento(s) vencendo em até 30 dias · ${exp} expirado(s) sem renovação`;
-    document.getElementById('alert-sub').textContent=crit.map(r=>`${r.tipo} ${r.num} — ${(r.inst||'').split('–')[0].trim()} (${fmtDate(r.termino)})`).join(' · ');
-  } else {strip.style.display='none';}
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
 }
 
-// ── FILTROS + SORT ─────────────────────────────────────────────────────────────
-function popularFiltros(){
-  const anos=[...new Set(dados.map(r=>r.ano).filter(Boolean))].sort((a,b)=>b-a);
-  const selA=document.getElementById('f-ano');
-  selA.innerHTML='<option value="">Todos os anos</option>';
-  anos.forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;selA.appendChild(o);});
-  const resps=[...new Set(dados.map(r=>r.resp).filter(Boolean))].sort();
-  const selR=document.getElementById('f-resp');
-  selR.innerHTML='<option value="">Todos os responsáveis</option>';
-  resps.forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;selR.appendChild(o);});
+/* ─── MODELO ─────────────────────────────────────────────── */
+
+/** Inicializa _modelCols a partir do schema vindo do Sheets */
+function schemaParaModelo(schema) {
+  return schema.map(col => ({ name: col.label, type: inferTipo(col.key, col.label) }));
 }
-function sortBy(field){
-  if(sortField===field)sortAsc=!sortAsc;else{sortField=field;sortAsc=true;}
-  document.querySelectorAll('thead th').forEach(th=>{th.classList.remove('sorted');const si=th.querySelector('.si');if(si)si.textContent='↕';});
-  const idx={tipo:1,num:2,inst:4,esfera:5,termino:6,status:7,sei:9,resp:10}[field];
-  if(idx!==undefined){const th=document.querySelectorAll('thead th')[idx];th.classList.add('sorted');th.querySelector('.si').textContent=sortAsc?'↑':'↓';}
-  renderTable();
+
+function inferTipo(key, label) {
+  const k = (key   || '').toLowerCase();
+  const l = (label || '').toLowerCase();
+  if (k.includes('inicio') || k.includes('termino') || k.includes('data') ||
+      l.includes('início') || l.includes('término') || l.includes('data')) return 'data';
+  if (k.includes('link') || k.includes('url') || l.includes('link')) return 'url';
+  if (k === 'diasrestantes' || l === 'dias restantes') return 'fórmula';
+  if (k === 'status' || l === 'status' || l === 'situação') return 'fórmula';
+  return 'texto';
 }
-function renderTable(){
-  const q=(document.getElementById('busca')?.value||'').toLowerCase().trim();
-  const ft=document.getElementById('f-tipo')?.value||'';
-  const fs=document.getElementById('f-status')?.value||'';
-  const fy=document.getElementById('f-ano')?.value||'';
-  const fr=document.getElementById('f-resp')?.value||'';
-  filtrados=dados.filter(r=>{
-    const st=calcStatus(r.termino).label;
-    return(!q||(r.objeto+r.inst+r.num+r.sei).toLowerCase().includes(q))
-        &&(!ft||r.tipo===ft)&&(!fs||st===fs)
-        &&(!fy||String(r.ano)===fy)&&(!fr||r.resp===fr);
-  });
-  filtrados.sort((a,b)=>{
-    let va=a[sortField]||'',vb=b[sortField]||'';
-    if(sortField==='status'){va=calcStatus(a.termino).label;vb=calcStatus(b.termino).label;}
-    return sortAsc?String(va).localeCompare(String(vb)):String(vb).localeCompare(String(va));
-  });
-  const tbody=document.getElementById('tbody');
-  if(!filtrados.length){tbody.innerHTML=`<tr><td colspan="14" class="no-data">Nenhum registro encontrado.</td></tr>`;document.getElementById('tbl-count').textContent='0';return;}
-  const _idxMap=new Map(dados.map((r,i)=>[`${r.tipo}|${r.num}`,i]));
-  tbody.innerHTML=filtrados.map((r,fi)=>{
-    const ri=_idxMap.get(`${r.tipo}|${r.num}`)??dados.indexOf(r);
-    const st=calcStatus(r.termino);
-    const sel=selSet.has(ri);
-    const diasCor=st.dias===null?'':st.dias<0?'color:var(--r);font-weight:700':st.dias<=30?'color:#880e4f;font-weight:700':st.dias<=90?'color:var(--a);font-weight:700':'color:var(--ok);font-weight:700';
-    return`<tr class="${fi%2===1?'row-alt':''} ${sel?'row-sel':''}">
-      <td class="cb-cell"><input type="checkbox" ${sel?'checked':''} onchange="toggleSel(${ri})" aria-label="Selecionar ${escHtml(r.tipo)} ${escHtml(r.num)}"/></td>
-      <td><span class="tipo-tag">${escHtml(r.tipo)}</span></td>
-      <td style="font-weight:800;">${escHtml(r.num)}</td>
-      <td style="max-width:240px;font-size:10.5px;">${escHtml(r.objeto)}</td>
-      <td style="font-size:10.5px;min-width:100px;">${hl((r.inst||'').split('–')[0].trim())}</td>
-      <td style="font-size:10.5px;">${escHtml(r.esfera)}</td>
-      <td style="white-space:nowrap;">${fmtDate(r.termino)}</td>
-      <td><span class="st ${st.cls}" role="status">${escHtml(st.label)}</span></td>
-      <td style="text-align:center;${diasCor};">${st.dias!==null?Math.abs(st.dias):''}</td>
-      <td class="sei-cell" title="${escHtml(r.sei)}">${r.sei?r.sei.slice(0,10)+'···':'—'}</td>
-      <td class="resp-cell">${escHtml(r.resp||'—')}</td>
-      <td>${r.alerta?`<span class="alert-cell" role="alert">${escHtml(r.alerta)}</span>`:'—'}</td>
-      <td style="font-size:10px;color:var(--a);">${escHtml(r.statusInt||'')}</td>
-      <td style="white-space:nowrap;">
-        <button class="btn-sm btn-e" onclick="openForm(${ri})" aria-label="Editar ${escHtml(r.tipo)} ${escHtml(r.num)}">✎</button>
-        <button class="btn-sm btn-m" onclick="enviarAlerta(${ri})" aria-label="Enviar alerta por e-mail para ${escHtml(r.tipo)} ${escHtml(r.num)}">✉</button>
-        <button class="btn-sm btn-d" onclick="openDel(${ri})" aria-label="Excluir ${escHtml(r.tipo)} ${escHtml(r.num)}">🗑</button>
+
+function modeloPadrao() {
+  return [
+    { name: 'Tipo',              type: 'texto'   },
+    { name: 'Número',            type: 'texto'   },
+    { name: 'Objeto',            type: 'texto'   },
+    { name: 'Instituição',       type: 'texto'   },
+    { name: 'Esfera',            type: 'texto'   },
+    { name: 'Início',            type: 'data'    },
+    { name: 'Término',           type: 'data'    },
+    { name: 'Área',              type: 'texto'   },
+    { name: 'SEI',               type: 'texto'   },
+    { name: 'Link Documentação', type: 'url'     },
+    { name: 'Observações',       type: 'texto'   },
+    { name: 'Status',            type: 'fórmula' },
+    { name: 'Dias Restantes',    type: 'fórmula' },
+  ];
+}
+
+function renderModeloTable() {
+  const tbody  = document.getElementById('modelo-body');
+  const hint   = document.getElementById('formula-hint');
+  if (!_modelCols.length) {
+    tbody.innerHTML = `<tr><td colspan="4" class="empty-state">Nenhuma coluna definida.</td></tr>`;
+    if (hint) hint.style.display = 'none';
+    return;
+  }
+
+  const hasFormula = _modelCols.some(c => c.type === 'fórmula');
+  if (hint) hint.style.display = hasFormula ? 'block' : 'none';
+
+  tbody.innerHTML = _modelCols.map((col, i) => {
+    const opts = TIPOS_COLUNA.map(t =>
+      `<option value="${t}"${col.type === t ? ' selected' : ''}>${t}</option>`
+    ).join('');
+    const isLast  = i === _modelCols.length - 1;
+    return `<tr>
+      <td style="color:var(--text2);text-align:center">${i + 1}</td>
+      <td>
+        <input type="text" value="${esc(col.name)}"
+          onchange="_modelCols[${i}].name=this.value">
+      </td>
+      <td>
+        <select onchange="_modelCols[${i}].type=this.value;renderModeloTable()">${opts}</select>
+      </td>
+      <td>
+        <div class="col-actions">
+          <button title="Subir"  ${i===0?'disabled':''} onclick="moverColuna(${i},-1)">↑</button>
+          <button title="Descer" ${isLast?'disabled':''} onclick="moverColuna(${i},1)">↓</button>
+          <button title="Remover" class="del" onclick="removerColuna(${i})">×</button>
+        </div>
       </td>
     </tr>`;
   }).join('');
-  document.getElementById('tbl-count').textContent=`${filtrados.length} de ${dados.length} registros`;
-  // Sincronizar estado do checkbox de seleção total
-  const _selAll=document.getElementById('sel-all');
-  if(_selAll&&filtrados.length>0){
-    const _selCount=filtrados.filter(r=>selSet.has(_idxMap.get(`${r.tipo}|${r.num}`)??-1)).length;
-    _selAll.checked=_selCount===filtrados.length;
-    _selAll.indeterminate=_selCount>0&&_selCount<filtrados.length;
-  } else if(_selAll){_selAll.checked=false;_selAll.indeterminate=false;}
-  updateBulkBar();
 }
-function limparFiltros(){['busca','f-tipo','f-status','f-ano','f-resp'].forEach(id=>{const el=document.getElementById(id);el&&(el.tagName==='INPUT'?el.value='':el.selectedIndex=0);});renderTable();}
 
-// ── SELEÇÃO ────────────────────────────────────────────────────────────────────
-function toggleSel(ri){selSet.has(ri)?selSet.delete(ri):selSet.add(ri);updateBulkBar();renderTable();}
-function toggleSelectAll(){const all=document.getElementById('sel-all').checked;const m=new Map(dados.map((r,i)=>[`${r.tipo}|${r.num}`,i]));filtrados.forEach(r=>{const ri=m.get(`${r.tipo}|${r.num}`)??dados.indexOf(r);all?selSet.add(ri):selSet.delete(ri);});renderTable();}
-function updateBulkBar(){const n=selSet.size;const bar=document.getElementById('bulk-bar');bar.classList.toggle('hidden',n===0);if(n>0)document.getElementById('bulk-count').textContent=`${n} selecionado${n>1?'s':''}`;}
-async function excluirSelecionados(){
-  if(!selSet.size)return;
-  showConfirm(`Excluir ${selSet.size} registro(s)? Você pode desfazer em seguida.`,'Confirmar exclusão','Excluir',async()=>{
-    _pushUndo();
-    const paraRemover=[...selSet].map(i=>dados[i]).filter(Boolean);
-    [...selSet].sort((a,b)=>b-a).forEach(i=>dados.splice(i,1));
-    selSet.clear();popularFiltros();renderTable();updateKPIs();
-    mostrarUndo(`${paraRemover.length} registro(s) excluído(s)`);
-    if(SYNC){
-      let remoteSucesso=0,remoteFalhou=0;
-      for(const r of paraRemover){
-        try{
-          const res=await SYNC.remove(r.tipo,r.num);
-          if(res&&res.remote)remoteSucesso++;else remoteFalhou++;
-        }catch(e){
-          remoteFalhou++;
-          if(typeof appendLog==='function')appendLog({level:'warn',msg:`Remoção Sheets ${r.num}: `+e.message,iso:new Date().toLocaleTimeString('pt-BR')});
-        }
+function adicionarColuna() {
+  _modelCols.push({ name: 'Nova Coluna', type: 'texto' });
+  renderModeloTable();
+  // Foca o input da nova linha
+  const inputs = document.querySelectorAll('#modelo-body input[type="text"]');
+  if (inputs.length) setTimeout(() => { inputs[inputs.length-1].select(); }, 50);
+}
+
+function removerColuna(idx) {
+  _modelCols.splice(idx, 1);
+  renderModeloTable();
+}
+
+function moverColuna(idx, dir) {
+  const j = idx + dir;
+  if (j < 0 || j >= _modelCols.length) return;
+  [_modelCols[idx], _modelCols[j]] = [_modelCols[j], _modelCols[idx]];
+  renderModeloTable();
+}
+
+/* ─── EXPORTAR ───────────────────────────────────────────── */
+
+/** Gera CSV em branco com os cabeçalhos do modelo (exclui colunas do tipo 'fórmula') */
+function baixarModeloCsv() {
+  // Captura os valores atuais dos inputs antes de gerar
+  document.querySelectorAll('#modelo-body input[type="text"]').forEach((el, i) => {
+    if (_modelCols[i]) _modelCols[i].name = el.value.trim() || _modelCols[i].name;
+  });
+
+  const cols = _modelCols.filter(c => c.type !== 'fórmula');
+  if (!cols.length) {
+    showToast('Todas as colunas são do tipo fórmula — sem colunas para exportar.', 'err'); return;
+  }
+  const sep     = ';';
+  const headers = cols.map(c => `"${c.name.replace(/"/g,'""')}"`).join(sep);
+  const exemplo = cols.map(c => `"${(TIPO_EXEMPLOS[c.type]||'').replace(/"/g,'""')}"`).join(sep);
+  const csv     = '﻿' + headers + '\r\n' + exemplo;
+
+  _download(csv, `modelo_planilha_${_today()}.csv`, 'text/csv;charset=utf-8');
+  showToast(`Modelo baixado: ${cols.length} coluna${cols.length!==1?'s':''} ✓`, 'ok');
+}
+
+/** Baixa os dados atuais do Sheets via ?action=export */
+async function exportarPlanilha() {
+  showToast('Baixando dados do Sheets…', 'ok', 60000);
+  try {
+    const url = GAS_URL + (GAS_URL.includes('?') ? '&' : '?') + 'action=export';
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    if (!text.trim()) throw new Error('Planilha vazia ou aba não encontrada');
+    _download(text, `dados_sema_${_today()}.csv`, 'text/csv;charset=utf-8');
+    showToast('Dados baixados ✓', 'ok');
+  } catch (e) {
+    showToast('Erro ao baixar: ' + e.message, 'err');
+  }
+}
+
+function _download(content, filename, type) {
+  const blob = new Blob([content], { type });
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(blob), download: filename,
+  });
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+function _today() { return new Date().toISOString().slice(0,10); }
+
+/* ─── IMPORTAR ───────────────────────────────────────────── */
+
+function lerArquivoImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    let text = e.target.result;
+    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);  // remove BOM
+    try {
+      _importRecords = parseCsv(text);
+      mostrarPreviewImport(_importRecords);
+    } catch (err) {
+      showToast('Erro ao ler CSV: ' + err.message, 'err');
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function mostrarPreviewImport(records) {
+  if (!records.length) { showToast('Nenhum registro encontrado no arquivo', 'err'); return; }
+  const headers = Object.keys(records[0]);
+  const preview = records.slice(0, 5);
+
+  document.getElementById('import-count').textContent =
+    `${records.length} registro${records.length!==1?'s':''} detectado${records.length!==1?'s':''} ` +
+    `(exibindo primeiros ${Math.min(5, records.length)}).`;
+
+  document.getElementById('import-head').innerHTML =
+    headers.map(h => `<th>${esc(h)}</th>`).join('');
+
+  document.getElementById('import-body').innerHTML =
+    preview.map(r =>
+      `<tr>${headers.map(h => `<td>${esc(String(r[h]||''))}</td>`).join('')}</tr>`
+    ).join('');
+
+  document.getElementById('import-overlay').classList.add('open');
+}
+
+function fecharImport() {
+  document.getElementById('import-overlay').classList.remove('open');
+  document.getElementById('file-import').value = '';
+  _importRecords = [];
+}
+
+async function confirmarImport() {
+  if (!_importRecords.length) return;
+  const btn = document.getElementById('import-confirm-btn');
+  btn.disabled = true; btn.textContent = 'Enviando…';
+  try {
+    const res = await gasPost({ action: 'replaceAll', records: _importRecords });
+    showToast(`Planilha substituída: ${res.replaced} registro${res.replaced!==1?'s':''} ✓`, 'ok', 5000);
+    fecharImport();
+    await syncAll();
+  } catch (e) {
+    showToast('Erro ao importar: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = '✅ Confirmar substituição';
+  }
+}
+
+/* ─── CSV PARSER ─────────────────────────────────────────── */
+function parseCsv(text) {
+  const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  const sep   = (lines.split('\n')[0]||'').split(';').length > (lines.split('\n')[0]||'').split(',').length ? ';' : ',';
+  const rows  = splitCsvRows(lines, sep);
+  if (rows.length < 2) throw new Error('CSV precisa de ao menos 1 cabeçalho e 1 linha de dados');
+  const headers = rows[0].map(h => h.trim());
+  return rows.slice(1)
+    .filter(r => r.some(v => v.trim()))
+    .map(r => Object.fromEntries(headers.map((h, j) => [h, (r[j]||'').trim()])));
+}
+
+function splitCsvRows(text, sep) {
+  const rows = [];
+  let cur = [], field = '', inQ = false, i = 0;
+  while (i < text.length) {
+    const ch = text[i];
+    if (inQ) {
+      if (ch === '"') {
+        if (text[i+1] === '"') { field += '"'; i += 2; continue; }
+        inQ = false; i++; continue;
       }
-      if(remoteSucesso>0)showToast(`${remoteSucesso} removido(s) do Sheets ✓`,'ok',3000);
-      if(remoteFalhou>0)showToast(`${remoteFalhou} não removido(s) do Sheets — verifique token`,'warn',4000);
+      field += ch; i++; continue;
     }
-  });
-}
-function exportarSelecionados(){const sel=dados.filter((_,i)=>selSet.has(i));if(!sel.length){showToast('Nenhum registro selecionado.','warn');return;}exportarXLSX(sel,'SEMA_TCT_Selecionados');}
-
-// ── FORM ───────────────────────────────────────────────────────────────────────
-function openForm(idx=null){
-  editIdx=idx;
-  const r=idx!==null?dados[idx]:{};
-  _editOriginal=idx!==null?{...r}:null;
-  document.getElementById('form-title').textContent=idx!==null?`Editar — ${r.tipo} ${r.num}`:'Novo Instrumento de Cooperação';
-  const fieldMap={tipo2:'tipo',num:'num',objeto:'objeto',inst:'inst',esfera:'esfera',inicio:'inicio',termino:'termino',area:'area',link:'link',obs:'obs',sei:'sei',resp2:'resp',statusint:'statusInt',alerta:'alerta',notas:'notas'};
-  Object.entries(fieldMap).forEach(([k,prop])=>{const el=document.getElementById('f-'+k);if(el){el.value=r[prop]||'';el.style.borderColor='';}});
-  // Ativar diff visual ao editar
-  if(_editOriginal){
-    Object.entries(fieldMap).forEach(([k,prop])=>{
-      const el=document.getElementById('f-'+k);
-      if(!el)return;
-      el.oninput=()=>{el.style.borderColor=el.value!==((_editOriginal[prop])||'')?'var(--y)':'';}
-    });
+    if (ch === '"')  { inQ = true; i++; continue; }
+    if (ch === sep)  { cur.push(field); field = ''; i++; continue; }
+    if (ch === '\n') { cur.push(field); field = ''; rows.push(cur); cur = []; i++; continue; }
+    field += ch; i++;
   }
-  const obj=document.getElementById('f-objeto');
-  if(obj)countChars(obj,200,'cnt-obj');
-  document.querySelectorAll('.ferrmsg').forEach(e=>{e.classList.remove('show');});
-  document.querySelectorAll('.ferr').forEach(e=>e.classList.remove('ferr'));
-  document.getElementById('modal-form').classList.add('open');
-}
-function closeForm(){document.getElementById('modal-form').classList.remove('open');editIdx=null;_editOriginal=null;
-  document.querySelectorAll('[id^="f-"]').forEach(el=>{if(el.tagName==='INPUT'||el.tagName==='SELECT'||el.tagName==='TEXTAREA')el.style.borderColor='';});
-}
-function validarDatas(){
-  const i=document.getElementById('f-inicio').value;
-  const t=document.getElementById('f-termino').value;
-  const errT=document.getElementById('err-termino');
-  const inpT=document.getElementById('f-termino');
-  if(i&&t&&t<=i){errT.classList.add('show');inpT.classList.add('ferr');}
-  else{errT.classList.remove('show');inpT.classList.remove('ferr');}
-}
-async function salvar(){
-  let ok=true;
-  const required={tipo2:'err-tipo',num:'err-num',objeto:'err-obj',inst:'err-inst'};
-  Object.entries(required).forEach(([fid,eid])=>{
-    const el=document.getElementById('f-'+fid);
-    const err=document.getElementById(eid);
-    if(!el||!el.value.trim()){if(el)el.classList.add('ferr');if(err)err.classList.add('show');ok=false;}
-    else{el.classList.remove('ferr');if(err)err.classList.remove('show');}
-  });
-  const ini=document.getElementById('f-inicio').value;
-  const ter=document.getElementById('f-termino').value;
-  if(ini&&ter&&ter<=ini){document.getElementById('err-termino')?.classList.add('show');document.getElementById('f-termino')?.classList.add('ferr');ok=false;}
-  const linkVal=document.getElementById('f-link').value.trim();
-  if(linkVal&&!/^https?:\/\//i.test(linkVal)){
-    showToast('URL inválida. Use https:// ou deixe em branco.','warn');
-    document.getElementById('f-link')?.classList.add('ferr');
-    ok=false;
-  } else { document.getElementById('f-link')?.classList.remove('ferr'); }
-  if(!ok)return;
-  const rec={
-    tipo:document.getElementById('f-tipo2').value,
-    num:document.getElementById('f-num').value.trim(),
-    ano:parseInt((document.getElementById('f-num').value.match(/\d{4}/)||[])[0])||new Date().getFullYear(),
-    objeto:document.getElementById('f-objeto').value.trim(),
-    inst:document.getElementById('f-inst').value.trim(),
-    esfera:document.getElementById('f-esfera').value,
-    inicio:document.getElementById('f-inicio').value,
-    termino:document.getElementById('f-termino').value,
-    area:document.getElementById('f-area').value,
-    link:(()=>{const l=document.getElementById('f-link').value.trim();return(!l||/^https?:\/\//i.test(l))?l:'';})(),
-    obs:document.getElementById('f-obs').value.trim(),
-    sei:document.getElementById('f-sei').value.trim(),
-    resp:document.getElementById('f-resp2').value.trim(),
-    statusInt:document.getElementById('f-statusint').value,
-    alerta:document.getElementById('f-alerta').value.trim(),
-    notas:document.getElementById('f-notas').value.trim(),
-  };
-  const _doSave=()=>{
-    const idxAtual=editIdx;
-    // Calcular diff para histórico
-    const diffFields=_editOriginal?Object.keys(rec).filter(k=>k!=='_ts'&&k!=='_row'&&String(rec[k]||'')!==String((_editOriginal[k])||'')):[];
-    _pushUndo();
-    if(idxAtual!==null)dados[idxAtual]=rec;else dados.push(rec);
-    _autosave();
-    closeForm();popularFiltros();renderTable();updateKPIs();
-    showToast(`${rec.tipo} ${rec.num} salvo localmente.`,'ok',2500);
-    if(SYNC){
-      SYNC.save(rec)
-        .then(()=>{
-          showToast(`${rec.tipo} ${rec.num} sincronizado com Sheets.`,'ok');
-          // Registrar histórico de alterações no GAS
-          if(diffFields.length>0&&SYNC._hasToken()){
-            const entries=diffFields.map(k=>({tipo:rec.tipo,num:rec.num,campo:k,antes:String(_editOriginal[k]||''),depois:String(rec[k]||'')}));
-            SYNC._post({action:'addHistory',entries}).catch(()=>{});
-          }
-        })
-        .catch(e=>{
-          showToast('Salvo localmente. Sheets será atualizado no próximo sync.','warn');
-          if(typeof appendLog==='function')appendLog({level:'warn',msg:'Push Sheets: '+e.message,iso:new Date().toLocaleTimeString('pt-BR')});
-        });
-    }
-  };
-  if(editIdx===null){
-    const dup=dados.find(d=>d.num===rec.num&&d.tipo===rec.tipo);
-    if(dup){showConfirm(`Já existe um ${rec.tipo} ${rec.num}. Deseja adicionar mesmo assim?`,'Registro duplicado','Adicionar',_doSave);return;}
-  }
-  _doSave();
+  cur.push(field);
+  if (cur.some(v => v.trim())) rows.push(cur);
+  return rows;
 }
 
-// ── DELETE + UNDO ──────────────────────────────────────────────────────────────
-function openDel(idx){delIdx=idx;const r=dados[idx];document.getElementById('del-sub').textContent=`Excluir: ${r.tipo} ${r.num} — ${(r.inst||'').split('–')[0].trim()}. Você pode desfazer em seguida.`;document.getElementById('modal-del').classList.add('open');}
-function cancelDel(){document.getElementById('modal-del').classList.remove('open');delIdx=null;}
-async function confirmarDel(){
-  if(delIdx===null)return;
-  _pushUndo();
-  const r=dados[delIdx];
-  const tipoNum={tipo:r.tipo,num:r.num};
-  dados.splice(delIdx,1);
-  document.getElementById('modal-del').classList.remove('open');
-  selSet.delete(delIdx);
-  delIdx=null;
-  _autosave();
-  popularFiltros();renderTable();updateKPIs();
-  mostrarUndo(`Registro "${tipoNum.tipo} ${tipoNum.num}" excluído`);
-  if(SYNC){
-    try{
-      const res=await SYNC.remove(tipoNum.tipo,tipoNum.num);
-      if(res&&res.remote)showToast(`${tipoNum.tipo} ${tipoNum.num} removido do Sheets ✓`,'ok',3000);
-      else if(res&&!res.remote)showToast('Removido localmente. Sheets requer token configurado.','warn',3500);
-    }catch(e){
-      if(typeof appendLog==='function')appendLog({level:'warn',msg:'Remoção Sheets: '+e.message,iso:new Date().toLocaleTimeString('pt-BR')});
-      showToast('Remoção do Sheets falhou: '+e.message,'err',4000);
-    }
-  }
-}
-function mostrarUndo(msg){
-  const bar=document.getElementById('undo-bar');
-  bar.classList.remove('hidden');
-  document.getElementById('undo-msg').textContent=msg;
-  let t=8;document.getElementById('undo-timer').textContent=t;
-  clearInterval(undoTimer);
-  undoTimer=setInterval(()=>{t--;document.getElementById('undo-timer').textContent=t;if(t<=0){clearInterval(undoTimer);bar.classList.add('hidden');}},1000);
-}
+/* ─── PREVIEW TABLE (somente leitura) ───────────────────── */
+function renderPreviewTable() {
+  const thead = document.getElementById('table-head');
+  const tbody = document.getElementById('table-body');
+  const count = document.getElementById('dados-count');
 
-// ── IMPORT ─────────────────────────────────────────────────────────────────────
-function openImport(){document.getElementById('modal-import').classList.add('open');}
-function closeImport(){document.getElementById('modal-import').classList.remove('open');pendImport=null;document.getElementById('import-prev').style.display='none';document.getElementById('import-warn').style.display='none';document.getElementById('btn-import-ok').style.display='none';}
-function handleDrop(e){e.preventDefault();document.getElementById('drop-zone').classList.remove('drag');const f=e.dataTransfer.files[0];if(f)processFile(f);}
-function handleFile(e){const f=e.target.files[0];if(f)processFile(f);}
-function processFile(file){
-  const reader=new FileReader();
-  reader.onerror=function(){showToast('Erro ao ler o arquivo. Verifique se é um .xlsx válido.','err');document.getElementById('drop-zone').classList.remove('drag');};
-  reader.onload=function(e){try{
-    const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
-    const sn=wb.SheetNames.includes('DADOS_PÚBLICOS')?'DADOS_PÚBLICOS':wb.SheetNames[0];
-    const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,raw:false});
-    if(rows.length<3){showToast('Planilha sem dados suficientes.','warn');return;}
-    pendImport=rows.slice(2).filter(r=>r[0]&&r[1]).map(r=>({
-      tipo:r[0]||'',num:r[1]||'',
-      ano:parseInt((r[1]||'').match(/\d{4}/)?.[0])||parseInt(r[2])||0,
-      objeto:r[3]||'',inst:r[4]||'',esfera:r[5]||'',
-      inicio:parseDateStr(r[6]),termino:parseDateStr(r[7]),
-      area:r[8]||'',link:r[11]||'',obs:r[13]||'',
-      sei:'',resp:'',statusInt:'',alerta:'',notas:''
-    }));
-    // Duplicate detection
-    const dups=pendImport.filter(r=>dados.some(d=>d.num===r.num&&d.tipo===r.tipo));
-    const prev=document.getElementById('import-prev');
-    prev.style.display='block';
-    prev.innerHTML=`✓ <strong>${escHtml(file.name)}</strong> lido com sucesso — <strong>${pendImport.length} registros</strong> na aba DADOS_PÚBLICOS.`;
-    const warn=document.getElementById('import-warn');
-    if(dups.length){warn.style.display='block';warn.innerHTML=`⚠ ${dups.length} registro(s) duplicado(s) detectado(s): ${dups.map(r=>`${escHtml(r.tipo)} ${escHtml(r.num)}`).join(', ')}. Ao confirmar, os existentes serão mantidos e os novos adicionados apenas se diferentes.`;}
-    else{warn.style.display='none';}
-    document.getElementById('btn-import-ok').style.display='inline-flex';
-  }catch(err){showToast('Erro ao processar a planilha: '+err.message,'err');console.error(err);}};
-  reader.readAsArrayBuffer(file);
-}
-function parseDateStr(s){
-  if(!s)return '';
-  let iso='';
-  if(s.includes('/')){const[d,m,y]=s.split('/');iso=`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;}
-  else{iso=s;}
-  // Validar data resultante (rejeita datas impossíveis como 31/02)
-  if(iso&&isNaN(new Date(iso).getTime()))return '';
-  return iso;
-}
-function confirmarImport(){
-  if(!pendImport)return;
-  _pushUndo();
-  const publicFields=['tipo','num','objeto','inst','esfera','inicio','termino','area','link','obs'];
-  const internalFields=['sei','resp','statusInt','alerta','notas'];
-  let novos=0,atualizados=0,ignorados=0;
-  pendImport.forEach(imp=>{
-    const idx=dados.findIndex(d=>d.num===imp.num&&d.tipo===imp.tipo);
-    if(idx===-1){dados.push(imp);novos++;}
-    else{
-      const existing=dados[idx];
-      // Merge inteligente: aplicar apenas campos públicos alterados; preservar internos do existente
-      const changed=publicFields.some(f=>String(imp[f]||'')!==String(existing[f]||''));
-      if(changed){
-        internalFields.forEach(f=>{imp[f]=existing[f]||'';});
-        dados[idx]={...existing,...imp};
-        atualizados++;
-      } else {ignorados++;}
-    }
-  });
-  _autosave();
-  document.getElementById('import-info').textContent=
-    `Importado: ${novos} novos, ${atualizados} atualizados, ${ignorados} sem mudanças · ${new Date().toLocaleTimeString('pt-BR')}`;
-  showToast(`Import: ${novos} novos · ${atualizados} atualizados · ${ignorados} ignorados`,'ok',5000);
-  closeImport();popularFiltros();renderTable();updateKPIs();
-}
-
-// ── E-MAIL ALERTAS ─────────────────────────────────────────────────────────────
-function enviarAlerta(idx){
-  const r=dados[idx];const st=calcStatus(r.termino);
-  const subj=`[SEMA/AC] Alerta de vencimento — ${r.tipo} ${r.num}`;
-  const body=`Prezados,\n\nInformamos que o instrumento abaixo está próximo do vencimento:\n\nTipo: ${r.tipo}\nNúmero: ${r.num}\nObjeto: ${r.objeto}\nInstituição: ${r.inst}\nData de término: ${fmtDate(r.termino)}\nStatus: ${st.label} (${Math.abs(st.dias)} dias ${st.dias<0?'expirado':'restantes'})\n\nFavor providenciar renovação ou encerramento formal.\n\nAtenciosamente,\nAssessoria Jurídica — SEMA/AC`;
-  window.location.href=`mailto:?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
-}
-function enviarAlertaLote(){
-  const criticos=dados.filter(r=>{const s=calcStatus(r.termino).label;return s==='Vence em 30 dias'||s==='Expirado'||s==='A vencer';});
-  if(!criticos.length){showToast('Nenhum instrumento a vencer ou expirado.','warn');return;}
-  const subj=`[SEMA/AC] Relatório de alertas de vencimento — ${new Date().toLocaleDateString('pt-BR')}`;
-  const body=`Prezados,\n\nRelacionamos abaixo os instrumentos que requerem atenção:\n\n${criticos.map(r=>`- ${r.tipo} ${r.num} | ${(r.inst||'').split('–')[0].trim()} | ${fmtDate(r.termino)} | ${calcStatus(r.termino).label}`).join('\n')}\n\nAtenciosamente,\nAssessoria Jurídica — SEMA/AC`;
-  window.location.href=`mailto:?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
-}
-function alertarSelecionados(){
-  const sel=dados.filter((_,i)=>selSet.has(i));
-  if(!sel.length)return;
-  const subj=`[SEMA/AC] Alertas selecionados — ${sel.length} instrumento(s)`;
-  const body=`Prezados,\n\nSegue relação dos instrumentos selecionados:\n\n${sel.map(r=>`- ${r.tipo} ${r.num} | ${r.inst.split('–')[0].trim()} | ${fmtDate(r.termino)} | ${calcStatus(r.termino).label}`).join('\n')}\n\nAtenciosamente,\nAssessoria Jurídica — SEMA/AC`;
-  window.location.href=`mailto:?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
-}
-
-// ── EXPORTAR ───────────────────────────────────────────────────────────────────
-function exportarXLSX(rows,fname){try{
-  const str=v=>String(v??'');
-  const header=['Tipo','Número','Objeto','Instituição','Esfera','Início','Término','Área','Status','Dias','SEI (interno)','Responsável','Situação','Alerta','Notas'];
-  const data=rows.map(r=>{const s=calcStatus(r.termino);return[str(r.tipo),str(r.num),str(r.objeto),str(r.inst),str(r.esfera),str(fmtDate(r.inicio)),str(fmtDate(r.termino)),str(r.area),str(s.label),str(s.dias??''),str(r.sei),str(r.resp),str(r.statusInt),str(r.alerta),str(r.notas)];});
-  const ws=XLSX.utils.aoa_to_sheet([header,...data]);
-  ws['!cols']=[8,10,50,30,12,12,12,22,14,8,28,18,20,20,36].map(w=>({wch:w}));
-  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,'TCT_Admin',ws);
-  XLSX.writeFile(wb,`${fname}_${new Date().toISOString().slice(0,10)}.xlsx`);}catch(e){showToast('Erro ao exportar: '+e.message,'err');console.error(e);}}
-function exportarCompleto(){exportarXLSX(dados,'SEMA_TCT_Admin_Completo');}
-function exportarFiltrados(){if(!filtrados.length){showToast('Nenhum registro filtrado.','warn');return;}exportarXLSX(filtrados,'SEMA_TCT_Filtrado');}
-function exportarFiltradosCSV(){if(!filtrados.length){showToast('Nenhum registro filtrado.','warn');return;}exportarCSV(filtrados,'SEMA_TCT_Filtrado');}
-function exportarCompletoCSV(){exportarCSV(dados,'SEMA_TCT_Admin_Completo');}
-function exportarSelecionadosCSV(){const sel=dados.filter((_,i)=>selSet.has(i));if(!sel.length){showToast('Nenhum registro selecionado.','warn');return;}exportarCSV(sel,'SEMA_TCT_Selecionados');}
-
-function exportarCSV(rows,fname){try{
-  const esc=v=>String(v??'').replace(/"/g,'""');
-  const header=['Tipo','Número','Objeto','Instituição','Esfera','Início','Término','Área','Status','Dias','SEI (interno)','Responsável','Situação Int.','Alerta','Notas'];
-  const lines=[header,...rows.map(r=>{const s=calcStatus(r.termino);return[r.tipo,r.num,r.objeto,r.inst,r.esfera,fmtDate(r.inicio),fmtDate(r.termino),r.area,s.label,s.dias??'',r.sei,r.resp,r.statusInt,r.alerta,r.notas];})].map(row=>row.map(v=>`"${esc(v)}"`).join(','));
-  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download=`${fname}_${new Date().toISOString().slice(0,10)}.csv`;a.click();
-  showToast(`CSV exportado: ${rows.length} registros`,'ok',3000);
-}catch(e){showToast('Erro ao exportar CSV: '+e.message,'err');console.error(e);}}
-
-function exportarPDF(rows,fname){try{
-  if(!window.jspdf){showToast('Carregando biblioteca PDF…','info',3000);const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';s.onload=()=>exportarPDF(rows,fname);document.head.appendChild(s);return;}
-  const{jsPDF}=window.jspdf;const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
-  const W=297;
-  doc.setFillColor(9,92,24);doc.rect(0,0,W,18,'F');
-  doc.setFillColor(245,199,26);doc.rect(0,18,W,1.2,'F');
-  doc.setFontSize(12);doc.setFont('helvetica','bold');doc.setTextColor(31,173,53);doc.text('SEMA',10,12);
-  doc.setTextColor(255,255,255);doc.setFontSize(8);doc.setFont('helvetica','normal');
-  doc.text('Secretaria de Estado do Meio Ambiente — AC | Termos de Cooperação Técnica',28,12);
-  doc.setTextColor(180,180,180);doc.setFontSize(7);doc.text(`Gerado em ${new Date().toLocaleString('pt-BR')} · ${rows.length} registros`,W-10,12,{align:'right'});
-  const cols=['Tipo','Número','Objeto','Instituição','Esfera','Término','Status','Dias','Responsável'];
-  const colW=[12,22,70,45,14,22,22,10,28];
-  let x=10,y=26;
-  doc.setFillColor(9,92,24);doc.rect(x,y,W-20,7,'F');
-  doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
-  colW.forEach((w,i)=>{doc.text(cols[i],x+2,y+5);x+=w;});
-  y+=7;
-  rows.forEach((r,idx)=>{
-    if(y>190){doc.addPage();y=15;}
-    const s=calcStatus(r.termino);
-    if(idx%2===0){doc.setFillColor(240,247,240);doc.rect(10,y,W-20,6,'F');}
-    doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.setTextColor(60,60,60);
-    x=10;
-    const vals=[r.tipo,r.num,(r.objeto||'').slice(0,45),(r.inst||'').split('–')[0].trim().slice(0,30),r.esfera||'',fmtDate(r.termino),s.label,s.dias!==null?Math.abs(s.dias):'',r.resp||''];
-    colW.forEach((w,i)=>{doc.text(String(vals[i]??''),x+1,y+4.5,{maxWidth:w-2});x+=w;});
-    y+=6;
-  });
-  doc.setFontSize(6.5);doc.setTextColor(150,150,150);doc.text('SEMA/AC — Assessoria Jurídica · Documento gerado automaticamente',W/2,doc.internal.pageSize.height-5,{align:'center'});
-  doc.save(`${fname}_${new Date().toISOString().slice(0,10)}.pdf`);
-  showToast(`PDF exportado: ${rows.length} registros`,'ok',3000);
-}catch(e){showToast('Erro ao exportar PDF: '+e.message,'err');console.error(e);}}
-function exportarCompletoPDF(){exportarPDF(dados,'SEMA_TCT_Admin_Completo');}
-function exportarFiltradosPDF(){if(!filtrados.length){showToast('Nenhum registro filtrado.','warn');return;}exportarPDF(filtrados,'SEMA_TCT_Filtrado');}
-function exportarSelecionadosPDF(){const sel=dados.filter((_,i)=>selSet.has(i));if(!sel.length){showToast('Nenhum registro selecionado.','warn');return;}exportarPDF(sel,'SEMA_TCT_Selecionados');}
-
-function baixarBackup(){
-  const blob=new Blob([JSON.stringify({ts:new Date().toISOString(),version:'3.0',records:dados},null,2)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download=`sema_backup_${new Date().toISOString().slice(0,10)}.json`;a.click();
-  showToast(`Backup exportado: ${dados.length} registros`,'ok',3000);
-}
-
-// ── EXPORTAR PARA SHEETS (formato exato da aba DADOS_PÚBLICOS) ─────────────────
-function exportarParaSheets(){
-  if(!dados.length){showToast('Nenhum registro para exportar.','warn');return;}
-  try{
-    const fmtIso=d=>{
-      if(!d)return'';
-      // d pode ser 'YYYY-MM-DD' ou 'DD/MM/YYYY'
-      if(/^\d{4}-\d{2}-\d{2}$/.test(d))return d;
-      const p=d.split('/');
-      return p.length===3?`${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`:'';
-    };
-    // Título decorativo — linha 1 (equivale ao título da planilha)
-    const titulo=['SEMA/AC — Termos de Cooperação Técnica','','','','','','','','','','','','','',''];
-    // Cabeçalhos — linha 2 (exatamente as colunas de DADOS_PÚBLICOS)
-    const cabecalho=['Tipo','Número','Ano','Objeto','Instituição Parceira','Esfera','Início','Término','Área','Status','Dias Restantes','Link Doc','Link SEI','Observações','SEI'];
-    // Dados — linha 3+ (campos internos omitidos; Status e DiasRestantes vazios → preenchidos por fórmula no Sheets)
-    const linhas=dados.map(r=>[
-      r.tipo||'',
-      r.num||'',
-      r.ano||parseInt((r.num||'').match(/\d{4}/)?.[0])||new Date().getFullYear(),
-      r.objeto||'',
-      r.inst||'',
-      r.esfera||'',
-      fmtIso(r.inicio),
-      fmtIso(r.termino),
-      r.area||'',
-      '',  // Status — calculado por fórmula no Sheets
-      '',  // Dias Restantes — calculado por fórmula no Sheets
-      r.link||r.linkDoc||r.link_doc||'',
-      r.linkSei||'',
-      r.obs||'',
-      r.sei||''
-    ]);
-    const ws=XLSX.utils.aoa_to_sheet([titulo,cabecalho,...linhas]);
-    // Larguras de coluna compatíveis com o Sheets
-    ws['!cols']=[8,14,6,60,40,12,12,12,28,14,10,40,40,40,22].map(w=>({wch:w}));
-    // Mesclar título na linha 1 (A1:O1)
-    ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:14}}];
-    // Estilo básico
-    ws['A1']={v:titulo[0],t:'s',s:{font:{bold:true,sz:13},fill:{fgColor:{rgb:'095C18'}},alignment:{horizontal:'center'}}};
-    const wb=XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb,'DADOS_PÚBLICOS',ws);
-    const fname=`SEMA_TCT_ImportSheets_${new Date().toISOString().slice(0,10)}.xlsx`;
-    XLSX.writeFile(wb,fname);
-    showToast(`Arquivo gerado: ${fname} · Para importar: Sheets → Arquivo → Importar → Substituir aba DADOS_PÚBLICOS`,'ok',7000);
-  }catch(e){showToast('Erro ao exportar: '+e.message,'err');console.error(e);}
-}
-
-async function baixarPlanilhaSheets(){
-  const cfg=(typeof SEMA_CONFIG!=='undefined')?SEMA_CONFIG:{};
-  if(!cfg.appsScriptUrl||cfg.appsScriptUrl.startsWith('%%')){
-    showToast('URL do Apps Script não configurada — exportando dados locais.','warn',4000);
-    exportarParaSheets();return;
-  }
-  showToast('Buscando dados atualizados do Sheets…','info',3000);
-  try{
-    const url=cfg.appsScriptUrl+'?action=list&sheet='+encodeURIComponent(cfg.sheet||'DADOS_PÚBLICOS');
-    const r=await fetch(url);
-    const text=await r.text();
-    let json;
-    try{json=JSON.parse(text);}catch(_){throw new Error('Resposta inválida do servidor');}
-    if(json.error)throw new Error(json.error);
-    const recs=json.records||[];
-    if(!recs.length){showToast('Planilha Sheets está vazia.','warn',3000);return;}
-    const fmtIso=d=>{
-      if(!d)return'';
-      if(/^\d{4}-\d{2}-\d{2}$/.test(d))return d;
-      const p=d.split('/');
-      return p.length===3?`${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`:'';
-    };
-    const titulo=['SEMA/AC — Termos de Cooperação Técnica','','','','','','','','','','','','','',''];
-    const cabecalho=['Tipo','Número','Ano','Objeto','Instituição Parceira','Esfera','Início','Término','Área','Status','Dias Restantes','Link Doc','Link SEI','Observações','SEI'];
-    const linhas=recs.map(r=>[
-      r.tipo||'',r.num||'',
-      r.ano||parseInt((r.num||'').match(/\d{4}/)?.[0])||new Date().getFullYear(),
-      r.objeto||'',r.inst||'',r.esfera||'',
-      fmtIso(r.inicio),fmtIso(r.termino),r.area||'',
-      '','',  // Status e Dias — calculados por fórmula no Sheets
-      r.link||r.linkDoc||'',r.linkSei||'',r.obs||'',r.sei||''
-    ]);
-    const ws=XLSX.utils.aoa_to_sheet([titulo,cabecalho,...linhas]);
-    ws['!cols']=[8,14,6,60,40,12,12,12,28,14,10,40,40,40,22].map(w=>({wch:w}));
-    ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:14}}];
-    ws['A1']={v:titulo[0],t:'s',s:{font:{bold:true,sz:13},fill:{fgColor:{rgb:'095C18'}},alignment:{horizontal:'center'}}};
-    const wb=XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb,'DADOS_PÚBLICOS',ws);
-    const fname=`SEMA_TCT_Sheets_${new Date().toISOString().slice(0,10)}.xlsx`;
-    XLSX.writeFile(wb,fname);
-    showToast(`${recs.length} registros baixados do Sheets → ${fname}`,'ok',5000);
-  }catch(e){showToast('Erro ao baixar do Sheets: '+e.message,'err',5000);console.error(e);}
-}
-
-// ── VISIBILIDADE DE CAMPOS PÚBLICOS ───────────────────────────────────────────
-const _FIELD_VIS_IDS=['objeto','inst','esfera','inicio','termino','area','obs','sei','linkDoc','dias','status'];
-
-async function loadFieldConfig(){
-  if(!SEMA_CONFIG.appsScriptUrl)return;
-  try{
-    const url=SEMA_CONFIG.appsScriptUrl+'?action=getConfig';
-    const r=await fetch(url,{method:'GET'});
-    const text=await r.text();
-    const json=JSON.parse(text);
-    if(json.ok&&json.config&&Array.isArray(json.config.visibleFields)){
-      _FIELD_VIS_IDS.forEach(f=>{
-        const el=document.getElementById('fv-'+f);
-        if(el)el.checked=json.config.visibleFields.includes(f);
-      });
-      const msg=document.getElementById('fv-status-msg');
-      if(msg)msg.textContent='Configuração carregada do servidor.';
-    }
-  }catch(_){}
-}
-
-async function salvarFieldConfig(){
-  const visibleFields=_FIELD_VIS_IDS.filter(f=>{
-    const el=document.getElementById('fv-'+f);
-    return el&&el.checked;
-  });
-  const msg=document.getElementById('fv-status-msg');
-  if(msg){msg.textContent='Salvando…';msg.style.color='var(--tx2)';}
-  try{
-    const res=await SYNC._post({action:'saveConfig',config:{visibleFields}});
-    if(res&&res.ok){
-      if(msg){msg.textContent='✓ Configuração salva no servidor.';msg.style.color='var(--ok)';}
-      showToast('Visibilidade de campos salva no Sheets ✓','ok',3500);
-    }else{
-      throw new Error(res&&res.error?res.error:'Resposta inválida');
-    }
-  }catch(e){
-    if(msg){msg.textContent='Erro: '+e.message;msg.style.color='var(--r)';}
-    showToast('Erro ao salvar configuração: '+e.message,'err',4000);
-  }
-}
-
-// ── SENHA SHA-256 ──────────────────────────────────────────────────────────────
-async function alterarSenha(){
-  const atual=document.getElementById('pwd-atual').value;
-  const nova=document.getElementById('pwd-nova').value;
-  const conf=document.getElementById('pwd-conf').value;
-  const msg=document.getElementById('pwd-msg');
-  msg.style.display='block';
-  const storedHash=sessionStorage.getItem('sema_pwd_hash')||getSenhaHash();
-  const hashAtual=await hashSenha(atual);
-  if(hashAtual!==storedHash){msg.style.color='var(--r)';msg.textContent='Senha atual incorreta.';return;}
-  if(nova.length<6){msg.style.color='var(--r)';msg.textContent='Nova senha deve ter no mínimo 6 caracteres.';return;}
-  if(nova!==conf){msg.style.color='var(--r)';msg.textContent='As senhas não coincidem.';return;}
-  const novoHash=await hashSenha(nova);
-  sessionStorage.setItem('sema_pwd_hash',novoHash);
-  msg.style.color='var(--ok)';
-  msg.textContent='Senha alterada com sucesso nesta sessão. Para tornar permanente, edite a constante SENHA_HASH no código-fonte.';
-  ['pwd-atual','pwd-nova','pwd-conf'].forEach(id=>document.getElementById(id).value='');
-}
-
-
-
-// ── SYNC MODULE INTEGRATION ───────────────────────────────────────────────────
-let SYNC = null;
-
-function initSync() {
-  const cfg = (typeof SEMA_CONFIG !== 'undefined') ? SEMA_CONFIG : {};
-  SYNC = new SEMASync({
-    ...cfg,
-    interval: 300_000,    // admin: 5 min (público usa 60s via config.js)
-    logMax: 100,
-  });
-
-  SYNC.on('status', updateSyncStatus);
-  SYNC.on('status', st => {
-    const badge = document.getElementById('h-online');
-    if (!badge) return;
-    const online = (st === 'ok' || st === 'syncing' || st === 'idle');
-    badge.textContent = online ? '● Online' : '● Offline';
-    badge.className = 'pill ' + (online ? 'p-online' : 'p-offline');
-  });
-  // 'data' só é emitido em syncs completos (não em saves locais)
-  // Dados remotos do Sheets substituem o estado local quando há registros
-  SYNC.on('data', recs => {
-    if (recs.length > 0) {
-      dados = [...recs];
-      popularFiltros(); renderTable(); updateKPIs();
-      _autosave(); // manter sema_dados_cache em sincronia com sema_tct_cache
-    }
-  });
-  SYNC.on('log',    entry => appendLog(entry));
-  SYNC.on('error',  err => {
-    appendLog({ level: 'error', msg: err.message, iso: new Date().toLocaleTimeString('pt-BR') });
-  });
-
-  // Verificar URL configurada
-  const urlStatus = document.getElementById('sd-url-status');
-  if (cfg.appsScriptUrl && cfg.appsScriptUrl !== '%%APPS_SCRIPT_URL%%') {
-    urlStatus.style.cssText = 'background:var(--okl);color:var(--ok);font-size:11px;padding:8px 12px;border-radius:6px;align-self:flex-end;';
-    urlStatus.textContent = '✓ Apps Script configurado';
-  } else {
-    urlStatus.style.cssText = 'background:var(--al);color:var(--a);font-size:11px;padding:8px 12px;border-radius:6px;align-self:flex-end;';
-    urlStatus.textContent = '⚠ URL do Apps Script não configurada — modo demo';
-  }
-
-  SYNC.start();
-  // Atualizar painel de status a cada segundo
-  setInterval(refreshSyncDashboard, 1000);
-  // Carregar config de visibilidade de campos do GAS
-  setTimeout(loadFieldConfig, 2000);
-}
-
-function updateSyncStatus(s) {
-  const el = document.getElementById('sd-status');
-  if (!el) return;
-  const offline = typeof navigator !== 'undefined' && !navigator.onLine;
-  const labels = { ok:'✅ Sincronizado', error:'❌ Erro', syncing:'🔄 Sincronizando…', idle:'⏸ Aguardando', offline:'📵 Offline' };
-  const colors = { ok:'var(--ok)', error:'var(--r)', syncing:'var(--a)', idle:'var(--tx2)', offline:'var(--r)' };
-  const effectiveStatus = offline ? 'offline' : s;
-  el.textContent = labels[effectiveStatus] || effectiveStatus;
-  el.style.color = colors[effectiveStatus] || 'var(--tx)';
-  const btn = document.getElementById('btn-sync');
-  if (btn) btn.disabled = s === 'syncing' || offline;
-}
-
-function refreshSyncDashboard() {
-  if (!SYNC) return;
-  const st = SYNC.getStatus();
-  const lastEl = document.getElementById('sd-last');
-  if (lastEl) lastEl.textContent = st.lastSync
-    ? st.lastSync.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit',second:'2-digit'})
-    : '—';
-  const countEl = document.getElementById('sd-count');
-  if (countEl) countEl.textContent = st.records;
-  const dirtyEl = document.getElementById('sd-dirty');
-  if (dirtyEl) dirtyEl.textContent = st.dirty > 0 ? `${st.dirty} pendentes de envio` : 'Tudo sincronizado';
-  const errEl = document.getElementById('sd-errs');
-  if (errEl) errEl.textContent = st.errCount;
-  const connEl = document.getElementById('sd-connected');
-  if (connEl) connEl.textContent = st.connected ? '🟢 Conectado' : '⚪ Modo offline/demo';
-}
-
-function appendLog(entry) {
-  const container = document.getElementById('sync-log');
-  if (!container) return;
-  const levelCls = { ok:'ll-ok', info:'ll-info', warn:'ll-warn', error:'ll-error' }[entry.level] || 'll-info';
-  const div = document.createElement('div');
-  div.className = 'log-line';
-  div.innerHTML = `<span class="log-ts">${escHtml(entry.iso || '')}</span>
-    <span class="log-lvl ${escHtml(levelCls)}">${escHtml((entry.level||'').toUpperCase())}</span>
-    <span class="log-msg">${escHtml(entry.msg || '')}</span>`;
-  // Prepend para mostrar mais recentes primeiro
-  container.insertBefore(div, container.firstChild);
-  // Limitar a 50 linhas
-  while (container.children.length > 50) container.removeChild(container.lastChild);
-  const count = container.children.length;
-  const countEl = document.getElementById('sd-log-count');
-  if (countEl) countEl.textContent = `${count} evento${count !== 1 ? 's' : ''}`;
-}
-
-async function doManualSync() {
-  if (!SYNC) return;
-  const btn = document.getElementById('btn-sync');
-  if (btn) { btn.disabled = true; btn.textContent = '⟳ Sincronizando…'; }
-  const result = await SYNC.sync();
-  if (btn) { btn.disabled = false; btn.textContent = '⟳ Sync manual'; }
-  if (result.ok) {
-    const synced = SYNC.getAll();
-    if (synced.length > 0) dados = synced;
-    popularFiltros(); renderTable(); updateKPIs();
-  }
-}
-
-async function publicarTudo() {
-  if (!SYNC) return;
-  if (!SYNC._hasToken()) {
-    showToast('SYNC_TOKEN não configurado. Contate o administrador do sistema.','err',6000);
+  if (!_schema.length) {
+    thead.innerHTML = '<th style="opacity:.6">Aguardando dados do Sheets…</th>';
+    tbody.innerHTML = '';
+    if (count) count.textContent = '';
     return;
   }
-  if (publicarTudo._running) return;
-  publicarTudo._running = true;
-  const btn = document.getElementById('btn-publicar');
-  if (btn) { btn.disabled = true; btn.textContent = '☁ Publicando…'; }
-  try {
-    showToast(`Enviando ${dados.length} registros para o Sheets…`, 'info', 4000);
-    const res = await SYNC._post({
-      action: 'upsertBatch',
-      sheet: SYNC.cfg.sheet,
-      records: dados,
-    });
-    if (res.error) throw new Error(res.error);
-    const msg = `Publicação concluída: ${res.updated || 0} atualizados, ${res.inserted || 0} inseridos${res.errors > 0 ? ', ' + res.errors + ' erros' : ''}`;
-    appendLog({ level: res.errors > 0 ? 'warn' : 'ok', msg, iso: new Date().toLocaleTimeString('pt-BR') });
-    showToast(`✅ ${dados.length} registros publicados no Sheets`, 'ok');
-  } catch(e) {
-    appendLog({ level: 'error', msg: `Publicação falhou: ${e.message}`, iso: new Date().toLocaleTimeString('pt-BR') });
-    showToast(`❌ Falha ao publicar: ${e.message}`, 'err');
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '☁ Publicar tudo no Sheets'; }
-    publicarTudo._running = false;
+
+  if (count) count.textContent = `(${_records.length} registro${_records.length!==1?'s':''})`;
+  thead.innerHTML = _schema.map(c => `<th>${esc(c.label)}</th>`).join('');
+
+  const start = (_page - 1) * PAGE;
+  const rows  = _records.slice(start, start + PAGE);
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="${_schema.length}" class="empty-state">
+      Nenhum dado encontrado na planilha.</td></tr>`;
+  } else {
+    tbody.innerHTML = rows.map(r => {
+      const cells = _schema.map(col => {
+        const raw = String(r[col.key] || '').trim();
+        const kL  = col.key.toLowerCase();
+        let cell;
+        if (kL === 'status' || kL === 'situacao') cell = statusBadge(raw);
+        else if (raw.startsWith('http')) cell = `<a href="${esc(raw)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🔗</a>`;
+        else if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) cell = raw.split('-').reverse().join('/');
+        else cell = esc(raw) || '<span style="color:var(--text2)">—</span>';
+        return `<td>${cell}</td>`;
+      }).join('');
+      return `<tr>${cells}</tr>`;
+    }).join('');
   }
+
+  renderPagination();
 }
 
-function clearLogs() {
-  const container = document.getElementById('sync-log');
-  if (container) { container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--tx2);">Log limpo.</div>'; }
-  const countEl = document.getElementById('sd-log-count');
-  if (countEl) countEl.textContent = '0 eventos';
+function renderPagination() {
+  const total = _records.length;
+  const pages = Math.ceil(total / PAGE);
+  const pg    = document.getElementById('pagination');
+  if (pages <= 1) {
+    pg.innerHTML = total ? `<span>${total} registro${total!==1?'s':''}</span>` : '';
+    return;
+  }
+  pg.innerHTML = `
+    <button onclick="goPage(${_page-1})" ${_page<=1?'disabled':''}>‹ Anterior</button>
+    <span>Página ${_page} / ${pages}</span>
+    <button onclick="goPage(${_page+1})" ${_page>=pages?'disabled':''}>Próxima ›</button>
+  `;
 }
 
-async function testarConexao() {
-  if (!SYNC || !SYNC.cfg.appsScriptUrl) {
-    showToast('URL do Apps Script não configurada', 'err'); return;
-  }
-  const btn = document.getElementById('btn-testar');
-  btn.disabled = true; btn.textContent = '🔌 Testando…';
-  const t0 = Date.now();
-  try {
-    const r = await fetch(`${SYNC.cfg.appsScriptUrl}?action=status`);
-    const json = await r.json();
-    const ms = Date.now() - t0;
-    if (json.ok) {
-      showToast(`✅ Conectado: ${json.name} · ${ms}ms`, 'ok', 5000);
-      appendLog({ level: 'ok', msg: `Conexão OK — planilha: "${json.name}", sheets: [${(json.sheets||[]).join(', ')}] (${ms}ms)`, iso: new Date().toLocaleTimeString('pt-BR') });
-    } else {
-      showToast('⚠ Resposta inesperada do servidor', 'warn', 4000);
-      appendLog({ level: 'warn', msg: `Status inesperado: ${JSON.stringify(json)}`, iso: new Date().toLocaleTimeString('pt-BR') });
-    }
-  } catch(e) {
-    showToast(`❌ Sem conexão: ${e.message}`, 'err', 5000);
-    appendLog({ level: 'error', msg: `Falha de conexão ao Apps Script: ${e.message}`, iso: new Date().toLocaleTimeString('pt-BR') });
-  } finally {
-    btn.disabled = false; btn.textContent = '🔌 Testar Conexão';
-  }
+function goPage(n) {
+  const pages = Math.ceil(_records.length / PAGE);
+  if (n < 1 || n > pages) return;
+  _page = n;
+  renderPreviewTable();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function updateInterval() {
-  if (!SYNC) return;
-  const val = parseInt(document.getElementById('sd-interval').value) || 0;
-  SYNC.updateConfig({ interval: val });
+/* ─── HELPERS ────────────────────────────────────────────── */
+function statusBadge(st) {
+  const sL = (st||'').toLowerCase();
+  let cls = 'badge-default';
+  if      (sL.includes('vigente') && !sL.includes('vence')) cls = 'badge-vigente';
+  else if (sL.includes('vence em 30'))   cls = 'badge-urgente';
+  else if (sL.includes('vencer'))        cls = 'badge-avencer';
+  else if (sL.includes('expir'))         cls = 'badge-expirado';
+  return `<span class="badge ${cls}">${esc(st)}</span>`;
 }
 
-function updateConflict() {
-  if (!SYNC) return;
-  const val = document.getElementById('sd-conflict').value;
-  SYNC.updateConfig({ conflictMode: val });
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){
-    ['modal-form','modal-import','modal-del','modal-confirm','modal-help'].forEach(id=>document.getElementById(id)?.classList.remove('open'));
-  }
-  if((e.key==='F1'||(e.key==='?'&&!e.ctrlKey&&!e.altKey&&document.activeElement.tagName!=='INPUT'&&document.activeElement.tagName!=='TEXTAREA'))){
-    e.preventDefault();document.getElementById('modal-help').classList.add('open');
-  }
-  if(e.ctrlKey&&e.key==='f'){e.preventDefault();document.getElementById('busca')?.focus();}
-  if(e.ctrlKey&&e.key==='i'){e.preventDefault();openImport();}
-  if(e.ctrlKey&&e.key==='e'){e.preventDefault();exportarFiltrados();}
-  if(e.ctrlKey&&e.key==='s'){e.preventDefault();document.getElementById('modal-form')?.classList.contains('open')&&salvarForm();}
-  if(e.ctrlKey&&(e.key==='z'||e.key==='Z')&&!e.shiftKey){e.preventDefault();undo();}
-  if((e.ctrlKey&&e.key==='y')||(e.ctrlKey&&e.shiftKey&&e.key==='Z')){e.preventDefault();redo();}
-  if(e.key==='Delete'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){if(selSet.size)excluirSelecionados();}
+function setStatus(s) {
+  const d = document.getElementById('status-dot');
+  if (d) d.className = 'status-dot' + (s==='ok'?'':s==='syncing'?' syncing':' error');
+}
+
+function loadingBar(pct) {
+  const b = document.getElementById('loading-bar');
+  b.style.width = pct + '%';
+  b.style.opacity = (pct > 0 && pct < 100) ? '1' : '0';
+}
+
+let _toastT;
+function showToast(msg, type='ok', dur=3500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = type; t.style.opacity = '1';
+  clearTimeout(_toastT); _toastT = setTimeout(() => { t.style.opacity = '0'; }, dur);
+}
+
+function loadTheme() {
+  const s = localStorage.getItem('sema_theme') || 'light';
+  document.documentElement.setAttribute('data-theme', s);
+  const b = document.getElementById('btn-theme'); if (b) b.textContent = s==='dark' ? '☀️' : '🌙';
+}
+function toggleTheme() {
+  const cur  = document.documentElement.getAttribute('data-theme') || 'light';
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('sema_theme', next);
+  const b = document.getElementById('btn-theme'); if (b) b.textContent = next==='dark' ? '☀️' : '🌙';
+}
+
+/* ─── START ──────────────────────────────────────────────── */
+loadTheme();
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('login-pass').focus();
 });
+</script>
 
-// ── TOAST ─────────────────────────────────────────────────────────────────────
-function showToast(msg, type='info', duration=3500) {
-  const t = document.createElement('div');
-  t.className = `toast toast-${type}`;
-  t.setAttribute('role','status');
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(), 350); }, duration);
+<script src="js/config.js" onerror=""></script>
+<script>
+if (typeof SEMA_CONFIG !== 'undefined') {
+  if (SEMA_CONFIG.appsScriptUrl) GAS_URL    = SEMA_CONFIG.appsScriptUrl;
+  if (SEMA_CONFIG.syncToken)     SYNC_TOKEN = SEMA_CONFIG.syncToken;
+  if (SEMA_CONFIG.senhaHash)     SENHA_HASH = SEMA_CONFIG.senhaHash;
 }
-
-window.addEventListener('DOMContentLoaded',()=>{
-  // Inicia SYNC antes de tudo — fundamental para carregar dados do Sheets
-  initSync();
-  _initSessionTimer();
-  document.getElementById('pwd-input')?.focus();
-});
 </script>
 </body>
 </html>
