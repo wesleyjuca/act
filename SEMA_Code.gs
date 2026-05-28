@@ -715,11 +715,8 @@ function criarPlanilhaModelo() {
   sh.setFrozenRows(2);
   sh.setRowHeight(2, 30);
 
-  Logger.log('Aba criada: ' + tabName);
-  SpreadsheetApp.getUi().alert(
-    'Aba "' + tabName + '" criada com sucesso!\n\n' +
-    '• Linha 2: cabeçalhos (lidos pela API)\n' +
-    '• Linha 3: exemplo com fórmulas em Status e Dias Restantes\n' +
-    '• Adicione seus dados a partir da linha 4.'
-  );
+  Logger.log('Aba criada com sucesso: ' + tabName);
+  Logger.log('• Linha 2: cabeçalhos (lidos pela API)');
+  Logger.log('• Linha 3: exemplo com fórmulas em Status e Dias Restantes');
+  Logger.log('• Adicione seus dados a partir da linha 4.');
 }
