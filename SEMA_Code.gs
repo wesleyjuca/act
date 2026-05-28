@@ -175,6 +175,9 @@ function doGet(e) {
 
     switch (action) {
 
+      case 'ping':
+        return jsonResponse(handlePing());
+
       case 'list':
         return jsonResponse(handleList(e.parameter));
 
@@ -257,6 +260,21 @@ function doPost(e) {
   } finally {
     lock.releaseLock();
   }
+}
+
+// ─────────────────────────────────────────────────────────────
+// PING
+// ─────────────────────────────────────────────────────────────
+
+function handlePing() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  return {
+    ok: true,
+    version: '5.1',
+    sheet: SHEET_DADOS,
+    sheetExists: !!ss.getSheetByName(SHEET_DADOS),
+    spreadsheetId: ss.getId().replace(/.{30}$/, '…'),
+  };
 }
 
 // ─────────────────────────────────────────────────────────────
