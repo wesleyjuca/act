@@ -28,6 +28,11 @@ header {
 }
 header h1 { font-size: 1rem; font-weight: 600; flex: 1; }
 header h1 small { font-weight: 400; opacity: .75; font-size: .8rem; display: block; }
+.sema-logo { display:flex; align-items:center; flex:1; gap:0; }
+.sl-s { font-size:22px; font-weight:900; color:#1FAD35; letter-spacing:-1px; }
+.sl-d { width:2px; height:28px; background:#F5C71A; margin:0 10px; flex-shrink:0; }
+.sl-f { display:flex; flex-direction:column; }
+.sl-f span { font-size:7.5px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; line-height:1.75; color:rgba(255,255,255,.78); display:block; }
 .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #4caf50; box-shadow: 0 0 0 2px rgba(76,175,80,.3); transition: background .4s; }
 .status-dot.syncing { background: #ffc107; }
 .status-dot.error   { background: #f44336; }
@@ -115,9 +120,11 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
 
 <header>
   <div class="status-dot" id="status-dot"></div>
-  <h1>SEMA/AC — Termos de Cooperação Técnica
-    <small>Secretaria de Estado do Meio Ambiente do Acre</small>
-  </h1>
+  <div class="sema-logo" aria-label="SEMA — Secretaria de Estado do Meio Ambiente do Acre">
+    <span class="sl-s">SEMA</span>
+    <div class="sl-d" aria-hidden="true"></div>
+    <div class="sl-f"><span>Secretaria de Estado</span><span>do Meio Ambiente — AC</span></div>
+  </div>
   <span id="last-update"></span>
   <button class="btn-icon" id="btn-theme" title="Alternar tema" onclick="toggleTheme()">🌙</button>
 </header>
