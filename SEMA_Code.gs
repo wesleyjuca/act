@@ -160,16 +160,6 @@ function handleList(params) {
       rec[k] = v instanceof Date
         ? Utilities.formatDate(v, 'America/Rio_Branco', 'yyyy-MM-dd')
         : String(v === null || v === undefined ? '' : v);
-      if (h === 'num' || h === 'tipo') {
-        // num/tipo nunca são datas — se Sheets converteu "01/2025" para Date, reconstruir
-        rec[h] = v instanceof Date
-          ? (String(v.getMonth() + 1).padStart(2, '0') + '/' + v.getFullYear())
-          : String(v || '');
-      } else {
-        rec[h] = v instanceof Date
-          ? Utilities.formatDate(v, 'America/Rio_Branco', 'yyyy-MM-dd')
-          : String(v || '');
-      }
     });
     rec._row = i + 1;
     records.push(rec);
@@ -246,16 +236,14 @@ function handleUpsert(record, sheetName) {
   const data = sheet.getDataRange().getValues();
   if (data.length < 2) return { error: 'Planilha sem cabeçalhos (linha 2 vazia)' };
 
-  // Detecta dinamicamente os índices das colunas-chave (tipo e num) a partir dos headers reais
   const hdrs = data[1];
-  let tipoIdx = 0, numIdx = 1;  // fallback: coluna A = tipo, coluna B = num
+  let tipoIdx = 0, numIdx = 1;
   hdrs.forEach((h, i) => {
     const k = headerKey(String(h));
     if (k === 'tipo') tipoIdx = i;
     if (k === 'num')  numIdx  = i;
   });
 
-  // Valores de identificação do registro enviado (normalizados para comparação)
   const recTipo = String(record.tipo || record[headerKey(String(hdrs[tipoIdx]))] || '').trim().toUpperCase();
   const recNum  = String(record.num  || record[headerKey(String(hdrs[numIdx]))]  || '').trim();
 
@@ -263,20 +251,10 @@ function handleUpsert(record, sheetName) {
     return { error: 'Registro inválido: colunas de identificação (tipo e número) são obrigatórias' };
   }
 
-  // Busca linha existente para update
   let targetRow = -1;
   for (let i = 2; i < data.length; i++) {
     if (String(data[i][tipoIdx]).trim().toUpperCase() === recTipo &&
-        String(data[i][numIdx]).trim()               === recNum) {
-  const data    = sheet.getDataRange().getValues();
-
-  // Procura linha existente usando numToStr para suportar células auto-convertidas para Date
-  const _tipUps = String(record.tipo).trim().toUpperCase();
-  const _numUps = String(record.num).trim();
-  let targetRow = -1;
-  for (let i = 2; i < data.length; i++) {
-    if (numToStr(data[i][1])                     === _numUps &&
-        String(data[i][0]).trim().toUpperCase() === _tipUps) {
+        numToStr(data[i][numIdx])                     === recNum) {
       targetRow = i + 1;
       break;
     }
@@ -293,16 +271,6 @@ function handleUpsert(record, sheetName) {
     sheet.getRange(lastRow + 1, 1, 1, rowValues.length).setValues([rowValues]);
     logInfo('upsert', `Inserido: ${recTipo} ${recNum} (linha ${lastRow + 1})`);
     return { ok: true, action: 'inserted', row: lastRow + 1 };
-    // Forçar formato texto para coluna num (B) — evita re-conversão pelo Sheets
-    sheet.getRange(targetRow, 2, 1, 1).setNumberFormat('@STRING@');
-    logInfo('upsert', `Atualizado: ${record.tipo} ${record.num} (linha ${targetRow})`);
-    return { ok: true, action: 'updated', row: targetRow, _ts_server: record._ts_server };
-  } else {
-    const lastRow = findLastRow(sheet);
-    sheet.getRange(lastRow + 1, 1, 1, rowValues.length).setValues([rowValues]);
-    sheet.getRange(lastRow + 1, 2, 1, 1).setNumberFormat('@STRING@');
-    logInfo('upsert', `Inserido: ${record.tipo} ${record.num} (linha ${lastRow + 1})`);
-    return { ok: true, action: 'inserted', row: lastRow + 1, _ts_server: record._ts_server };
   }
 }
 
@@ -358,6 +326,9 @@ function handleUpsertBatch(records, sheetName) {
     sheet.getRange(lastRow + 1, 2, toInsert.length, 1).setNumberFormat('@STRING@');
     inserted = toInsert.length;
   }
+
+  CacheService.getScriptCache().remove('list_' + sheetName);
+  return { ok: true, updated, inserted, errors };
 }
 
 function handleDelete(tipo, num, sheetName) {
@@ -395,7 +366,7 @@ function handleDelete(tipo, num, sheetName) {
 }
 
 function handleReplaceAll(p) {
-  CacheService.getScriptCache().remove('list_' + (p.sheet || SHEET_DADOS));
+  CacheService.getScriptCache().remove('list_' + SHEET_DADOS);
   const records = p.records;
   if (!Array.isArray(records)) return { error: 'records deve ser um array' };
 
@@ -528,8 +499,8 @@ function parseDate(str) {
 }
 
 function validateToken(token) {
-  const stored = PropertiesService.getScriptProperties().getProperty('SYNC_TOKEN')
-              || '';
+  const stored = PropertiesService.getScriptProperties().getProperty('SYNC_TOKEN') || '';
+  if (!stored) return false;
   if (!token || token.length !== stored.length) return false;
   let match = true;
   for (let i = 0; i < stored.length; i++) { if (token[i] !== stored[i]) match = false; }
