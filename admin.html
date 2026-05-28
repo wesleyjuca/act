@@ -26,6 +26,11 @@ header {
 }
 header h1 { font-size: 1rem; font-weight: 600; flex: 1; }
 header h1 small { font-weight: 400; opacity: .75; font-size: .8rem; display: block; }
+.sema-logo { display:flex; align-items:center; flex:1; gap:0; }
+.sl-s { font-size:22px; font-weight:900; color:#1FAD35; letter-spacing:-1px; }
+.sl-d { width:2px; height:28px; background:#F5C71A; margin:0 10px; flex-shrink:0; }
+.sl-f { display:flex; flex-direction:column; }
+.sl-f span { font-size:7.5px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; line-height:1.75; color:rgba(255,255,255,.78); display:block; }
 .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #4caf50; box-shadow: 0 0 0 2px rgba(76,175,80,.3); transition: background .4s; }
 .status-dot.syncing { background: #ffc107; }
 .status-dot.error   { background: #f44336; }
@@ -181,6 +186,9 @@ table.import-preview tbody td { padding: 6px 9px; border-bottom: 1px solid var(-
     </div>
     <div id="login-error">Senha incorreta. Tente novamente.</div>
     <button id="login-btn" onclick="doLogin()">Entrar</button>
+    <p style="font-size:.78rem;color:var(--text2);margin-top:14px;text-align:center">
+      Senha padrão: <strong>SEMA@2026</strong>
+    </p>
   </div>
 </div>
 
@@ -188,9 +196,11 @@ table.import-preview tbody td { padding: 6px 9px; border-bottom: 1px solid var(-
 <div id="app-screen">
   <header>
     <div class="status-dot" id="status-dot"></div>
-    <h1>SEMA/AC — Configuração
-      <small>Modelo da Planilha e Dados Públicos</small>
-    </h1>
+    <div class="sema-logo" aria-label="SEMA — Secretaria de Estado do Meio Ambiente do Acre">
+      <span class="sl-s">SEMA</span>
+      <div class="sl-d" aria-hidden="true"></div>
+      <div class="sl-f"><span>Secretaria de Estado</span><span>do Meio Ambiente — AC</span></div>
+    </div>
     <span id="last-sync"></span>
     <button class="btn-icon" onclick="syncAll()" title="Sincronizar com Sheets">🔄</button>
     <button class="btn-icon" id="btn-theme" onclick="toggleTheme()" title="Alternar tema">🌙</button>
@@ -314,13 +324,8 @@ Dias Restantes   =SE(G3="";"";G3-HOJE())</div>
 /* ─── CONFIG ──────────────────────────────────────────────── */
 let GAS_URL    = 'https://script.google.com/macros/s/SEU_SCRIPT_ID/exec';
 let SYNC_TOKEN = '%%SYNC_TOKEN%%';
-let SENHA_HASH = '%%SENHA_HASH%%';
-
-if (typeof SEMA_CONFIG !== 'undefined') {
-  if (SEMA_CONFIG.appsScriptUrl) GAS_URL    = SEMA_CONFIG.appsScriptUrl;
-  if (SEMA_CONFIG.syncToken)     SYNC_TOKEN = SEMA_CONFIG.syncToken;
-  if (SEMA_CONFIG.senhaHash)     SENHA_HASH = SEMA_CONFIG.senhaHash;
-}
+// SHA-256 de SEMA@2026 — sobrescrito pelo Secret SENHA_HASH no CI/CD se configurado
+let SENHA_HASH = 'ec2a985f5a4af70e1974f5c3fa0e5fd0e5397b5a73d411c9c054204d1f6b75d5';
 
 const POLL_MS = 120_000;
 
@@ -354,7 +359,7 @@ async function doLogin() {
   btn.disabled = true; btn.textContent = 'Verificando…';
   const hash     = await sha256(pass);
   const expected = SENHA_HASH;
-  const ok       = expected === '%%SENHA_HASH%%' || hash === expected;
+  const ok       = hash === expected;
   btn.disabled = false; btn.textContent = 'Entrar';
   if (!ok) {
     _failCount++;
@@ -850,7 +855,9 @@ document.addEventListener('DOMContentLoaded', () => {
 if (typeof SEMA_CONFIG !== 'undefined') {
   if (SEMA_CONFIG.appsScriptUrl) GAS_URL    = SEMA_CONFIG.appsScriptUrl;
   if (SEMA_CONFIG.syncToken)     SYNC_TOKEN = SEMA_CONFIG.syncToken;
-  if (SEMA_CONFIG.senhaHash)     SENHA_HASH = SEMA_CONFIG.senhaHash;
+  // só sobrescreve se o CI injetou um hash real (não o placeholder)
+  if (SEMA_CONFIG.senhaHash && SEMA_CONFIG.senhaHash !== '%%SENHA_HASH%%')
+    SENHA_HASH = SEMA_CONFIG.senhaHash;
 }
 </script>
 </body>

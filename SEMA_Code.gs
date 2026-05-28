@@ -131,6 +131,15 @@ function doPost(e) {
 
 function handleList(params) {
   const sheetName = (params && params.sheet) || SHEET_DADOS;
+
+  // Cache de 30s para evitar leituras repetidas ao Sheets
+  const cache = CacheService.getScriptCache();
+  const cKey  = 'list_' + sheetName;
+  const hit   = cache.get(cKey);
+  if (hit) {
+    try { return JSON.parse(hit); } catch (_) {}
+  }
+
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(sheetName);
   if (!sheet) return { error: `Aba '${sheetName}' não encontrada`, records: [] };
@@ -172,7 +181,9 @@ function handleList(params) {
   const paged  = limit > 0 ? records.slice(offset, offset + limit) : records;
 
   logInfo('list', `${paged.length}/${total} registros`);
-  return { records: paged, count: paged.length, total, sheet: sheetName, updated: new Date().toISOString() };
+  const result = { records: paged, count: paged.length, total, sheet: sheetName, updated: new Date().toISOString() };
+  cache.put(cKey, JSON.stringify(result), 30);
+  return result;
 }
 
 function handleSchema() {
@@ -200,14 +211,17 @@ function handleSchema() {
 }
 
 function handleStatus() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss  = SpreadsheetApp.getActiveSpreadsheet();
+  const sh  = ss.getSheetByName(SHEET_DADOS);
+  const rows = sh ? Math.max(0, sh.getLastRow() - 2) : 0;
   return {
     ok:      true,
     name:    ss.getName(),
     id:      ss.getId(),
     sheets:  ss.getSheets().map(s => s.getName()),
+    rows,
     updated: new Date().toISOString(),
-    version: '3.0',
+    version: '4.0',
   };
 }
 
@@ -223,6 +237,7 @@ function numToStr(v) {
 function handleUpsert(record, sheetName) {
   if (!record) return { error: 'Registro inválido: objeto vazio' };
   sheetName = sheetName || SHEET_DADOS;
+  CacheService.getScriptCache().remove('list_' + sheetName);
 
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(sheetName);
@@ -380,6 +395,7 @@ function handleDelete(tipo, num, sheetName) {
 }
 
 function handleReplaceAll(p) {
+  CacheService.getScriptCache().remove('list_' + (p.sheet || SHEET_DADOS));
   const records = p.records;
   if (!Array.isArray(records)) return { error: 'records deve ser um array' };
 

@@ -4,16 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SEMA/AC — Termos de Cooperação Técnica</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root {
   --bg: #f5f7fa; --bg2: #fff; --border: #dde3ec; --text: #1a2233;
   --text2: #5a6880; --accent: #095C18; --accent2: #0d7a22; --accent-light: #e8f5ec;
-  --red: #c0392b; --yellow: #d4860a; --blue: #1565c0; --radius: 8px;
-  --shadow: 0 2px 8px rgba(0,0,0,.08);
+  --red: #c0392b; --red-light: #fce4ec; --yellow: #d4860a; --blue: #1565c0;
+  --radius: 8px; --shadow: 0 2px 8px rgba(0,0,0,.08);
 }
 [data-theme="dark"] {
   --bg: #0f1117; --bg2: #1a1d27; --border: #2a2f3f; --text: #e8ecf4;
   --text2: #8899bb; --accent: #1aad3a; --accent2: #23d44e; --accent-light: #0d2015;
+  --red-light: #2d0a0a;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
@@ -28,12 +30,24 @@ header {
 }
 header h1 { font-size: 1rem; font-weight: 600; flex: 1; }
 header h1 small { font-weight: 400; opacity: .75; font-size: .8rem; display: block; }
+.sema-logo { display:flex; align-items:center; flex:1; gap:0; }
+.sl-s { font-size:22px; font-weight:900; color:#1FAD35; letter-spacing:-1px; }
+.sl-d { width:2px; height:28px; background:#F5C71A; margin:0 10px; flex-shrink:0; }
+.sl-f { display:flex; flex-direction:column; }
+.sl-f span { font-size:7.5px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; line-height:1.75; color:rgba(255,255,255,.78); display:block; }
 .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #4caf50; box-shadow: 0 0 0 2px rgba(76,175,80,.3); transition: background .4s; }
 .status-dot.syncing { background: #ffc107; }
 .status-dot.error   { background: #f44336; }
 #last-update { font-size: .75rem; opacity: .8; white-space: nowrap; }
 .btn-icon { background: rgba(255,255,255,.15); border: none; color: #fff; border-radius: 6px; width: 34px; height: 34px; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; transition: background .2s; }
 .btn-icon:hover { background: rgba(255,255,255,.3); }
+
+/* ERROR BANNER */
+.error-banner { background: var(--red-light); border-bottom: 2px solid var(--red); padding: 10px 24px; font-size: .85rem; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.error-banner[hidden] { display: none; }
+.btn-retry { padding: 4px 12px; border: 1px solid var(--red); border-radius: 6px; background: none; color: var(--red); cursor: pointer; font-size: .82rem; font-weight: 600; }
+#cache-note { font-size: .78rem; color: var(--text2); }
+#cache-note[hidden] { display: none; }
 
 /* MAIN */
 main { max-width: 1400px; margin: 0 auto; padding: 24px 16px; }
@@ -48,6 +62,13 @@ main { max-width: 1400px; margin: 0 auto; padding: 24px 16px; }
 .kpi-num.yellow { color: var(--yellow); }
 .kpi-num.blue { color: var(--blue); }
 .kpi-label { font-size: .8rem; color: var(--text2); margin-top: 4px; }
+
+/* CHARTS */
+.charts-section { margin-bottom: 24px; }
+.charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.chart-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
+.chart-title { font-size: .78rem; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 12px; }
+.chart-wrap { position: relative; height: 180px; }
 
 /* TOOLBAR */
 .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
@@ -67,7 +88,8 @@ main { max-width: 1400px; margin: 0 auto; padding: 24px 16px; }
 /* TABLE */
 .table-wrap { overflow-x: auto; border-radius: var(--radius); box-shadow: var(--shadow); }
 table { width: 100%; border-collapse: collapse; background: var(--bg2); font-size: .88rem; }
-thead th { background: var(--accent); color: #fff; padding: 10px 12px; text-align: left; white-space: nowrap; font-weight: 600; position: sticky; top: 56px; }
+thead th { background: var(--accent); color: #fff; padding: 10px 12px; text-align: left; white-space: nowrap; font-weight: 600; position: sticky; top: 56px; cursor: pointer; user-select: none; }
+thead th:hover { background: var(--accent2); }
 tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
 tbody tr:hover { background: var(--accent-light); cursor: pointer; }
 tbody td { padding: 9px 12px; vertical-align: middle; }
@@ -78,6 +100,10 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
 .badge-expirado { background: #fafafa; color: #666; border: 1px solid #ddd; }
 .badge-default  { background: var(--accent-light); color: var(--accent); }
 .empty-state    { text-align: center; padding: 60px 20px; color: var(--text2); }
+
+/* SKELETON */
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+.skeleton { height: 14px; border-radius: 4px; background: linear-gradient(90deg, var(--border) 25%, var(--bg) 50%, var(--border) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
 
 /* LOADING */
 #loading-bar { height: 3px; background: var(--accent); width: 0; transition: width .4s; position: fixed; top: 0; left: 0; z-index: 500; }
@@ -115,12 +141,21 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
 
 <header>
   <div class="status-dot" id="status-dot"></div>
-  <h1>SEMA/AC — Termos de Cooperação Técnica
-    <small>Secretaria de Estado do Meio Ambiente do Acre</small>
-  </h1>
+  <div class="sema-logo" aria-label="SEMA — Secretaria de Estado do Meio Ambiente do Acre">
+    <span class="sl-s">SEMA</span>
+    <div class="sl-d" aria-hidden="true"></div>
+    <div class="sl-f"><span>Secretaria de Estado</span><span>do Meio Ambiente — AC</span></div>
+  </div>
   <span id="last-update"></span>
+  <button class="btn-icon" id="btn-refresh" title="Atualizar dados" onclick="manualRefresh()">🔄</button>
   <button class="btn-icon" id="btn-theme" title="Alternar tema" onclick="toggleTheme()">🌙</button>
 </header>
+
+<div id="error-banner" class="error-banner" hidden>
+  <span>⚠️ Dados ao vivo indisponíveis.</span>
+  <button class="btn-retry" onclick="manualRefresh()">🔄 Tentar novamente</button>
+  <span id="cache-note" hidden></span>
+</div>
 
 <div id="toast"></div>
 
@@ -145,6 +180,23 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
     <div class="kpi" style="cursor:default">
       <div class="kpi-num blue" id="kpi-parceiros-num">–</div>
       <div class="kpi-label">Parceiros únicos</div>
+    </div>
+  </div>
+
+  <div class="charts-section" id="charts-section" style="display:none">
+    <div class="charts-grid">
+      <div class="chart-card" id="chart-card-status" style="display:none">
+        <div class="chart-title">Situação</div>
+        <div class="chart-wrap"><canvas id="chart-status"></canvas></div>
+      </div>
+      <div class="chart-card" id="chart-card-tipo" style="display:none">
+        <div class="chart-title">Por Tipo</div>
+        <div class="chart-wrap"><canvas id="chart-tipo"></canvas></div>
+      </div>
+      <div class="chart-card" id="chart-card-ano" style="display:none">
+        <div class="chart-title">Vencimentos por Ano</div>
+        <div class="chart-wrap"><canvas id="chart-ano"></canvas></div>
+      </div>
     </div>
   </div>
 
@@ -180,65 +232,102 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
 </div>
 
 <script>
-/* ─── CONFIG ─────────────────────────────────────────────────────────────────
-   A URL do Apps Script é lida de js/config.js (SEMA_CONFIG.appsScriptUrl).
-   Se o arquivo não existir, usa o placeholder abaixo.
-   Substitua pela URL real após publicar o Apps Script.
-   ─────────────────────────────────────────────────────────────────────────── */
+/* ─── CONFIG ─────────────────────────────────────────────────────────────── */
 let GAS_URL = 'https://script.google.com/macros/s/SEU_SCRIPT_ID/exec';
-// js/config.js é carregado ANTES deste bloco — ver final do <body>
 
-const POLL_MS = 60_000;
+const POLL_MS    = 60_000;
+const CACHE_KEY  = 'sema_data_v2';
+const CACHE_TTL  = 5 * 60 * 1000;  // 5 min
+const RETRY_DELAYS = [5000, 15000, 30000, 60000];
+const CHART_COLORS = ['#1FAD35','#F5C71A','#E05B3A','#3B82F6','#8B5CF6','#EC4899','#14B8A6','#F97316'];
 
-/* ─── ESTADO ─────────────────────────────────────────────────────────────── */
-let _schema   = [];   // [{key, label, col}]
-let _records  = [];   // todos os registros
-let _filtered = [];   // após filtros
+/* ─── ESTADO ──────────────────────────────────────────────────────────────── */
+let _schema   = [];
+let _records  = [];
+let _filtered = [];
 let _page     = 1;
-const PAGE   = 50;
-let _kpiFilt = '';
+const PAGE    = 50;
+let _kpiFilt  = '';
+let _filterDefs = [];
+let _sortCol  = null;
+let _sortAsc  = true;
+let _loading  = true;
+let _retryCount = 0;
+let _charts   = {};
 
-/* Mapeamento de filtros dinâmicos: tentamos encontrar as colunas chave */
-let _filterDefs = [];  // [{selectId, key}]
-
-/* ─── INICIALIZAÇÃO ──────────────────────────────────────────────────────── */
+/* ─── INICIALIZAÇÃO ───────────────────────────────────────────────────────── */
 function init() {
   loadTheme();
-  // Pegar URL do config.js se disponível
-  if (typeof SEMA_CONFIG !== 'undefined' && SEMA_CONFIG.appsScriptUrl) {
+  if (typeof SEMA_CONFIG !== 'undefined' && SEMA_CONFIG.appsScriptUrl)
     GAS_URL = SEMA_CONFIG.appsScriptUrl;
+
+  // Render cache immediately for instant page load
+  const cached = loadCache();
+  if (cached) {
+    _schema = cached.schema;
+    _records = cached.records;
+    buildFilterDefs();
+    renderAll();
+    showCacheNote('Exibindo cache · Atualizando…');
   }
-  setStatus('syncing');
-  syncAll().then(() => {
-    setInterval(syncAll, POLL_MS);
-  }).catch(err => {
-    setStatus('error');
-    console.error(err);
-    showToast('Erro ao conectar com a planilha. Verifique a URL do Apps Script.');
+
+  syncWithRetry().then(() => {
+    setInterval(syncWithRetry, POLL_MS);
   });
+}
+
+/* ─── SYNC COM RETRY ──────────────────────────────────────────────────────── */
+async function syncWithRetry() {
+  try {
+    await syncAll();
+    _retryCount = 0;
+    document.getElementById('error-banner').hidden = true;
+    showCacheNote('');
+  } catch (e) {
+    setStatus('error');
+    document.getElementById('error-banner').hidden = false;
+    // Show cached data if available and schema not yet loaded
+    if (!_schema.length) {
+      const cached = loadCache();
+      if (cached) {
+        _schema = cached.schema; _records = cached.records;
+        buildFilterDefs(); renderAll();
+        showCacheNote('Sem conexão · Exibindo dados em cache');
+      } else {
+        showCacheNote('Sem conexão e sem cache local');
+      }
+    } else {
+      showCacheNote('Sem conexão · Exibindo dados anteriores');
+    }
+    if (_retryCount < RETRY_DELAYS.length) {
+      setTimeout(syncWithRetry, RETRY_DELAYS[_retryCount++]);
+    }
+  }
+}
+
+async function manualRefresh() {
+  _retryCount = 0;
+  document.getElementById('error-banner').hidden = true;
+  showCacheNote('');
+  await syncWithRetry();
 }
 
 async function syncAll() {
   setStatus('syncing');
   loadingBar(30);
   try {
-    const [schemaRes, listRes] = await Promise.all([
-      gasGet('schema'),
-      gasGet('list'),
-    ]);
+    const [schemaRes, listRes] = await Promise.all([gasGet('schema'), gasGet('list')]);
     loadingBar(80);
 
-    /* Schema: aceita formato novo [{key, label}] ou legado {publicColumns:[...]} */
-    if (Array.isArray(schemaRes.columns) && schemaRes.columns.length) {
+    if (Array.isArray(schemaRes.columns) && schemaRes.columns.length)
       _schema = schemaRes.columns;
-    } else if (Array.isArray(schemaRes.publicColumns)) {
+    else if (Array.isArray(schemaRes.publicColumns))
       _schema = schemaRes.publicColumns.map(k => ({ key: k, label: k }));
-    }
 
-    if (Array.isArray(listRes.records)) {
-      _records = listRes.records;
-    }
+    if (Array.isArray(listRes.records)) _records = listRes.records;
 
+    _loading = false;
+    saveCache();
     buildFilterDefs();
     renderAll();
     setStatus('ok');
@@ -250,7 +339,7 @@ async function syncAll() {
   }
 }
 
-/* ─── API ────────────────────────────────────────────────────────────────── */
+/* ─── API ─────────────────────────────────────────────────────────────────── */
 async function gasGet(action) {
   const url = GAS_URL + (GAS_URL.includes('?') ? '&' : '?') + 'action=' + action;
   const res = await fetch(url, { cache: 'no-store' });
@@ -258,17 +347,37 @@ async function gasGet(action) {
   return res.json();
 }
 
-/* ─── FILTROS DINÂMICOS ──────────────────────────────────────────────────── */
+/* ─── CACHE ───────────────────────────────────────────────────────────────── */
+function saveCache() {
+  if (!_schema.length) return;
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), schema: _schema, records: _records })); } catch {}
+}
+
+function loadCache() {
+  try {
+    const c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+    if (c && Date.now() - c.ts < CACHE_TTL) return c;
+  } catch {}
+  return null;
+}
+
+function showCacheNote(msg) {
+  const el = document.getElementById('cache-note');
+  if (!el) return;
+  el.textContent = msg;
+  el.hidden = !msg;
+}
+
+/* ─── FILTROS DINÂMICOS ───────────────────────────────────────────────────── */
 function buildFilterDefs() {
-  /* Detecta automaticamente quais colunas usar nos 3 dropdowns de filtro */
   const typeKey   = findKey(['tipo', 'type', 'instrumento']);
   const statusKey = findKey(['status', 'situacao', 'situação']);
   const areaKey   = findKey(['area', 'área', 'tema', 'eixo']);
 
   _filterDefs = [
-    { id: 'filter-col1', key: typeKey,   placeholder: 'Todos os tipos'   },
-    { id: 'filter-col2', key: statusKey, placeholder: 'Todos os status'  },
-    { id: 'filter-col3', key: areaKey,   placeholder: 'Todas as áreas'   },
+    { id: 'filter-col1', key: typeKey,   placeholder: 'Todos os tipos'  },
+    { id: 'filter-col2', key: statusKey, placeholder: 'Todos os status' },
+    { id: 'filter-col3', key: areaKey,   placeholder: 'Todas as áreas'  },
   ];
 
   _filterDefs.forEach(({ id, key, placeholder }) => {
@@ -281,34 +390,27 @@ function buildFilterDefs() {
   });
 }
 
-/* ─── RENDER ─────────────────────────────────────────────────────────────── */
+/* ─── RENDER ──────────────────────────────────────────────────────────────── */
 function renderAll() {
   renderKPIs();
   applyFilters();
+  renderCharts();
 }
 
 function renderKPIs() {
-  /* KPIs são exibidos SOMENTE se a coluna 'status' existir na planilha.
-     Os valores são contados diretamente — sem recálculo por datas no cliente. */
   const statusCol = _schema.find(c => c.key === 'status' || c.key === 'situacao');
   const kpiGrid   = document.querySelector('.kpi-grid');
-  if (!statusCol) {
-    if (kpiGrid) kpiGrid.style.display = 'none';
-    return;
-  }
+  if (!statusCol) { if (kpiGrid) kpiGrid.style.display = 'none'; return; }
   if (kpiGrid) kpiGrid.style.display = '';
 
-  const instKey = findKey(['inst', 'instituicao', 'instituição', 'parceiro', 'entidade', 'partner']);
+  const instKey = findKey(['inst', 'instituicao', 'instituição', 'parceiro', 'entidade']);
   const counts  = {};
   const parcSet = new Set();
 
   _records.forEach(r => {
     const st = String(r[statusCol.key] || '').trim();
     if (st) counts[st] = (counts[st] || 0) + 1;
-    if (instKey) {
-      const v = String(r[instKey] || '').trim();
-      if (v) parcSet.add(v.toLowerCase());
-    }
+    if (instKey) { const v = String(r[instKey]||'').trim(); if (v) parcSet.add(v.toLowerCase()); }
   });
 
   setText('kpi-vigente-num',  counts['Vigente']          || 0);
@@ -322,33 +424,49 @@ function applyFilters() {
   const q = document.getElementById('search-input').value.toLowerCase().trim();
 
   _filtered = _records.filter(r => {
-    /* Filtros dos dropdowns */
     for (const { id, key } of _filterDefs) {
       if (!key) continue;
       const sel = document.getElementById(id);
       if (sel && sel.value && String(r[key]||'').trim() !== sel.value) return false;
     }
-    /* Filtro por KPI — compara diretamente com o valor do campo status na planilha */
     if (_kpiFilt) {
       const statusCol = _schema.find(c => c.key === 'status' || c.key === 'situacao');
       if (!statusCol) return false;
-      const st = String(r[statusCol.key] || '').trim();
-      if (st !== _kpiFilt) return false;
+      if (String(r[statusCol.key]||'').trim() !== _kpiFilt) return false;
     }
-    /* Busca livre */
     if (q) {
-      const hay = Object.values(r).join(' ').toLowerCase();
-      if (!hay.includes(q)) return false;
+      if (!Object.values(r).join(' ').toLowerCase().includes(q)) return false;
     }
     return true;
   });
 
+  applySort();
   _page = 1;
   renderTable();
   renderPagination();
   updateKPIActive();
 }
 
+/* ─── SORTING ─────────────────────────────────────────────────────────────── */
+function sortBy(key) {
+  if (_sortCol === key) _sortAsc = !_sortAsc;
+  else { _sortCol = key; _sortAsc = true; }
+  _page = 1;
+  applySort();
+  renderTable();
+  renderPagination();
+}
+
+function applySort() {
+  if (!_sortCol) return;
+  _filtered.sort((a, b) => {
+    const va = String(a[_sortCol]||''), vb = String(b[_sortCol]||'');
+    const cmp = va.localeCompare(vb, 'pt-BR', { numeric: true, sensitivity: 'base' });
+    return _sortAsc ? cmp : -cmp;
+  });
+}
+
+/* ─── TABLE ───────────────────────────────────────────────────────────────── */
 function renderTable() {
   const thead = document.getElementById('table-head');
   const tbody = document.getElementById('table-body');
@@ -359,10 +477,21 @@ function renderTable() {
     return;
   }
 
-  thead.innerHTML = _schema.map(c => `<th>${esc(c.label)}</th>`).join('');
+  thead.innerHTML = _schema.map(c => {
+    const sorted = _sortCol === c.key;
+    const arrow  = sorted ? (_sortAsc ? ' ↑' : ' ↓') : ' ↕';
+    return `<th onclick="sortBy('${c.key}')" title="Ordenar por ${esc(c.label)}">${esc(c.label)}<span style="opacity:.5;font-size:.75em">${arrow}</span></th>`;
+  }).join('');
 
   const start = (_page - 1) * PAGE;
   const rows  = _filtered.slice(start, start + PAGE);
+
+  if (_loading && !rows.length) {
+    tbody.innerHTML = Array(6).fill(0).map(() =>
+      `<tr>${_schema.map(() => `<td><div class="skeleton"></div></td>`).join('')}</tr>`
+    ).join('');
+    return;
+  }
 
   if (!rows.length) {
     tbody.innerHTML = `<tr><td colspan="${_schema.length}" class="empty-state">
@@ -374,22 +503,15 @@ function renderTable() {
 
   tbody.innerHTML = rows.map((r, i) => {
     const cells = _schema.map(col => {
-      let raw = String(r[col.key] || '').trim();
-      const kL = col.key.toLowerCase();
+      const raw = String(r[col.key] || '').trim();
+      const kL  = col.key.toLowerCase();
       let cell;
-
-      if (kL === 'status' || kL === 'situacao') {
-        cell = statusBadge(raw);
-      } else if (raw.startsWith('http')) {
-        cell = `<a href="${esc(raw)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🔗 Abrir</a>`;
-      } else if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-        cell = raw.split('-').reverse().join('/');
-      } else {
-        cell = esc(raw) || '<span style="color:var(--text2)">—</span>';
-      }
+      if (kL === 'status' || kL === 'situacao') cell = statusBadge(raw);
+      else if (raw.startsWith('http')) cell = `<a href="${esc(raw)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🔗 Abrir</a>`;
+      else if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) cell = raw.split('-').reverse().join('/');
+      else cell = esc(raw) || '<span style="color:var(--text2)">—</span>';
       return `<td>${cell}</td>`;
     }).join('');
-
     return `<tr onclick="openModal(${start + i})">${cells}</tr>`;
   }).join('');
 }
@@ -418,18 +540,91 @@ function goPage(n) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-/* ─── MODAL ──────────────────────────────────────────────────────────────── */
+/* ─── CHARTS ──────────────────────────────────────────────────────────────── */
+function renderCharts() {
+  if (typeof Chart === 'undefined') return;
+  const statusCol = _schema.find(c => c.key === 'status' || c.key === 'situacao');
+  const tipoCol   = _schema.find(c => c.key === 'tipo');
+  const anoCol    = _schema.find(c => c.key === 'termino' || c.key === 'inicio');
+
+  const section = document.getElementById('charts-section');
+  if (!statusCol && !tipoCol && !anoCol) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+
+  if (statusCol) _buildDonut('chart-status', 'chart-card-status', statusCol.key);
+  else           document.getElementById('chart-card-status').style.display = 'none';
+
+  if (tipoCol)   _buildBarH('chart-tipo', 'chart-card-tipo', tipoCol.key);
+  else           document.getElementById('chart-card-tipo').style.display = 'none';
+
+  if (anoCol)    _buildBarTimeline('chart-ano', 'chart-card-ano', anoCol.key);
+  else           document.getElementById('chart-card-ano').style.display = 'none';
+}
+
+function _countBy(key) {
+  const m = {};
+  _filtered.forEach(r => { const v = String(r[key]||'—'); m[v] = (m[v]||0) + 1; });
+  return m;
+}
+
+function _destroyChart(id) {
+  if (_charts[id]) { _charts[id].destroy(); delete _charts[id]; }
+}
+
+function _buildDonut(cid, cardId, key) {
+  const counts = _countBy(key);
+  const labels = Object.keys(counts), data = Object.values(counts);
+  document.getElementById(cardId).style.display = labels.length ? 'block' : 'none';
+  if (!labels.length) return;
+  _destroyChart(cid);
+  _charts[cid] = new Chart(document.getElementById(cid), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: CHART_COLORS.slice(0, labels.length), borderWidth: 2, borderColor: 'transparent' }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } } },
+  });
+}
+
+function _buildBarH(cid, cardId, key) {
+  const sorted = Object.entries(_countBy(key)).sort((a,b) => b[1]-a[1]).slice(0, 8);
+  const labels = sorted.map(([k])=>k), data = sorted.map(([,v])=>v);
+  document.getElementById(cardId).style.display = labels.length ? 'block' : 'none';
+  if (!labels.length) return;
+  _destroyChart(cid);
+  _charts[cid] = new Chart(document.getElementById(cid), {
+    type: 'bar',
+    data: { labels, datasets: [{ data, backgroundColor: '#1FAD35', borderRadius: 4 }] },
+    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } } },
+  });
+}
+
+function _buildBarTimeline(cid, cardId, key) {
+  const byYear = {};
+  _filtered.forEach(r => {
+    const v = String(r[key]||''), yr = v.match(/^(\d{4})/)?.[1];
+    if (yr && yr >= '2015') byYear[yr] = (byYear[yr]||0) + 1;
+  });
+  const labels = Object.keys(byYear).sort(), data = labels.map(y => byYear[y]);
+  document.getElementById(cardId).style.display = labels.length ? 'block' : 'none';
+  if (!labels.length) return;
+  _destroyChart(cid);
+  _charts[cid] = new Chart(document.getElementById(cid), {
+    type: 'bar',
+    data: { labels, datasets: [{ data, backgroundColor: '#F5C71A', borderRadius: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } },
+  });
+}
+
+/* ─── MODAL ───────────────────────────────────────────────────────────────── */
 function openModal(idx) {
   const r = _filtered[idx];
   if (!r) return;
-
   const typeKey = findKey(['tipo','type']);
   const numKey  = findKey(['num','numero','número']);
   const parts   = [typeKey && r[typeKey], numKey && r[numKey]].filter(Boolean);
   document.getElementById('modal-title').textContent = parts.join(' ') || 'Detalhes';
 
   const html = _schema.map(col => {
-    let raw = String(r[col.key]||'').trim();
+    const raw = String(r[col.key]||'').trim();
     if (!raw) return '';
     const kL = col.key.toLowerCase();
     let val;
@@ -448,40 +643,43 @@ function closeModal() { document.getElementById('modal-overlay').classList.remov
 function onOverlayClick(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
-/* ─── KPI FILTER ─────────────────────────────────────────────────────────── */
+/* ─── KPI FILTER ──────────────────────────────────────────────────────────── */
 function filterByStatus(st) {
   _kpiFilt = (_kpiFilt === st) ? '' : st;
   applyFilters();
 }
 function updateKPIActive() {
   ['kpi-vigente','kpi-avencer','kpi-urgente','kpi-expirado'].forEach(id =>
-    document.getElementById(id).classList.remove('active')
-  );
-  const map = { 'Vigente':'kpi-vigente','A vencer':'kpi-avencer','Vence em 30 dias':'kpi-urgente','Expirado':'kpi-expirado' };
+    document.getElementById(id).classList.remove('active'));
+  const map = { 'Vigente':'kpi-vigente', 'A vencer':'kpi-avencer', 'Vence em 30 dias':'kpi-urgente', 'Expirado':'kpi-expirado' };
   if (_kpiFilt && map[_kpiFilt]) document.getElementById(map[_kpiFilt]).classList.add('active');
 }
 function clearFilters() {
   document.getElementById('search-input').value = '';
   ['filter-col1','filter-col2','filter-col3'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-  _kpiFilt = '';
+  _kpiFilt  = '';
+  _sortCol  = null;
+  _sortAsc  = true;
   applyFilters();
 }
 
-/* ─── EXPORT CSV ─────────────────────────────────────────────────────────── */
+/* ─── EXPORT CSV ──────────────────────────────────────────────────────────── */
 function exportCSV() {
   if (!_filtered.length) { showToast('Nenhum dado para exportar'); return; }
   const sep = ';';
   const header = _schema.map(c => `"${c.label}"`).join(sep);
   const rows   = _filtered.map(r =>
-    _schema.map(c => `"${String(r[c.key]||'').replace(/"/g,'""')}"`).join(sep)
-  );
+    _schema.map(c => `"${String(r[c.key]||'').replace(/"/g,'""')}"`).join(sep));
   const blob = new Blob(['﻿' + [header,...rows].join('\r\n')], { type: 'text/csv;charset=utf-8' });
-  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `TCT_SEMA_${new Date().toISOString().slice(0,10)}.csv` });
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(blob),
+    download: `TCT_SEMA_${new Date().toISOString().slice(0,10)}.csv`,
+  });
   a.click(); URL.revokeObjectURL(a.href);
   showToast(`${_filtered.length} registros exportados`);
 }
 
-/* ─── HELPERS ────────────────────────────────────────────────────────────── */
+/* ─── HELPERS ─────────────────────────────────────────────────────────────── */
 function findKey(candidates) {
   for (const c of candidates) {
     const col = _schema.find(s =>
@@ -507,28 +705,22 @@ function statusBadge(st) {
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
-function setText(id, v) { const el=document.getElementById(id); if(el) el.textContent=v; }
-
+function setText(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; }
 function setStatus(s) {
   const d = document.getElementById('status-dot');
   d.className = 'status-dot' + (s==='ok' ? '' : s==='syncing' ? ' syncing' : ' error');
 }
-
 function loadingBar(pct) {
   const b = document.getElementById('loading-bar');
   b.style.width = pct + '%';
   b.style.opacity = pct > 0 && pct < 100 ? '1' : '0';
 }
-
 let _toastT;
 function showToast(msg, dur=3000) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.style.opacity = '1';
   clearTimeout(_toastT); _toastT = setTimeout(() => { t.style.opacity = '0'; }, dur);
 }
-
-/* ─── TEMA ───────────────────────────────────────────────────────────────── */
 function loadTheme() {
   const s = localStorage.getItem('sema_theme') || 'light';
   document.documentElement.setAttribute('data-theme', s);
@@ -542,17 +734,14 @@ function toggleTheme() {
   document.getElementById('btn-theme').textContent = next==='dark' ? '☀️' : '🌙';
 }
 
-/* ─── START ──────────────────────────────────────────────────────────────── */
+/* ─── START ───────────────────────────────────────────────────────────────── */
 init();
 </script>
 
-<!-- config.js carregado após o script inline para que SEMA_CONFIG seja acessível antes do init() -->
-<script>
-// Este bloco re-lê SEMA_CONFIG caso config.js tenha sido carregado de forma síncrona
-if (typeof SEMA_CONFIG !== 'undefined' && SEMA_CONFIG.appsScriptUrl) {
-  GAS_URL = SEMA_CONFIG.appsScriptUrl;
-}
-</script>
 <script src="js/config.js" onerror=""></script>
+<script>
+if (typeof SEMA_CONFIG !== 'undefined' && SEMA_CONFIG.appsScriptUrl)
+  GAS_URL = SEMA_CONFIG.appsScriptUrl;
+</script>
 </body>
 </html>
