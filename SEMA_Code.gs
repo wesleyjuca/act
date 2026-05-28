@@ -151,6 +151,16 @@ function handleList(params) {
       rec[k] = v instanceof Date
         ? Utilities.formatDate(v, 'America/Rio_Branco', 'yyyy-MM-dd')
         : String(v === null || v === undefined ? '' : v);
+      if (h === 'num' || h === 'tipo') {
+        // num/tipo nunca são datas — se Sheets converteu "01/2025" para Date, reconstruir
+        rec[h] = v instanceof Date
+          ? (String(v.getMonth() + 1).padStart(2, '0') + '/' + v.getFullYear())
+          : String(v || '');
+      } else {
+        rec[h] = v instanceof Date
+          ? Utilities.formatDate(v, 'America/Rio_Branco', 'yyyy-MM-dd')
+          : String(v || '');
+      }
     });
     rec._row = i + 1;
     records.push(rec);
@@ -203,6 +213,13 @@ function handleStatus() {
 
 // ── AÇÕES POST ────────────────────────────────────────────────────────────────
 
+// Converte célula para string de número de ACT, tratando auto-conversão do Sheets
+function numToStr(v) {
+  if (v instanceof Date)
+    return String(v.getMonth() + 1).padStart(2, '0') + '/' + v.getFullYear();
+  return String(v || '').trim();
+}
+
 function handleUpsert(record, sheetName) {
   if (!record) return { error: 'Registro inválido: objeto vazio' };
   sheetName = sheetName || SHEET_DADOS;
@@ -236,6 +253,15 @@ function handleUpsert(record, sheetName) {
   for (let i = 2; i < data.length; i++) {
     if (String(data[i][tipoIdx]).trim().toUpperCase() === recTipo &&
         String(data[i][numIdx]).trim()               === recNum) {
+  const data    = sheet.getDataRange().getValues();
+
+  // Procura linha existente usando numToStr para suportar células auto-convertidas para Date
+  const _tipUps = String(record.tipo).trim().toUpperCase();
+  const _numUps = String(record.num).trim();
+  let targetRow = -1;
+  for (let i = 2; i < data.length; i++) {
+    if (numToStr(data[i][1])                     === _numUps &&
+        String(data[i][0]).trim().toUpperCase() === _tipUps) {
       targetRow = i + 1;
       break;
     }
@@ -252,6 +278,70 @@ function handleUpsert(record, sheetName) {
     sheet.getRange(lastRow + 1, 1, 1, rowValues.length).setValues([rowValues]);
     logInfo('upsert', `Inserido: ${recTipo} ${recNum} (linha ${lastRow + 1})`);
     return { ok: true, action: 'inserted', row: lastRow + 1 };
+    // Forçar formato texto para coluna num (B) — evita re-conversão pelo Sheets
+    sheet.getRange(targetRow, 2, 1, 1).setNumberFormat('@STRING@');
+    logInfo('upsert', `Atualizado: ${record.tipo} ${record.num} (linha ${targetRow})`);
+    return { ok: true, action: 'updated', row: targetRow, _ts_server: record._ts_server };
+  } else {
+    const lastRow = findLastRow(sheet);
+    sheet.getRange(lastRow + 1, 1, 1, rowValues.length).setValues([rowValues]);
+    sheet.getRange(lastRow + 1, 2, 1, 1).setNumberFormat('@STRING@');
+    logInfo('upsert', `Inserido: ${record.tipo} ${record.num} (linha ${lastRow + 1})`);
+    return { ok: true, action: 'inserted', row: lastRow + 1, _ts_server: record._ts_server };
+  }
+}
+
+function handleUpsertBatch(records, sheetName) {
+  if (!Array.isArray(records) || !records.length) {
+    return { error: 'records deve ser um array não vazio' };
+  }
+  if (records.length > 200) {
+    return { error: 'Limite de 200 registros por lote excedido. Divida em lotes menores.' };
+  }
+  sheetName = sheetName || SHEET_DADOS;
+  const ss    = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(sheetName);
+  if (!sheet) return { error: `Aba '${sheetName}' não encontrada` };
+
+  // Leitura única: construir mapa tipo+num → linha 1-based usando numToStr
+  const data   = sheet.getDataRange().getValues();
+  const rowMap = new Map();
+  for (let i = 2; i < data.length; i++) {
+    if (data[i][1]) {
+      const k = `${String(data[i][0]).trim().toUpperCase()}|${numToStr(data[i][1])}`;
+      rowMap.set(k, i + 1);
+    }
+  }
+
+  let updated = 0, inserted = 0, errors = 0;
+  const toInsert = [];
+  const insertedRows = [];
+
+  for (const r of records) {
+    try {
+      if (!r || !r.tipo || !r.num) { errors++; continue; }
+      r._ts_server = Date.now();
+      if (!r._ts) r._ts = r._ts_server;
+      const rowValues = buildRowValues(r, sheetName);
+      const key = `${String(r.tipo).trim().toUpperCase()}|${String(r.num).trim()}`;
+      if (rowMap.has(key)) {
+        const row = rowMap.get(key);
+        sheet.getRange(row, 1, 1, rowValues.length).setValues([rowValues]);
+        sheet.getRange(row, 2, 1, 1).setNumberFormat('@STRING@');
+        updated++;
+      } else {
+        toInsert.push(rowValues);
+      }
+    } catch (e) { errors++; }
+  }
+
+  // Inserção em lote: uma única chamada ao Sheets
+  if (toInsert.length > 0) {
+    const lastRow = Math.max(sheet.getLastRow(), 2);
+    sheet.getRange(lastRow + 1, 1, toInsert.length, toInsert[0].length).setValues(toInsert);
+    // Forçar formato texto para coluna num em todas as linhas inseridas
+    sheet.getRange(lastRow + 1, 2, toInsert.length, 1).setNumberFormat('@STRING@');
+    inserted = toInsert.length;
   }
 }
 

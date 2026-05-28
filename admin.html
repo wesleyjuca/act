@@ -407,6 +407,54 @@ async function syncAll() {
       _modelCols = schemaParaModelo(_schema);
     } else if (!_modelCols.length) {
       _modelCols = modeloPadrao();
+  const v=document.getElementById('pwd-input').value;
+  const h=await hashSenha(v);
+  const storedHash=sessionStorage.getItem('sema_pwd_hash')||getSenhaHash();
+  const err=document.getElementById('login-err');
+  if(h===storedHash){
+    _loginAttempts = 0;
+    sessionStorage.setItem('sema_auth','1');
+    _lastActivity = Date.now();
+    document.getElementById('login-screen').style.display='none';
+    const app=document.getElementById('app');
+    app.style.display='flex';
+    document.getElementById('h-date').textContent=
+      new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
+    // Preferir SYNC.getAll() como fonte primária (inclui estado pós-deletes)
+    dados = SYNC ? [...(SYNC.getAll() || [])] : [];
+    if (!dados.length) {
+      // Fallback: cache de autosave local (offline ou sem token)
+      const _cached = sessionStorage.getItem('sema_dados_cache');
+      if (_cached) {
+        try {
+          const _c = JSON.parse(_cached);
+          if (_c.length > 0) { dados = _c; showToast(`${_c.length} registros do cache local`, 'info', 2000); }
+        } catch(_) {}
+      }
+    }
+    if (!dados.length) dados = [...DEMO];
+    if(SYNC) {
+      // Auto-publicar se token configurado e Sheets parece vazia
+      if (SYNC._hasToken()) {
+        SYNC.sync().then(res => {
+          if (res.ok && res.count === 0 && dados.length > 0) {
+            showToast('Sheets vazia — publicando registros automaticamente…', 'info', 5000);
+            setTimeout(publicarTudo, 1500);
+          }
+        }).catch(() => {});
+      }
+    }
+    popularFiltros();
+    renderTable();
+    updateKPIs();
+  } else {
+    _loginAttempts++;
+    if(_loginAttempts >= 3){
+      _loginLockUntil = Date.now() + 30_000;
+      _loginAttempts = 0;
+      err.textContent='Muitas tentativas incorretas. Aguarde 30s.';
+    } else {
+      err.textContent=`Senha incorreta (${_loginAttempts}/3).`;
     }
 
     if (Array.isArray(listRes.records)) _records = listRes.records;
