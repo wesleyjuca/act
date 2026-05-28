@@ -8,7 +8,7 @@
 // CONFIG
 // ─────────────────────────────────────────────────────────────
 
-const SHEET_DADOS = 'DADOS_PÚBLICOS';
+const SHEET_DADOS = 'ACT - PAINEL PUBLICO';
 const SHEET_LOG = 'SYNC_LOG';
 
 // ─────────────────────────────────────────────────────────────
@@ -46,16 +46,27 @@ const HEADER_MAP = {
   'área': 'area',
 
   'status': 'status',
+  'situacao': 'status',
+  'situação': 'status',
 
   'diasrestantes': 'diasRestantes',
   'dias_restantes': 'diasRestantes',
 
+  'doe_no': 'doe',
+  'doe': 'doe',
+
+  'dou_no': 'dou',
+  'dou': 'dou',
+
   'link': 'link',
   'linkdoc': 'link',
+  'link_doc': 'link',
+  'link_documentacao': 'link',
 
   'sei': 'sei',
 
   'obs': 'obs',
+  'observacao': 'obs',
   'observacoes': 'obs',
   'observações': 'obs',
 };
@@ -625,15 +636,90 @@ function logError(action, err) {
 // ─────────────────────────────────────────────────────────────
 
 function setupSyncToken() {
+  const token = Utilities.getUuid() + '-' + Utilities.getUuid();
+  PropertiesService.getScriptProperties().setProperty('SYNC_TOKEN', token);
+  Logger.log('SYNC_TOKEN criado: ' + token);
+  Logger.log('Cole este valor em Secrets do GitHub → SYNC_TOKEN');
+}
 
-  const token =
-    Utilities.getUuid() +
-    '-' +
-    Utilities.getUuid();
+function testGet() {
+  Logger.log(JSON.stringify(handleList({ sheet: SHEET_DADOS }), null, 2));
+}
 
-  PropertiesService
-    .getScriptProperties()
-    .setProperty('SYNC_TOKEN', token);
+function testSchema() {
+  Logger.log(JSON.stringify(handleSchema(), null, 2));
+}
 
-  Logger.log('SYNC_TOKEN: ' + token);
+/**
+ * Cria (ou recria) a aba 'ACT - PAINEL PUBLICO' com o modelo padrão do SEMA/AC.
+ * Execute UMA vez no Apps Script → Executar → criarPlanilhaModelo
+ *
+ * Colunas: Tipo | Número | Objeto | Instituição | Esfera | Início | Término |
+ *          Área | Status* | Dias Restantes* | DOE Nº | DOU Nº | SEI | Link | Observação
+ *  (* = fórmula automática baseada na coluna Término)
+ */
+function criarPlanilhaModelo() {
+  const ss       = SpreadsheetApp.getActiveSpreadsheet();
+  const tabName  = SHEET_DADOS;   // 'ACT - PAINEL PUBLICO'
+  let sh = ss.getSheetByName(tabName);
+  if (sh) { sh.clear(); } else { sh = ss.insertSheet(tabName); }
+
+  // Linha 1: título decorativo (mesclado)
+  const nCols = 15;
+  sh.getRange(1, 1, 1, nCols).merge();
+  sh.getRange(1, 1).setValue('SEMA/AC — Acordos de Cooperação Técnica — Acre')
+    .setFontSize(13).setFontWeight('bold')
+    .setFontColor('#FFFFFF').setBackground('#095C18')
+    .setHorizontalAlignment('center');
+
+  // Linha 2: cabeçalhos reais (exatamente como o sistema os lê)
+  const headers = [
+    'Tipo', 'Número', 'Objeto', 'Instituição', 'Esfera',
+    'Início', 'Término', 'Área',
+    'Status', 'Dias Restantes',
+    'DOE Nº', 'DOU Nº', 'SEI', 'Link', 'Observação',
+  ];
+  sh.getRange(2, 1, 1, headers.length).setValues([headers])
+    .setFontWeight('bold').setBackground('#1FAD35').setFontColor('#FFFFFF')
+    .setWrap(true);
+
+  // Linha 3: exemplo + fórmulas
+  sh.getRange(3, 1, 1, 8).setValues([[
+    'ACT', '001/2025',
+    'Cooperação técnica para monitoramento ambiental',
+    'Exemplo Instituição', 'Estadual',
+    new Date(2025, 0, 1), new Date(2027, 11, 31),
+    'Recursos Hídricos',
+  ]]);
+
+  // Col I (9) = Status — fórmula automática baseada em Término (col G=7)
+  sh.getRange(3, 9).setFormula(
+    '=IF(G3="","",IF(TODAY()>G3,"Expirado",IF(G3-TODAY()<=30,"Vence em 30 dias",IF(G3-TODAY()<=90,"A vencer","Vigente"))))'
+  );
+  // Col J (10) = Dias Restantes
+  sh.getRange(3, 10).setFormula('=IF(G3="","",G3-TODAY())');
+
+  // DOE / DOU / SEI / Link / Observação — deixar em branco no exemplo
+  sh.getRange(3, 11, 1, 5).setValues([['14.000', '000', '0820.000001/2025-00', 'https://sema.ac.gov.br', 'Exemplo inicial']]);
+
+  // Formatos
+  sh.getRange(3, 6, 500, 1).setNumberFormat('dd/mm/yyyy');   // Início (col F)
+  sh.getRange(3, 7, 500, 1).setNumberFormat('dd/mm/yyyy');   // Término (col G)
+  sh.getRange(3, 10, 500, 1).setNumberFormat('0');           // Dias Restantes como inteiro
+  sh.getRange(3, 2, 500, 1).setNumberFormat('@STRING@');     // Número como texto
+
+  // Larguras de coluna (px): Tipo|Número|Objeto|Instituição|Esfera|Início|Término|Área|Status|Dias|DOE|DOU|SEI|Link|Obs
+  [80, 100, 300, 200, 110, 90, 90, 150, 130, 80, 80, 80, 150, 180, 220]
+    .forEach((w, i) => sh.setColumnWidth(i + 1, w));
+
+  sh.setFrozenRows(2);
+  sh.setRowHeight(2, 30);
+
+  Logger.log('Aba criada: ' + tabName);
+  SpreadsheetApp.getUi().alert(
+    'Aba "' + tabName + '" criada com sucesso!\n\n' +
+    '• Linha 2: cabeçalhos (lidos pela API)\n' +
+    '• Linha 3: exemplo com fórmulas em Status e Dias Restantes\n' +
+    '• Adicione seus dados a partir da linha 4.'
+  );
 }

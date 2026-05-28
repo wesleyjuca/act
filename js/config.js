@@ -15,7 +15,7 @@ const SEMA_CONFIG = {
   conflictMode: 'newest',   // 'newest' | 'local' | 'remote'
 
   // Aba da planilha
-  sheet: 'DADOS_PÚBLICOS',
+  sheet: 'ACT - PAINEL PUBLICO',
 
   // Cache
   cacheKey: 'sema_tct_cache',
