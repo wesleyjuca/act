@@ -1,7 +1,12 @@
 /**
  * SEMA/AC — Google Apps Script
- * API REST para Painel de Termos de Cooperação Técnica
- * VERSÃO CORRIGIDA E ESTÁVEL
+ * API REST (somente leitura) para o Painel Público de Acordos de Cooperação Técnica
+ *
+ * Endpoints GET (JSONP via ?callback=): ping | list | schema | status | export
+ * Os dados são editados diretamente na planilha; Status e Dias Restantes
+ * são calculados por fórmula automática na aba.
+ *
+ * VERSÃO 6.0 — SOMENTE LEITURA
  */
 
 // ─────────────────────────────────────────────────────────────
@@ -106,45 +111,6 @@ function jsonResponse(data) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-function validateToken(token) {
-  const stored = PropertiesService.getScriptProperties().getProperty('SYNC_TOKEN');
-  if (!stored) return false;
-  return token === stored;
-}
-
-function parseDate(value) {
-  if (!value) return '';
-
-  if (value instanceof Date) {
-    return value;
-  }
-
-  const str = String(value).trim();
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
-    const [y, m, d] = str.split('-').map(Number);
-    return new Date(y, m - 1, d);
-  }
-
-  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
-    const [d, m, y] = str.split('/').map(Number);
-    return new Date(y, m - 1, d);
-  }
-
-  return value;
-}
-
-function sanitizeCell(value) {
-  let str = String(value ?? '');
-
-  // proteção CSV injection
-  if (/^[=+\-@]/.test(str)) {
-    str = "'" + str;
-  }
-
-  return str;
-}
-
 function numToStr(v) {
   if (v instanceof Date) {
     return String(v.getMonth() + 1).padStart(2, '0') + '/' + v.getFullYear();
@@ -215,62 +181,6 @@ function doGet(e) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// POST
-// ─────────────────────────────────────────────────────────────
-
-function doPost(e) {
-
-  const lock = LockService.getScriptLock();
-
-  try {
-
-    lock.waitLock(30000);
-
-    const body = JSON.parse(e.postData.contents || '{}');
-
-    if (!validateToken(body.token)) {
-      return jsonResponse({
-        error: 'Token inválido'
-      });
-    }
-
-    switch (body.action) {
-
-      case 'upsert':
-        return jsonResponse(
-          handleUpsert(body.record, body.sheet)
-        );
-
-      case 'delete':
-        return jsonResponse(
-          handleDelete(body.tipo, body.num, body.sheet)
-        );
-
-      case 'replaceAll':
-        return jsonResponse(
-          handleReplaceAll(body.records, body.sheet)
-        );
-
-      default:
-        return jsonResponse({
-          error: 'Ação POST desconhecida'
-        });
-    }
-
-  } catch (err) {
-
-    logError('POST', err);
-
-    return jsonResponse({
-      error: err.message
-    });
-
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
 // PING
 // ─────────────────────────────────────────────────────────────
 
@@ -278,7 +188,7 @@ function handlePing() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   return {
     ok: true,
-    version: '5.1',
+    version: '6.0',
     sheet: SHEET_DADOS,
     sheetExists: !!ss.getSheetByName(SHEET_DADOS),
     spreadsheetId: ss.getId().replace(/.{30}$/, '…'),
@@ -300,6 +210,11 @@ function handleList(params = {}) {
 
   const sheet = getSheet(sheetName);
 
+  const lastCol = sheet.getLastColumn();
+
+  // Cabeçalhos sempre na linha 2 (linha 1 = título decorativo)
+  const headers = sheet.getRange(2, 1, 1, lastCol).getValues()[0];
+
   const data = sheet.getDataRange().getValues();
 
   if (data.length < 3) {
@@ -308,8 +223,6 @@ function handleList(params = {}) {
       count: 0
     };
   }
-
-  const headers = data[1];
 
   const keys = headers.map(h => headerKey(h));
 
@@ -395,7 +308,7 @@ function handleStatus() {
     ok: true,
     rows: Math.max(sheet.getLastRow() - 2, 0),
     updated: new Date().toISOString(),
-    version: '5.0'
+    version: '6.0'
   };
 }
 
@@ -438,212 +351,7 @@ function csvCell(val) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// UPSERT
-// ─────────────────────────────────────────────────────────────
-
-function handleUpsert(record, sheetName = SHEET_DADOS) {
-
-  if (!record) {
-    throw new Error('Registro inválido');
-  }
-
-  CacheService.getScriptCache().remove('list_' + sheetName);
-
-  const sheet = getSheet(sheetName);
-
-  const data = sheet.getDataRange().getValues();
-
-  const headers = data[1];
-
-  let tipoIdx = 0;
-  let numIdx = 1;
-
-  headers.forEach((h, i) => {
-
-    const k = headerKey(h);
-
-    if (k === 'tipo') tipoIdx = i;
-    if (k === 'num') numIdx = i;
-
-  });
-
-  const recTipo = String(record.tipo || '')
-    .trim()
-    .toUpperCase();
-
-  const recNum = String(record.num || '')
-    .trim();
-
-  if (!recTipo || !recNum) {
-    throw new Error('tipo e num são obrigatórios');
-  }
-
-  let targetRow = -1;
-
-  for (let i = 2; i < data.length; i++) {
-
-    const tipo = String(data[i][tipoIdx])
-      .trim()
-      .toUpperCase();
-
-    const num = numToStr(data[i][numIdx]);
-
-    if (tipo === recTipo && num === recNum) {
-      targetRow = i + 1;
-      break;
-    }
-  }
-
-  const rowValues = buildRowValues(record, sheet);
-
-  if (targetRow > 0) {
-
-    sheet
-      .getRange(targetRow, 1, 1, rowValues.length)
-      .setValues([rowValues]);
-
-    applyFormulaRange(sheet, targetRow, 1, data[1]);
-
-    return {
-      ok: true,
-      action: 'updated',
-      row: targetRow
-    };
-  }
-
-  const newRow = Math.max(sheet.getLastRow(), 2) + 1;
-
-  sheet
-    .getRange(newRow, 1, 1, rowValues.length)
-    .setValues([rowValues]);
-
-  applyFormulaRange(sheet, newRow, 1, data[1]);
-
-  return {
-    ok: true,
-    action: 'inserted',
-    row: newRow
-  };
-}
-
-// ─────────────────────────────────────────────────────────────
-// DELETE
-// ─────────────────────────────────────────────────────────────
-
-function handleDelete(tipo, num, sheetName = SHEET_DADOS) {
-
-  CacheService.getScriptCache().remove('list_' + sheetName);
-
-  const sheet = getSheet(sheetName);
-
-  const data = sheet.getDataRange().getValues();
-
-  const headers = data[1];
-
-  let tipoIdx = 0;
-  let numIdx = 1;
-
-  headers.forEach((h, i) => {
-
-    const k = headerKey(h);
-
-    if (k === 'tipo') tipoIdx = i;
-    if (k === 'num') numIdx = i;
-  });
-
-  for (let i = 2; i < data.length; i++) {
-
-    const rowTipo = String(data[i][tipoIdx])
-      .trim()
-      .toUpperCase();
-
-    const rowNum = numToStr(data[i][numIdx]);
-
-    if (
-      rowTipo === String(tipo).trim().toUpperCase() &&
-      rowNum === String(num).trim()
-    ) {
-
-      sheet.deleteRow(i + 1);
-
-      return {
-        ok: true,
-        row: i + 1
-      };
-    }
-  }
-
-  return {
-    ok: false,
-    reason: 'not_found'
-  };
-}
-
-// ─────────────────────────────────────────────────────────────
-// REPLACE ALL
-// ─────────────────────────────────────────────────────────────
-
-function handleReplaceAll(records, sheetName = SHEET_DADOS) {
-
-  if (!Array.isArray(records)) {
-    throw new Error('records deve ser array');
-  }
-
-  CacheService.getScriptCache().remove('list_' + sheetName);
-
-  const sheet = getSheet(sheetName);
-
-  const lastCol = sheet.getLastColumn();
-
-  const headers = sheet
-    .getRange(2, 1, 1, lastCol)
-    .getValues()[0];
-
-  const rows = records.map(rec => {
-
-    return headers.map(h => {
-
-      const key = headerKey(h);
-
-      const value = rec[key] ?? '';
-
-      const sanitized = sanitizeCell(value);
-
-      return parseDate(sanitized);
-
-    });
-
-  });
-
-  if (sheet.getLastRow() >= 3) {
-
-    sheet
-      .getRange(
-        3,
-        1,
-        sheet.getLastRow() - 2,
-        lastCol
-      )
-      .clearContent();
-  }
-
-  if (rows.length > 0) {
-
-    sheet
-      .getRange(3, 1, rows.length, rows[0].length)
-      .setValues(rows);
-
-    applyFormulaRange(sheet, 3, rows.length, headers);
-  }
-
-  return {
-    ok: true,
-    replaced: rows.length
-  };
-}
-
-// ─────────────────────────────────────────────────────────────
-// FORMULA HELPERS
+// FORMULA HELPERS (usados por criarPlanilhaModelo)
 // ─────────────────────────────────────────────────────────────
 
 function colLetter(n) {
@@ -654,7 +362,10 @@ function colLetter(n) {
 
 function applyFormulaRange(sheet, startRow, count, headers) {
   const terminoIdx = headers.findIndex(h => headerKey(String(h)) === 'termino');
-  const terminoCol = terminoIdx >= 0 ? colLetter(terminoIdx + 1) : 'G';
+  if (terminoIdx < 0) {
+    throw new Error('Coluna "Término" não encontrada — as fórmulas de Status/Dias Restantes dependem dela');
+  }
+  const terminoCol = colLetter(terminoIdx + 1);
 
   headers.forEach((h, colIdx) => {
     const key = headerKey(String(h));
@@ -664,30 +375,6 @@ function applyFormulaRange(sheet, startRow, count, headers) {
     const range = sheet.getRange(startRow, colIdx + 1, count, 1);
     range.setFormulas(formulas);
     if (key === 'diasRestantes') range.setNumberFormat('0');
-  });
-}
-
-// ─────────────────────────────────────────────────────────────
-// BUILD ROW
-// ─────────────────────────────────────────────────────────────
-
-function buildRowValues(record, sheet) {
-
-  const headers = sheet
-    .getRange(2, 1, 1, sheet.getLastColumn())
-    .getValues()[0];
-
-  return headers.map(h => {
-
-    const key = headerKey(h);
-
-    if (FORMULA_COLS[key]) return '';   // definido por applyFormulaRange
-
-    const value = sanitizeCell(
-      record[key] ?? ''
-    );
-
-    return parseDate(value);
   });
 }
 
@@ -716,20 +403,6 @@ function ensureLogSheet() {
   return log;
 }
 
-function logInfo(action, message) {
-
-  try {
-
-    ensureLogSheet().appendRow([
-      new Date(),
-      'INFO',
-      action,
-      String(message)
-    ]);
-
-  } catch (_) {}
-}
-
 function logError(action, err) {
 
   try {
@@ -745,15 +418,8 @@ function logError(action, err) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// SETUP TOKEN
+// FUNÇÕES DE TESTE / SETUP
 // ─────────────────────────────────────────────────────────────
-
-function setupSyncToken() {
-  const token = Utilities.getUuid() + '-' + Utilities.getUuid();
-  PropertiesService.getScriptProperties().setProperty('SYNC_TOKEN', token);
-  Logger.log('SYNC_TOKEN criado: ' + token);
-  Logger.log('Cole este valor em Secrets do GitHub → SYNC_TOKEN');
-}
 
 function testGet() {
   Logger.log(JSON.stringify(handleList({ sheet: SHEET_DADOS }), null, 2));
@@ -828,4 +494,6 @@ function criarPlanilhaModelo() {
   Logger.log('• Linha 2: cabeçalhos (lidos pela API)');
   Logger.log('• Linha 3: exemplo com fórmulas em Status e Dias Restantes');
   Logger.log('• Adicione seus dados a partir da linha 4.');
+  Logger.log('• Fórmulas aplicadas até a linha 502 (capacidade de 500 registros).');
+  Logger.log('  Para mais de 500 linhas, arraste as fórmulas das colunas Status/Dias Restantes.');
 }
