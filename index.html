@@ -12,11 +12,12 @@
   --text2: #5a6880; --accent: #095C18; --accent2: #0d7a22; --accent-light: #e8f5ec;
   --red: #c0392b; --red-light: #fce4ec; --yellow: #d4860a; --blue: #1565c0;
   --radius: 8px; --shadow: 0 2px 8px rgba(0,0,0,.08);
+  --row-alt: #f7faf8; --header-h: 56px;
 }
 [data-theme="dark"] {
   --bg: #0f1117; --bg2: #1a1d27; --border: #2a2f3f; --text: #e8ecf4;
   --text2: #8899bb; --accent: #1aad3a; --accent2: #23d44e; --accent-light: #0d2015;
-  --red-light: #2d0a0a;
+  --red-light: #2d0a0a; --row-alt: #1e222e;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
@@ -87,20 +88,53 @@ main { max-width: 1400px; margin: 0 auto; padding: 24px 16px; }
 .btn-outline:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
 
 /* TABLE */
-.table-wrap { overflow-x: auto; border-radius: var(--radius); box-shadow: var(--shadow); }
+.table-wrap { overflow-x: auto; border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); }
 table { width: 100%; border-collapse: collapse; background: var(--bg2); font-size: .88rem; }
-thead th { background: var(--accent); color: #fff; padding: 10px 12px; text-align: left; white-space: nowrap; font-weight: 600; position: sticky; top: 56px; cursor: pointer; user-select: none; }
+thead th {
+  background: var(--accent); color: #fff; padding: 12px 14px; text-align: left;
+  white-space: nowrap; font-weight: 600; font-size: .8rem; text-transform: uppercase;
+  letter-spacing: .03em; position: sticky; top: var(--header-h); cursor: pointer; user-select: none;
+}
 thead th:hover { background: var(--accent2); }
-tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+thead th .sort-arrow { opacity: .55; font-size: .8em; margin-left: 3px; }
+thead th[aria-sort] .sort-arrow { opacity: 1; }
+tbody tr { border-bottom: 1px solid var(--border); transition: background .12s; }
+tbody tr:nth-child(even) { background: var(--row-alt); }
 tbody tr:hover { background: var(--accent-light); cursor: pointer; }
-tbody td { padding: 9px 12px; vertical-align: middle; }
-.badge { display: inline-block; padding: 3px 8px; border-radius: 20px; font-size: .75rem; font-weight: 600; }
+tbody tr.row-urgent { box-shadow: inset 3px 0 0 var(--red); }
+tbody tr.row-expirado { box-shadow: inset 3px 0 0 var(--text2); }
+tbody td { padding: 11px 14px; vertical-align: middle; }
+td.num-cell { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.dias-cell { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+td.dias-urgent { color: var(--red); }
+td.dias-warn   { color: var(--yellow); }
+td.dias-expirado { color: var(--text2); }
+.cell-link { color: var(--accent2); font-weight: 500; }
+.cell-empty { color: var(--text2); }
+.badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: .75rem; font-weight: 600; white-space: nowrap; }
 .badge-vigente  { background: #e8f5ec; color: #1b6b2a; }
 .badge-avencer  { background: #fff3e0; color: #a0580a; }
 .badge-urgente  { background: #fce4ec; color: #b71c1c; }
-.badge-expirado { background: #fafafa; color: #666; border: 1px solid #ddd; }
+.badge-expirado { background: #f0f0f0; color: #555; border: 1px solid #d5d5d5; }
 .badge-default  { background: var(--accent-light); color: var(--accent); }
+[data-theme="dark"] .badge-vigente  { background: #143a1f; color: #5fd97e; }
+[data-theme="dark"] .badge-avencer  { background: #3a2a0c; color: #f0b84a; }
+[data-theme="dark"] .badge-urgente  { background: #3a1218; color: #ff7a8a; }
+[data-theme="dark"] .badge-expirado { background: #262a36; color: #9aa6bd; border-color: #39405220; }
 .empty-state    { text-align: center; padding: 60px 20px; color: var(--text2); }
+
+/* ALERTS */
+.alert-bar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: var(--red-light); border: 1px solid var(--red); border-left: 4px solid var(--red);
+  border-radius: var(--radius); padding: 12px 16px; margin-bottom: 20px; cursor: pointer;
+  transition: box-shadow .2s; font-size: .9rem;
+}
+.alert-bar:hover { box-shadow: var(--shadow); }
+.alert-bar[hidden] { display: none; }
+.alert-bar .alert-ico { font-size: 1.3rem; }
+.alert-bar strong { color: var(--red); }
+.alert-bar .alert-cta { margin-left: auto; font-size: .82rem; font-weight: 600; color: var(--red); white-space: nowrap; }
 
 /* SKELETON */
 @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
@@ -134,6 +168,29 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
 .pagination button:disabled { opacity: .4; cursor: default; }
 
 @media (max-width: 600px) { header h1 small { display: none; } .kpi-num { font-size: 1.5rem; } }
+
+/* PRINT / PDF */
+#print-header { display: none; }
+@media print {
+  @page { margin: 14mm; size: landscape; }
+  body { background: #fff; color: #000; }
+  header, #loading-bar, #error-banner, #toast, .toolbar, .charts-section,
+  .pagination, #modal-overlay, .alert-bar, .kpi { display: none !important; }
+  main { max-width: none; padding: 0; }
+  #print-header { display: block; margin-bottom: 12px; border-bottom: 2px solid #095C18; padding-bottom: 8px; }
+  #print-header h1 { font-size: 16px; color: #095C18; }
+  #print-header .meta { font-size: 11px; color: #444; margin-top: 4px; }
+  .table-wrap { overflow: visible; box-shadow: none; border: none; border-radius: 0; }
+  table { font-size: 10px; }
+  thead { display: table-header-group; }
+  thead th { position: static; background: #095C18 !important; color: #fff !important;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 6px 8px; }
+  tbody tr { border-bottom: 1px solid #ccc; page-break-inside: avoid; }
+  tbody tr:nth-child(even) { background: #f2f2f2 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  tbody td { padding: 5px 8px; }
+  .badge { border: 1px solid #999 !important; background: #fff !important; color: #000 !important; }
+  .cell-link { color: #000; }
+}
 </style>
 </head>
 <body>
@@ -162,8 +219,8 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
     <ol style="font-size:.82rem;margin:.5rem 0 0 1.2rem;line-height:1.8">
       <li>Abra o <a href="https://script.google.com" target="_blank" style="color:inherit">Apps Script Editor</a> e cole o conteúdo de <code>SEMA_Code.gs</code></li>
       <li>Execute a função <code>criarPlanilhaModelo()</code> — cria a aba <code>ACT - PAINEL PUBLICO</code></li>
-      <li>Vá em Configurações do projeto → Propriedades do script → adicione <code>SYNC_TOKEN</code></li>
-      <li>Reimplante: Deploy → Gerenciar implantações → Nova versão → Implantar</li>
+      <li>Implante como Aplicativo da Web com acesso <strong>"Qualquer pessoa"</strong></li>
+      <li>Cole a URL do Web App (<code>/exec</code>) em <code>js/config.js</code> → <code>appsScriptUrl</code></li>
     </ol>
   </details>
 </div>
@@ -171,20 +228,31 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
 <div id="toast"></div>
 
 <main>
+  <div id="print-header">
+    <h1>SEMA/AC — Acordos de Cooperação Técnica</h1>
+    <div class="meta" id="print-meta"></div>
+  </div>
+
+  <div class="alert-bar" id="alert-bar" hidden onclick="onAlertClick()">
+    <span class="alert-ico">⚠️</span>
+    <span id="alert-text"></span>
+    <span class="alert-cta">Ver acordos →</span>
+  </div>
+
   <div class="kpi-grid">
-    <div class="kpi" id="kpi-vigente" onclick="filterByStatus('Vigente')">
+    <div class="kpi" id="kpi-vigente" role="button" tabindex="0" aria-label="Filtrar acordos vigentes" onclick="filterByStatus('Vigente')">
       <div class="kpi-num" id="kpi-vigente-num">–</div>
       <div class="kpi-label">Vigentes</div>
     </div>
-    <div class="kpi" id="kpi-avencer" onclick="filterByStatus('A vencer')">
+    <div class="kpi" id="kpi-avencer" role="button" tabindex="0" aria-label="Filtrar acordos a vencer em 90 dias" onclick="filterByStatus('A vencer')">
       <div class="kpi-num yellow" id="kpi-avencer-num">–</div>
       <div class="kpi-label">A vencer (90 dias)</div>
     </div>
-    <div class="kpi" id="kpi-urgente" onclick="filterByStatus('Vence em 30 dias')">
+    <div class="kpi" id="kpi-urgente" role="button" tabindex="0" aria-label="Filtrar acordos que vencem em 30 dias" onclick="filterByStatus('Vence em 30 dias')">
       <div class="kpi-num red" id="kpi-urgente-num">–</div>
       <div class="kpi-label">Urgente (30 dias)</div>
     </div>
-    <div class="kpi" id="kpi-expirado" onclick="filterByStatus('Expirado')">
+    <div class="kpi" id="kpi-expirado" role="button" tabindex="0" aria-label="Filtrar acordos expirados" onclick="filterByStatus('Expirado')">
       <div class="kpi-num" id="kpi-expirado-num">–</div>
       <div class="kpi-label">Expirados</div>
     </div>
@@ -212,11 +280,12 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
   </div>
 
   <div class="toolbar">
-    <input type="search" id="search-input" placeholder="🔍 Buscar em qualquer campo…" oninput="applyFilters()">
+    <input type="search" id="search-input" placeholder="🔍 Buscar em qualquer campo…" oninput="onSearchInput()" aria-label="Buscar acordos">
     <select id="filter-col1" onchange="applyFilters()"><option value="">Todos os tipos</option></select>
     <select id="filter-col2" onchange="applyFilters()"><option value="">Todos os status</option></select>
     <select id="filter-col3" onchange="applyFilters()"><option value="">Todas as áreas</option></select>
     <button class="btn btn-outline" onclick="exportCSV()">⬇ CSV</button>
+    <button class="btn btn-outline" onclick="printReport()">🖨 PDF</button>
     <button class="btn btn-outline" onclick="clearFilters()">✕ Limpar</button>
   </div>
 
@@ -265,6 +334,7 @@ let _sortAsc  = true;
 let _loading  = true;
 let _retryCount = 0;
 let _charts   = {};
+let _printAll = false;
 
 /* ─── INICIALIZAÇÃO ───────────────────────────────────────────────────────── */
 function init() {
@@ -412,21 +482,6 @@ function gasJsonp(action) {
   });
 }
 
-async function gasGet(action) {
-  const url = GAS_URL + (GAS_URL.includes('?') ? '&' : '?') + 'action=' + action;
-  const res = await fetch(url, { cache: 'no-store' });
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  const text = await res.text();
-  try {
-    return JSON.parse(text);
-  } catch {
-    const isHtml = text.trimStart().startsWith('<');
-    throw new Error(isHtml
-      ? 'GAS retornou HTML — reimplante o Web App com acesso "Qualquer pessoa"'
-      : 'Resposta inválida do GAS (não é JSON)');
-  }
-}
-
 /* ─── CACHE ───────────────────────────────────────────────────────────────── */
 function saveCache() {
   if (!_schema.length) return;
@@ -473,8 +528,49 @@ function buildFilterDefs() {
 /* ─── RENDER ──────────────────────────────────────────────────────────────── */
 function renderAll() {
   renderKPIs();
+  renderAlerts();
   applyFilters();
   renderCharts();
+}
+
+/* ─── ALERTAS DE VENCIMENTO ───────────────────────────────────────────────── */
+function renderAlerts() {
+  const bar = document.getElementById('alert-bar');
+  if (!bar) return;
+  const statusCol = _schema.find(c => c.key === 'status' || c.key === 'situacao');
+  if (!statusCol) { bar.hidden = true; return; }
+
+  let urgentes = 0, expirados = 0;
+  _records.forEach(r => {
+    const st = String(r[statusCol.key] || '').trim();
+    if (st === 'Vence em 30 dias') urgentes++;
+    else if (st === 'Expirado')    expirados++;
+  });
+
+  if (!urgentes && !expirados) { bar.hidden = true; return; }
+
+  const partes = [];
+  if (urgentes)  partes.push(`<strong>${urgentes}</strong> acordo${urgentes !== 1 ? 's' : ''} vence${urgentes !== 1 ? 'm' : ''} em até 30 dias`);
+  if (expirados) partes.push(`<strong>${expirados}</strong> já expirado${expirados !== 1 ? 's' : ''}`);
+  document.getElementById('alert-text').innerHTML = partes.join(' · ');
+  // Prioriza o filtro mais crítico ao clicar
+  bar.dataset.filter = urgentes ? 'Vence em 30 dias' : 'Expirado';
+  bar.hidden = false;
+}
+
+function onAlertClick() {
+  const f = document.getElementById('alert-bar').dataset.filter;
+  if (!f) return;
+  _kpiFilt = f;
+  applyFilters();
+  document.querySelector('.table-wrap')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ─── BUSCA (debounce) ────────────────────────────────────────────────────── */
+let _searchT;
+function onSearchInput() {
+  clearTimeout(_searchT);
+  _searchT = setTimeout(applyFilters, 250);
 }
 
 function renderKPIs() {
@@ -559,12 +655,14 @@ function renderTable() {
 
   thead.innerHTML = _schema.map(c => {
     const sorted = _sortCol === c.key;
-    const arrow  = sorted ? (_sortAsc ? ' ↑' : ' ↓') : ' ↕';
-    return `<th onclick="sortBy('${c.key}')" title="Ordenar por ${esc(c.label)}">${esc(c.label)}<span style="opacity:.5;font-size:.75em">${arrow}</span></th>`;
+    const arrow  = sorted ? (_sortAsc ? '↑' : '↓') : '↕';
+    const ariaSort = sorted ? ` aria-sort="${_sortAsc ? 'ascending' : 'descending'}"` : '';
+    return `<th${ariaSort} onclick="sortBy('${c.key}')" title="Ordenar por ${esc(c.label)}">${esc(c.label)}<span class="sort-arrow">${arrow}</span></th>`;
   }).join('');
 
-  const start = (_page - 1) * PAGE;
-  const rows  = _filtered.slice(start, start + PAGE);
+  // _printAll = true imprime todas as linhas filtradas (sem paginação)
+  const start = _printAll ? 0 : (_page - 1) * PAGE;
+  const rows  = _printAll ? _filtered : _filtered.slice(start, start + PAGE);
 
   if (_loading && !rows.length) {
     tbody.innerHTML = Array(6).fill(0).map(() =>
@@ -575,24 +673,44 @@ function renderTable() {
 
   if (!rows.length) {
     tbody.innerHTML = `<tr><td colspan="${_schema.length}" class="empty-state">
-      <div style="font-size:2rem;margin-bottom:8px">🔍</div>
+      <div style="font-size:2rem;margin-bottom:8px">📭</div>
       <div>Nenhum registro encontrado</div>
     </td></tr>`;
     return;
   }
 
+  const numKeys = new Set(['num', 'doe', 'dou']);
+
   tbody.innerHTML = rows.map((r, i) => {
+    let rowCls = '';
     const cells = _schema.map(col => {
       const raw = String(r[col.key] || '').trim();
       const kL  = col.key.toLowerCase();
-      let cell;
-      if (kL === 'status' || kL === 'situacao') cell = statusBadge(raw);
-      else if (raw.startsWith('http')) cell = `<a href="${esc(raw)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🔗 Abrir</a>`;
-      else if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) cell = raw.split('-').reverse().join('/');
-      else cell = esc(raw) || '<span style="color:var(--text2)">—</span>';
-      return `<td>${cell}</td>`;
+      let cell, tdCls = '';
+
+      if (kL === 'status' || kL === 'situacao') {
+        cell = statusBadge(raw);
+        if (raw === 'Vence em 30 dias') rowCls = ' class="row-urgent"';
+        else if (raw === 'Expirado')    rowCls = ' class="row-expirado"';
+      } else if (kL === 'diasrestantes') {
+        const n = parseInt(raw, 10);
+        if (raw === '' || isNaN(n)) { cell = '<span class="cell-empty">—</span>'; tdCls = ' class="dias-cell"'; }
+        else {
+          const dc = n < 0 ? ' dias-expirado' : n <= 30 ? ' dias-urgent' : n <= 90 ? ' dias-warn' : '';
+          cell = esc(raw); tdCls = ` class="dias-cell${dc}"`;
+        }
+      } else if (raw.startsWith('http')) {
+        cell = `<a class="cell-link" href="${esc(raw)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🔗 Abrir</a>`;
+      } else if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+        cell = raw.split('-').reverse().join('/'); tdCls = ' class="num-cell"';
+      } else if (numKeys.has(kL)) {
+        cell = esc(raw) || '<span class="cell-empty">—</span>'; tdCls = ' class="num-cell"';
+      } else {
+        cell = esc(raw) || '<span class="cell-empty">—</span>';
+      }
+      return `<td${tdCls}>${cell}</td>`;
     }).join('');
-    return `<tr onclick="openModal(${start + i})">${cells}</tr>`;
+    return `<tr${rowCls} onclick="openModal(${start + i})">${cells}</tr>`;
   }).join('');
 }
 
@@ -600,13 +718,14 @@ function renderPagination() {
   const total = _filtered.length;
   const pages = Math.ceil(total / PAGE);
   const pg = document.getElementById('pagination');
-  if (pages <= 1) {
-    pg.innerHTML = total ? `<span>${total} registro${total !== 1 ? 's' : ''}</span>` : '';
-    return;
-  }
+  if (!total) { pg.innerHTML = ''; return; }
+  const from = (_page - 1) * PAGE + 1;
+  const to   = Math.min(_page * PAGE, total);
+  const info = `<span>Mostrando <strong>${from}–${to}</strong> de <strong>${total}</strong> registro${total !== 1 ? 's' : ''}</span>`;
+  if (pages <= 1) { pg.innerHTML = info; return; }
   pg.innerHTML = `
     <button onclick="goPage(${_page-1})" ${_page<=1?'disabled':''}>‹ Anterior</button>
-    <span>Página ${_page} de ${pages} &nbsp;(${total} registros)</span>
+    ${info}
     <button onclick="goPage(${_page+1})" ${_page>=pages?'disabled':''}>Próxima ›</button>
   `;
 }
@@ -722,6 +841,11 @@ function openModal(idx) {
 function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
 function onOverlayClick(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+document.addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.classList?.contains('kpi') && e.target.getAttribute('role') === 'button') {
+    e.preventDefault(); e.target.click();
+  }
+});
 
 /* ─── KPI FILTER ──────────────────────────────────────────────────────────── */
 function filterByStatus(st) {
@@ -757,6 +881,32 @@ function exportCSV() {
   });
   a.click(); URL.revokeObjectURL(a.href);
   showToast(`${_filtered.length} registros exportados`);
+}
+
+/* ─── PRINT / PDF ─────────────────────────────────────────────────────────── */
+function printReport() {
+  if (!_filtered.length) { showToast('Nenhum dado para imprimir'); return; }
+  // Cabeçalho do relatório (visível só na impressão)
+  const filtros = [];
+  const q = document.getElementById('search-input').value.trim();
+  if (q) filtros.push(`busca: "${q}"`);
+  if (_kpiFilt) filtros.push(`status: ${_kpiFilt}`);
+  ['filter-col1','filter-col2','filter-col3'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.value) filtros.push(el.value);
+  });
+  document.getElementById('print-meta').textContent =
+    `Emitido em ${new Date().toLocaleString('pt-BR')} · ${_filtered.length} registro(s)` +
+    (filtros.length ? ` · Filtros: ${filtros.join(', ')}` : ' · Todos os registros');
+
+  // Renderiza todas as linhas filtradas, imprime, depois restaura a paginação
+  _printAll = true;
+  renderTable();
+  const restore = () => { _printAll = false; renderTable(); window.removeEventListener('afterprint', restore); };
+  window.addEventListener('afterprint', restore);
+  window.print();
+  // Fallback caso afterprint não dispare (alguns navegadores)
+  setTimeout(() => { if (_printAll) restore(); }, 1500);
 }
 
 /* ─── HELPERS ─────────────────────────────────────────────────────────────── */

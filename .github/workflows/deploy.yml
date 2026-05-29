@@ -21,46 +21,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Injetar Secrets em js/config.js
-        env:
-          SYNC_TOKEN: ${{ secrets.SYNC_TOKEN }}
-          SENHA_HASH: ${{ secrets.SENHA_HASH }}
-        run: |
-          # APPS_SCRIPT_URL já está hardcoded em js/config.js — não precisa de Secret
-          # SYNC_TOKEN: opcional — habilita operações de escrita do painel admin
-          # SENHA_HASH: opcional — sobrescreve o hash padrão de SEMA@2026
-
-          [ -n "$SYNC_TOKEN" ] && sed -i "s|%%SYNC_TOKEN%%|${SYNC_TOKEN}|g" js/config.js \
-            && echo "✅ SYNC_TOKEN injetado" || echo "ℹ SYNC_TOKEN não configurado — admin em modo somente-leitura"
-
-          [ -n "$SENHA_HASH" ] && sed -i "s|%%SENHA_HASH%%|${SENHA_HASH}|g" js/config.js \
-            && echo "✅ SENHA_HASH injetado" || echo "ℹ SENHA_HASH não configurado — usando hash padrão de SEMA@2026"
-
-          echo "✅ js/config.js configurado"
-
-      - name: Verificar injeção de secrets e status da configuração
-        run: |
-          echo "### Status da configuração:"
-          if grep -q '%%SYNC_TOKEN%%' js/config.js; then
-            echo "⚠️  SYNC_TOKEN não injetado — admin funcionará em modo somente-leitura"
-            echo "   → Configure o Secret SYNC_TOKEN em Settings → Secrets → Actions"
-          else
-            echo "✅ SYNC_TOKEN injetado com sucesso"
-          fi
-          if grep -q '%%SENHA_HASH%%' js/config.js; then
-            echo "ℹ️  SENHA_HASH não injetado — usando hash padrão (SEMA@2026)"
-            echo "   → Configure o Secret SENHA_HASH para usar senha personalizada"
-          else
-            echo "✅ SENHA_HASH injetado com sucesso"
-          fi
-
       - name: Validar sintaxe JS
         run: |
           node --check js/config.js && echo "✅ js/config.js syntax OK"
 
       - name: Validar arquivos HTML e JS
         run: |
-          for f in index.html admin.html js/config.js; do
+          for f in index.html js/config.js; do
             [ -f "$f" ] && echo "✅ $f ($(wc -c < $f) bytes)" || { echo "❌ $f ausente"; exit 1; }
           done
           echo "✅ Validação concluída"
@@ -90,5 +57,4 @@ jobs:
           echo "| Item | URL |" >> $GITHUB_STEP_SUMMARY
           echo "|------|-----|" >> $GITHUB_STEP_SUMMARY
           echo "| Painel público | ${{ steps.deployment.outputs.page_url }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Painel admin   | ${{ steps.deployment.outputs.page_url }}admin.html |" >> $GITHUB_STEP_SUMMARY
           echo "| Commit         | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
