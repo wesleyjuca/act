@@ -64,6 +64,7 @@ main { max-width: 1400px; margin: 0 auto; padding: 24px 16px; }
 .kpi-num.yellow { color: var(--yellow); }
 .kpi-num.blue { color: var(--blue); }
 .kpi-label { font-size: .8rem; color: var(--text2); margin-top: 4px; }
+.kpi-ico { font-size: 1.1rem; display: block; margin-bottom: 2px; line-height: 1; }
 
 /* CHARTS */
 .charts-section { margin-bottom: 24px; }
@@ -226,6 +227,7 @@ td.cell-trunc-sm { max-width: 150px; overflow: hidden; text-overflow: ellipsis; 
   tbody tr:nth-child(even) { background: #f2f2f2 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   tbody td { padding: 5px 8px; }
   .badge { border: 1px solid #999 !important; background: #fff !important; color: #000 !important; }
+  .dias-pill { background: #fff !important; color: #000 !important; border: 1px solid #999 !important; }
   .cell-link { color: #000; }
 }
 </style>
@@ -279,22 +281,27 @@ td.cell-trunc-sm { max-width: 150px; overflow: hidden; text-overflow: ellipsis; 
   <div class="kpi-grid">
     <div class="kpi" id="kpi-vigente" role="button" tabindex="0" aria-label="Filtrar acordos vigentes" onclick="filterByStatus('Vigente')">
       <div class="kpi-num" id="kpi-vigente-num">–</div>
+      <span class="kpi-ico" aria-hidden="true">🟢</span>
       <div class="kpi-label">Vigentes</div>
     </div>
     <div class="kpi" id="kpi-avencer" role="button" tabindex="0" aria-label="Filtrar acordos a vencer em 90 dias" onclick="filterByStatus('A vencer')">
       <div class="kpi-num yellow" id="kpi-avencer-num">–</div>
+      <span class="kpi-ico" aria-hidden="true">🟡</span>
       <div class="kpi-label">A vencer (90 dias)</div>
     </div>
     <div class="kpi" id="kpi-urgente" role="button" tabindex="0" aria-label="Filtrar acordos que vencem em 30 dias" onclick="filterByStatus('Vence em 30 dias')">
       <div class="kpi-num red" id="kpi-urgente-num">–</div>
+      <span class="kpi-ico" aria-hidden="true">🔴</span>
       <div class="kpi-label">Urgente (30 dias)</div>
     </div>
     <div class="kpi" id="kpi-expirado" role="button" tabindex="0" aria-label="Filtrar acordos expirados" onclick="filterByStatus('Expirado')">
       <div class="kpi-num" id="kpi-expirado-num">–</div>
+      <span class="kpi-ico" aria-hidden="true">⚫</span>
       <div class="kpi-label">Expirados</div>
     </div>
     <div class="kpi" style="cursor:default">
       <div class="kpi-num blue" id="kpi-parceiros-num">–</div>
+      <span class="kpi-ico" aria-hidden="true">🤝</span>
       <div class="kpi-label">Parceiros únicos</div>
     </div>
   </div>
@@ -376,7 +383,11 @@ let _loading  = true;
 let _retryCount = 0;
 let _charts   = {};
 let _printAll = false;
-let _hiddenCols = new Set(JSON.parse(localStorage.getItem('sema_hidden_cols') || '["obs","doe","dou","sei"]'));
+function _loadHiddenCols() {
+  try { return new Set(JSON.parse(localStorage.getItem('sema_hidden_cols') || '["obs","doe","dou","sei"]')); }
+  catch { return new Set(['obs','doe','dou','sei']); }
+}
+let _hiddenCols = _loadHiddenCols();
 
 /* ─── INICIALIZAÇÃO ───────────────────────────────────────────────────────── */
 function init() {
@@ -481,6 +492,7 @@ async function syncAll() {
     buildFilterDefs();
     renderAll();
     setStatus('ok');
+    if (_records.length) document.title = `SEMA/AC — ACT (${_records.length} acordos)`;
     document.getElementById('last-update').textContent =
       'Atualizado: ' + new Date().toLocaleTimeString('pt-BR');
   } finally {
