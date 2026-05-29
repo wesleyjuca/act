@@ -101,7 +101,11 @@ thead th[aria-sort] .sort-arrow { opacity: 1; }
 tbody tr { border-bottom: 1px solid var(--border); transition: background .12s; }
 tbody tr:nth-child(even) { background: var(--row-alt); }
 tbody tr:hover { background: var(--accent-light); cursor: pointer; }
-tbody tr.row-urgent { box-shadow: inset 3px 0 0 var(--red); }
+@keyframes urgentPulse {
+  0%,100% { box-shadow: inset 3px 0 0 var(--red); }
+  50%      { box-shadow: inset 3px 0 0 var(--red), inset 0 0 0 1000px rgba(192,57,43,.05); }
+}
+tbody tr.row-urgent { animation: urgentPulse 2.5s ease-in-out infinite; }
 tbody tr.row-expirado { box-shadow: inset 3px 0 0 var(--text2); }
 tbody td { padding: 11px 14px; vertical-align: middle; }
 td.num-cell { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -168,6 +172,39 @@ td.dias-expirado { color: var(--text2); }
 .pagination button:disabled { opacity: .4; cursor: default; }
 
 @media (max-width: 600px) { header h1 small { display: none; } .kpi-num { font-size: 1.5rem; } }
+
+/* CELL TRUNCATION */
+td.cell-trunc    { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+td.cell-trunc-sm { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* DIAS RESTANTES PILL */
+.dias-pill           { display:inline-block; padding:3px 10px; border-radius:12px; font-size:.76rem; font-weight:700; letter-spacing:.02em; }
+.dias-pill.pill-ok   { background:#e8f5ec; color:#1b6b2a; }
+.dias-pill.pill-warn { background:#fff3e0; color:#a0580a; }
+.dias-pill.pill-urg  { background:#fce4ec; color:#b71c1c; }
+.dias-pill.pill-exp  { background:#f0f0f0; color:#666; border:1px solid #e0e0e0; }
+[data-theme="dark"] .dias-pill.pill-ok   { background:#143a1f; color:#5fd97e; }
+[data-theme="dark"] .dias-pill.pill-warn { background:#3a2a0c; color:#f0b84a; }
+[data-theme="dark"] .dias-pill.pill-urg  { background:#3a1218; color:#ff7a8a; }
+[data-theme="dark"] .dias-pill.pill-exp  { background:#262a36; color:#9aa6bd; border-color:#404858; }
+
+/* COLUMN TOGGLE PANEL */
+.col-toggle-wrap { position:relative; }
+.col-toggle-panel {
+  position:absolute; right:0; top:calc(100% + 4px); z-index:200; min-width:210px;
+  background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius);
+  box-shadow:0 4px 24px rgba(0,0,0,.18); padding:8px 0;
+}
+.col-toggle-panel .ctp-title {
+  font-size:.69rem; font-weight:700; color:var(--text2); text-transform:uppercase;
+  letter-spacing:.07em; padding:0 14px 8px;
+}
+.col-toggle-panel label {
+  display:flex; align-items:center; gap:9px; padding:5px 14px;
+  cursor:pointer; font-size:.84rem; user-select:none;
+}
+.col-toggle-panel label:hover { background:var(--accent-light); color:var(--accent); }
+.col-toggle-panel input[type=checkbox] { accent-color:var(--accent); width:14px; height:14px; flex-shrink:0; }
 
 /* PRINT / PDF */
 #print-header { display: none; }
@@ -287,6 +324,10 @@ td.dias-expirado { color: var(--text2); }
     <button class="btn btn-outline" onclick="exportCSV()">⬇ CSV</button>
     <button class="btn btn-outline" onclick="printReport()">🖨 PDF</button>
     <button class="btn btn-outline" onclick="clearFilters()">✕ Limpar</button>
+    <div class="col-toggle-wrap">
+      <button class="btn btn-outline" id="btn-col-toggle" onclick="toggleColPanel(event)" title="Mostrar/ocultar colunas">⚙ Colunas</button>
+      <div class="col-toggle-panel" id="col-toggle-panel" hidden></div>
+    </div>
   </div>
 
   <div class="table-wrap">
@@ -335,10 +376,12 @@ let _loading  = true;
 let _retryCount = 0;
 let _charts   = {};
 let _printAll = false;
+let _hiddenCols = new Set(JSON.parse(localStorage.getItem('sema_hidden_cols') || '["obs","doe","dou","sei"]'));
 
 /* ─── INICIALIZAÇÃO ───────────────────────────────────────────────────────── */
 function init() {
   loadTheme();
+  readUrlState();
   if (typeof SEMA_CONFIG !== 'undefined' && SEMA_CONFIG.appsScriptUrl)
     GAS_URL = SEMA_CONFIG.appsScriptUrl;
 
@@ -447,15 +490,27 @@ async function syncAll() {
 }
 
 /* ─── STATUS CLIENT-SIDE ─────────────────────────────────────────────────── */
+
+// Aceita yyyy-MM-dd (GAS), dd/mm/yyyy e dd-mm-yyyy (entrada manual no Sheets)
+function parseDateFlexible(s) {
+  if (!s) return null;
+  const br = String(s).match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (br) return new Date(+br[3], +br[2] - 1, +br[1]);
+  const iso = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return new Date(+iso[1], +iso[2] - 1, +iso[3]);
+  return null;
+}
+
 function computeStatusClientSide(r) {
   const termRaw = r.termino || '';
   if (!termRaw) return r;
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  const end = new Date(termRaw);
-  if (isNaN(end.getTime())) return r;
+  const end = parseDateFlexible(termRaw);
+  if (!end || isNaN(end.getTime())) return r;
   const dias = Math.round((end - today) / 86400000);
   const rec = Object.assign({}, r);
-  const badDias   = !rec.diasRestantes || /^#/.test(rec.diasRestantes) || /^\d{4}-\d{2}-\d{2}$/.test(rec.diasRestantes);
+  const dR = rec.diasRestantes;
+  const badDias   = !dR || /^#/.test(dR) || /^\d{4}-\d{2}-\d{2}/.test(dR) || isNaN(parseInt(dR, 10));
   const badStatus = !rec.status || /^#/.test(rec.status);
   if (badDias)   rec.diasRestantes = String(dias);
   if (badStatus) {
@@ -523,6 +578,7 @@ function buildFilterDefs() {
     const vals = [...new Set(_records.map(r => String(r[key]||'').trim()).filter(Boolean))].sort();
     vals.forEach(v => sel.add(new Option(v, v)));
   });
+  buildColToggle();
 }
 
 /* ─── RENDER ──────────────────────────────────────────────────────────────── */
@@ -621,6 +677,7 @@ function applyFilters() {
   renderTable();
   renderPagination();
   updateKPIActive();
+  syncUrlState();
 }
 
 /* ─── SORTING ─────────────────────────────────────────────────────────────── */
@@ -653,62 +710,86 @@ function renderTable() {
     return;
   }
 
-  thead.innerHTML = _schema.map(c => {
+  // Colunas visíveis (respeita toggle de colunas)
+  const visSchema = _schema.filter(c => !_hiddenCols.has(c.key));
+
+  thead.innerHTML = visSchema.map(c => {
     const sorted = _sortCol === c.key;
     const arrow  = sorted ? (_sortAsc ? '↑' : '↓') : '↕';
     const ariaSort = sorted ? ` aria-sort="${_sortAsc ? 'ascending' : 'descending'}"` : '';
     return `<th${ariaSort} onclick="sortBy('${c.key}')" title="Ordenar por ${esc(c.label)}">${esc(c.label)}<span class="sort-arrow">${arrow}</span></th>`;
   }).join('');
 
-  // _printAll = true imprime todas as linhas filtradas (sem paginação)
   const start = _printAll ? 0 : (_page - 1) * PAGE;
   const rows  = _printAll ? _filtered : _filtered.slice(start, start + PAGE);
 
   if (_loading && !rows.length) {
     tbody.innerHTML = Array(6).fill(0).map(() =>
-      `<tr>${_schema.map(() => `<td><div class="skeleton"></div></td>`).join('')}</tr>`
+      `<tr>${visSchema.map(() => `<td><div class="skeleton"></div></td>`).join('')}</tr>`
     ).join('');
     return;
   }
 
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="${_schema.length}" class="empty-state">
+    tbody.innerHTML = `<tr><td colspan="${visSchema.length}" class="empty-state">
       <div style="font-size:2rem;margin-bottom:8px">📭</div>
       <div>Nenhum registro encontrado</div>
     </td></tr>`;
     return;
   }
 
-  const numKeys = new Set(['num', 'doe', 'dou']);
+  const numKeys    = new Set(['num', 'doe', 'dou']);
+  const truncKeys  = new Set(['objeto', 'obs', 'observacao', 'observacoes']);
+  const truncSmKeys = new Set(['inst', 'instituicao', 'esfera', 'area']);
 
   tbody.innerHTML = rows.map((r, i) => {
     let rowCls = '';
-    const cells = _schema.map(col => {
+    const cells = visSchema.map(col => {
       const raw = String(r[col.key] || '').trim();
       const kL  = col.key.toLowerCase();
-      let cell, tdCls = '';
+      let cell, tdCls = '', tdTitle = '';
 
       if (kL === 'status' || kL === 'situacao') {
         cell = statusBadge(raw);
         if (raw === 'Vence em 30 dias') rowCls = ' class="row-urgent"';
         else if (raw === 'Expirado')    rowCls = ' class="row-expirado"';
+
       } else if (kL === 'diasrestantes') {
         const n = parseInt(raw, 10);
-        if (raw === '' || isNaN(n)) { cell = '<span class="cell-empty">—</span>'; tdCls = ' class="dias-cell"'; }
-        else {
-          const dc = n < 0 ? ' dias-expirado' : n <= 30 ? ' dias-urgent' : n <= 90 ? ' dias-warn' : '';
-          cell = esc(raw); tdCls = ` class="dias-cell${dc}"`;
+        tdCls = ' class="dias-cell"';
+        if (raw === '' || isNaN(n)) {
+          cell = '<span class="cell-empty">—</span>';
+        } else if (n < 0) {
+          cell = `<span class="dias-pill pill-exp">Expirado</span>`;
+        } else if (n === 0) {
+          cell = `<span class="dias-pill pill-urg">Hoje</span>`;
+        } else if (n <= 30) {
+          cell = `<span class="dias-pill pill-urg">${n}d</span>`;
+        } else if (n <= 90) {
+          cell = `<span class="dias-pill pill-warn">${n}d</span>`;
+        } else {
+          cell = `<span class="dias-pill pill-ok">${n}d</span>`;
         }
+
       } else if (raw.startsWith('http')) {
         cell = `<a class="cell-link" href="${esc(raw)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🔗 Abrir</a>`;
+
       } else if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
         cell = raw.split('-').reverse().join('/'); tdCls = ' class="num-cell"';
+
       } else if (numKeys.has(kL)) {
         cell = esc(raw) || '<span class="cell-empty">—</span>'; tdCls = ' class="num-cell"';
+
+      } else if (truncKeys.has(kL) && raw.length > 55) {
+        cell = esc(raw); tdCls = ' class="cell-trunc"'; tdTitle = ` title="${esc(raw)}"`;
+
+      } else if (truncSmKeys.has(kL) && raw.length > 32) {
+        cell = esc(raw); tdCls = ' class="cell-trunc-sm"'; tdTitle = ` title="${esc(raw)}"`;
+
       } else {
         cell = esc(raw) || '<span class="cell-empty">—</span>';
       }
-      return `<td${tdCls}>${cell}</td>`;
+      return `<td${tdCls}${tdTitle}>${cell}</td>`;
     }).join('');
     return `<tr${rowCls} onclick="openModal(${start + i})">${cells}</tr>`;
   }).join('');
@@ -962,6 +1043,61 @@ function toggleTheme() {
   document.documentElement.setAttribute('data-theme', next);
   localStorage.setItem('sema_theme', next);
   document.getElementById('btn-theme').textContent = next==='dark' ? '☀️' : '🌙';
+}
+
+/* ─── COLUMN TOGGLE ──────────────────────────────────────────────────────── */
+function buildColToggle() {
+  const panel = document.getElementById('col-toggle-panel');
+  if (!panel || !_schema.length) return;
+  panel.innerHTML = `<div class="ctp-title">Colunas visíveis</div>` +
+    _schema.map(c =>
+      `<label><input type="checkbox" ${_hiddenCols.has(c.key) ? '' : 'checked'}
+        onchange="toggleCol('${c.key}')"> ${esc(c.label)}</label>`
+    ).join('');
+}
+
+function toggleColPanel(e) {
+  e && e.stopPropagation();
+  const panel = document.getElementById('col-toggle-panel');
+  if (!panel) return;
+  panel.hidden = !panel.hidden;
+  if (!panel.hidden) {
+    const close = () => { panel.hidden = true; document.removeEventListener('click', close); };
+    setTimeout(() => document.addEventListener('click', close), 0);
+  }
+}
+
+function toggleCol(key) {
+  if (_hiddenCols.has(key)) _hiddenCols.delete(key);
+  else _hiddenCols.add(key);
+  try { localStorage.setItem('sema_hidden_cols', JSON.stringify([..._hiddenCols])); } catch {}
+  renderTable();
+  renderPagination();
+}
+
+/* ─── URL STATE ───────────────────────────────────────────────────────────── */
+function syncUrlState() {
+  try {
+    const p = new URLSearchParams();
+    const q = document.getElementById('search-input')?.value.trim();
+    if (q) p.set('q', q);
+    if (_kpiFilt) p.set('status', _kpiFilt);
+    if (_sortCol) { p.set('sort', _sortCol); p.set('asc', _sortAsc ? '1' : '0'); }
+    const str = p.toString();
+    history.replaceState(null, '', str ? '?' + str : location.pathname);
+  } catch {}
+}
+
+function readUrlState() {
+  try {
+    const p = new URLSearchParams(location.search);
+    if (p.has('q')) {
+      const el = document.getElementById('search-input');
+      if (el) el.value = p.get('q');
+    }
+    if (p.has('status')) _kpiFilt = p.get('status');
+    if (p.has('sort'))   { _sortCol = p.get('sort'); _sortAsc = p.get('asc') !== '0'; }
+  } catch {}
 }
 
 /* ─── START ───────────────────────────────────────────────────────────────── */
