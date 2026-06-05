@@ -339,7 +339,7 @@ td.cell-trunc-sm { max-width: 150px; overflow: hidden; text-overflow: ellipsis; 
 
   <div class="table-wrap">
     <table>
-      <thead><tr id="table-head"><th colspan="1" style="text-align:center;opacity:.6">Carregando…</th></tr></thead>
+      <thead id="table-head-wrap"><tr id="table-head"><th colspan="1" style="text-align:center;opacity:.6">Carregando…</th></tr></thead>
       <tbody id="table-body"></tbody>
     </table>
   </div>
@@ -391,6 +391,7 @@ let _hiddenCols = _loadHiddenCols();
 
 /* ─── INICIALIZAÇÃO ───────────────────────────────────────────────────────── */
 function init() {
+  setupDelegatedListeners();
   loadTheme();
   readUrlState();
   if (typeof SEMA_CONFIG !== 'undefined' && SEMA_CONFIG.appsScriptUrl)
@@ -418,6 +419,50 @@ function init() {
   syncWithRetry().then(() => {
     setInterval(syncWithRetry, POLL_MS);
   });
+}
+
+function setupDelegatedListeners() {
+  const tableHead = document.getElementById('table-head-wrap');
+  if (tableHead && !tableHead.dataset.listenerReady) {
+    tableHead.addEventListener('click', e => {
+      const th = e.target.closest('th[data-sort-key]');
+      if (!th || !tableHead.contains(th)) return;
+      sortBy(th.dataset.sortKey);
+    });
+    tableHead.dataset.listenerReady = '1';
+  }
+
+  const tableBody = document.getElementById('table-body');
+  if (tableBody && !tableBody.dataset.listenerReady) {
+    tableBody.addEventListener('click', e => {
+      if (e.target.closest('a, button, input, select, textarea')) return;
+      const tr = e.target.closest('tr[data-row-index]');
+      if (!tr || !tableBody.contains(tr)) return;
+      openModal(Number(tr.dataset.rowIndex));
+    });
+    tableBody.dataset.listenerReady = '1';
+  }
+
+  const pagination = document.getElementById('pagination');
+  if (pagination && !pagination.dataset.listenerReady) {
+    pagination.addEventListener('click', e => {
+      const btn = e.target.closest('button[data-page]');
+      if (!btn || !pagination.contains(btn) || btn.disabled) return;
+      goPage(Number(btn.dataset.page));
+    });
+    pagination.dataset.listenerReady = '1';
+  }
+
+  const colPanel = document.getElementById('col-toggle-panel');
+  if (colPanel && !colPanel.dataset.listenerReady) {
+    colPanel.addEventListener('click', e => e.stopPropagation());
+    colPanel.addEventListener('change', e => {
+      const input = e.target.closest('input[type="checkbox"][data-col-key]');
+      if (!input || !colPanel.contains(input)) return;
+      toggleCol(input.dataset.colKey);
+    });
+    colPanel.dataset.listenerReady = '1';
+  }
 }
 
 /* ─── SYNC COM RETRY ──────────────────────────────────────────────────────── */
@@ -729,7 +774,7 @@ function renderTable() {
     const sorted = _sortCol === c.key;
     const arrow  = sorted ? (_sortAsc ? '↑' : '↓') : '↕';
     const ariaSort = sorted ? ` aria-sort="${_sortAsc ? 'ascending' : 'descending'}"` : '';
-    return `<th${ariaSort} onclick="sortBy('${c.key}')" title="Ordenar por ${esc(c.label)}">${esc(c.label)}<span class="sort-arrow">${arrow}</span></th>`;
+    return `<th${ariaSort} data-sort-key="${esc(c.key)}" title="Ordenar por ${esc(c.label)}">${esc(c.label)}<span class="sort-arrow">${arrow}</span></th>`;
   }).join('');
 
   const start = _printAll ? 0 : (_page - 1) * PAGE;
@@ -784,7 +829,7 @@ function renderTable() {
         }
 
       } else if (raw.startsWith('http')) {
-        cell = `<a class="cell-link" href="${esc(raw)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🔗 Abrir</a>`;
+        cell = `<a class="cell-link" href="${esc(raw)}" target="_blank" rel="noopener">🔗 Abrir</a>`;
 
       } else if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
         cell = raw.split('-').reverse().join('/'); tdCls = ' class="num-cell"';
@@ -803,7 +848,7 @@ function renderTable() {
       }
       return `<td${tdCls}${tdTitle}>${cell}</td>`;
     }).join('');
-    return `<tr${rowCls} onclick="openModal(${start + i})">${cells}</tr>`;
+    return `<tr${rowCls} data-row-index="${start + i}">${cells}</tr>`;
   }).join('');
 }
 
@@ -817,9 +862,9 @@ function renderPagination() {
   const info = `<span>Mostrando <strong>${from}–${to}</strong> de <strong>${total}</strong> registro${total !== 1 ? 's' : ''}</span>`;
   if (pages <= 1) { pg.innerHTML = info; return; }
   pg.innerHTML = `
-    <button onclick="goPage(${_page-1})" ${_page<=1?'disabled':''}>‹ Anterior</button>
+    <button data-page="${_page-1}" ${_page<=1?'disabled':''}>‹ Anterior</button>
     ${info}
-    <button onclick="goPage(${_page+1})" ${_page>=pages?'disabled':''}>Próxima ›</button>
+    <button data-page="${_page+1}" ${_page>=pages?'disabled':''}>Próxima ›</button>
   `;
 }
 
@@ -1063,8 +1108,7 @@ function buildColToggle() {
   if (!panel || !_schema.length) return;
   panel.innerHTML = `<div class="ctp-title">Colunas visíveis</div>` +
     _schema.map(c =>
-      `<label><input type="checkbox" ${_hiddenCols.has(c.key) ? '' : 'checked'}
-        onchange="toggleCol('${c.key}')"> ${esc(c.label)}</label>`
+      `<label><input type="checkbox" data-col-key="${esc(c.key)}" ${_hiddenCols.has(c.key) ? '' : 'checked'}> ${esc(c.label)}</label>`
     ).join('');
 }
 
