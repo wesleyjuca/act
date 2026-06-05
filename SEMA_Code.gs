@@ -201,10 +201,10 @@ function handlePing() {
 
 function handleList(params = {}) {
 
-  const sheetName = params.sheet || SHEET_DADOS;
+  const sheetName = SHEET_DADOS;
 
   const cache = CacheService.getScriptCache();
-  const cKey  = 'list_' + sheetName;
+  const cKey  = 'list_public';
   const hit   = cache.get(cKey);
   if (hit) { try { return JSON.parse(hit); } catch (_) {} }
 
