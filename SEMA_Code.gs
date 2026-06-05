@@ -82,10 +82,10 @@ const HEADER_MAP = {
 
 const FORMULA_COLS = {
   status: (row, col) =>
-    `=SE(${col}${row}="";"";SE(HOJE()>${col}${row};"Expirado";SE(${col}${row}-HOJE()<=30;"Vence em 30 dias";SE(${col}${row}-HOJE()<=90;"A vencer";"Vigente"))))`,
+    `=IF(${col}${row}="";"";IF(HOJE()>${col}${row};"Expirado";IF(${col}${row}-HOJE()<=30;"Vence em 30 dias";IF(${col}${row}-HOJE()<=90;"A vencer";"Vigente"))))`,
 
   diasRestantes: (row, col) =>
-    `=SE(${col}${row}="";"";${col}${row}-HOJE())`,
+    `=IF(${col}${row}="";"";${col}${row}-HOJE())`,
 };
 
 // ─────────────────────────────────────────────────────────────
