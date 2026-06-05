@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SEMA/AC — Termos de Cooperação Técnica</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" integrity="sha512-SIMGYRUjwY8+gKg7nn9EItdD8LCADSDfJNutF9TPrvEo86sQmFMh6MyralfIyhADlajSxqc7G0gs7+MwWF/ogQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="js/config.js"></script>
 <style>
 :root {
@@ -72,6 +72,11 @@ main { max-width: 1400px; margin: 0 auto; padding: 24px 16px; }
 .chart-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
 .chart-title { font-size: .78rem; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 12px; }
 .chart-wrap { position: relative; height: 180px; }
+.chart-fallback {
+  height: 100%; display: flex; align-items: center; justify-content: center; text-align: center;
+  border: 1px dashed var(--border); border-radius: 6px; color: var(--text2);
+  background: var(--row-alt); padding: 16px; font-size: .85rem; line-height: 1.4;
+}
 
 /* TOOLBAR */
 .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
@@ -834,7 +839,6 @@ function goPage(n) {
 
 /* ─── CHARTS ──────────────────────────────────────────────────────────────── */
 function renderCharts() {
-  if (typeof Chart === 'undefined') return;
   const statusCol = _schema.find(c => c.key === 'status' || c.key === 'situacao');
   const tipoCol   = _schema.find(c => c.key === 'tipo');
   const anoCol    = _schema.find(c => c.key === 'termino' || c.key === 'inicio');
@@ -842,6 +846,17 @@ function renderCharts() {
   const section = document.getElementById('charts-section');
   if (!statusCol && !tipoCol && !anoCol) { section.style.display = 'none'; return; }
   section.style.display = 'block';
+
+  if (typeof Chart === 'undefined') {
+    _showChartUnavailable({
+      'chart-card-status': !!statusCol,
+      'chart-card-tipo': !!tipoCol,
+      'chart-card-ano': !!anoCol,
+    });
+    return;
+  }
+
+  _clearChartFallbacks();
 
   if (statusCol) _buildDonut('chart-status', 'chart-card-status', statusCol.key);
   else           document.getElementById('chart-card-status').style.display = 'none';
@@ -851,6 +866,32 @@ function renderCharts() {
 
   if (anoCol)    _buildBarTimeline('chart-ano', 'chart-card-ano', anoCol.key);
   else           document.getElementById('chart-card-ano').style.display = 'none';
+}
+
+function _showChartUnavailable(cards) {
+  Object.entries(cards).forEach(([cardId, shouldShow]) => {
+    const card = document.getElementById(cardId);
+    if (!card) return;
+    card.style.display = shouldShow ? 'block' : 'none';
+    if (!shouldShow) return;
+    const wrap = card.querySelector('.chart-wrap');
+    if (!wrap) return;
+    const canvas = wrap.querySelector('canvas');
+    if (canvas) canvas.hidden = true;
+    let msg = wrap.querySelector('.chart-fallback');
+    if (!msg) {
+      msg = document.createElement('div');
+      msg.className = 'chart-fallback';
+      msg.setAttribute('role', 'status');
+      wrap.appendChild(msg);
+    }
+    msg.textContent = 'Gráfico indisponível: não foi possível carregar a biblioteca Chart.js.';
+  });
+}
+
+function _clearChartFallbacks() {
+  document.querySelectorAll('.chart-wrap canvas[hidden]').forEach(canvas => { canvas.hidden = false; });
+  document.querySelectorAll('.chart-fallback').forEach(el => el.remove());
 }
 
 function _countBy(key) {
