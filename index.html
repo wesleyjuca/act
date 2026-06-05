@@ -961,12 +961,16 @@ function clearFilters() {
 }
 
 /* ─── EXPORT CSV ──────────────────────────────────────────────────────────── */
+function csvEscape(value) {
+  return `"${String(value || '').replace(/"/g, '""')}"`;
+}
+
 function exportCSV() {
   if (!_filtered.length) { showToast('Nenhum dado para exportar'); return; }
   const sep = ';';
-  const header = _schema.map(c => `"${c.label}"`).join(sep);
+  const header = _schema.map(c => csvEscape(c.label)).join(sep);
   const rows   = _filtered.map(r =>
-    _schema.map(c => `"${String(r[c.key]||'').replace(/"/g,'""')}"`).join(sep));
+    _schema.map(c => csvEscape(r[c.key])).join(sep));
   const blob = new Blob(['﻿' + [header,...rows].join('\r\n')], { type: 'text/csv;charset=utf-8' });
   const a = Object.assign(document.createElement('a'), {
     href: URL.createObjectURL(blob),
