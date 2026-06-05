@@ -198,12 +198,70 @@ function doGet(e) {
 
 function handlePing() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_DADOS);
+  const warnings = [];
+  const requiredColumns = [
+    { label: 'Tipo', key: 'tipo' },
+    { label: 'Número', key: 'num' },
+    { label: 'Objeto', key: 'objeto' },
+    { label: 'Instituição', key: 'inst' },
+    { label: 'Término', key: 'termino' },
+    { label: 'Status', key: 'status' },
+    { label: 'Dias Restantes', key: 'diasRestantes' },
+  ];
+
+  let headers = [];
+  let missingRequiredColumns = requiredColumns.map(col => col.label);
+  let dataRows = 0;
+
+  if (!sheet) {
+    warnings.push(`Aba '${SHEET_DADOS}' não encontrada.`);
+  } else {
+    const lastCol = sheet.getLastColumn();
+    const lastRow = sheet.getLastRow();
+
+    if (lastCol === 0) {
+      warnings.push('A aba existe, mas não possui cabeçalhos na linha 2.');
+    } else {
+      headers = sheet
+        .getRange(2, 1, 1, lastCol)
+        .getValues()[0]
+        .map(h => String(h || '').trim());
+
+      const foundKeys = headers.reduce((acc, header) => {
+        const key = headerKey(header);
+        if (key) acc[key] = true;
+        return acc;
+      }, {});
+
+      missingRequiredColumns = requiredColumns
+        .filter(col => !foundKeys[col.key])
+        .map(col => col.label);
+    }
+
+    if (lastRow >= 3 && lastCol > 0) {
+      const rows = sheet
+        .getRange(3, 1, lastRow - 2, lastCol)
+        .getValues();
+
+      dataRows = rows.filter(row => row.some(cell => String(cell === undefined || cell === null ? '' : cell).trim())).length;
+    }
+  }
+
+  if (missingRequiredColumns.length) {
+    warnings.push('Colunas obrigatórias ausentes: ' + missingRequiredColumns.join(', ') + '.');
+  }
+
   return {
-    ok: true,
+    ok: !!sheet && missingRequiredColumns.length === 0,
     version: '6.0',
     sheet: SHEET_DADOS,
-    sheetExists: !!ss.getSheetByName(SHEET_DADOS),
+    sheetExists: !!sheet,
     spreadsheetId: ss.getId().replace(/.{30}$/, '…'),
+    headers,
+    missingRequiredColumns,
+    dataRows,
+    warnings,
   };
 }
 
