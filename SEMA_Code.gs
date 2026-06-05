@@ -111,6 +111,10 @@ function jsonResponse(data) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+function isValidJsonpCallback(callback) {
+  return /^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*$/.test(String(callback || ''));
+}
+
 function numToStr(v) {
   if (v instanceof Date) {
     return String(v.getMonth() + 1).padStart(2, '0') + '/' + v.getFullYear();
@@ -136,6 +140,8 @@ function getSheet(sheetName) {
 
 function doGet(e) {
   const callback = e.parameter?.callback;
+  const useJsonp = callback && isValidJsonpCallback(callback);
+  const hasInvalidJsonpCallback = callback && !useJsonp;
   try {
 
     const action = (e.parameter?.action || 'list');
@@ -162,7 +168,10 @@ function doGet(e) {
         data = { error: 'Ação desconhecida' };
     }
 
-    if (callback) {
+    if (hasInvalidJsonpCallback) {
+      return jsonResponse({ error: 'Callback JSONP inválido' });
+    }
+    if (useJsonp) {
       return ContentService.createTextOutput(callback + '(' + JSON.stringify(data) + ')')
         .setMimeType(ContentService.MimeType.JAVASCRIPT);
     }
@@ -172,7 +181,10 @@ function doGet(e) {
 
     logError('GET', err);
     const data = { error: err.message };
-    if (callback) {
+    if (hasInvalidJsonpCallback) {
+      return jsonResponse({ error: 'Callback JSONP inválido' });
+    }
+    if (useJsonp) {
       return ContentService.createTextOutput(callback + '(' + JSON.stringify(data) + ')')
         .setMimeType(ContentService.MimeType.JAVASCRIPT);
     }
