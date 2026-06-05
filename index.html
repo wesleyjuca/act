@@ -610,9 +610,9 @@ function renderAlerts() {
 
   let urgentes = 0, expirados = 0;
   _records.forEach(r => {
-    const st = String(r[statusCol.key] || '').trim();
-    if (st === 'Vence em 30 dias') urgentes++;
-    else if (st === 'Expirado')    expirados++;
+    const statusKey = normalizeStatus(r[statusCol.key]);
+    if (statusKey === 'vence em 30 dias') urgentes++;
+    else if (statusKey === 'expirado')    expirados++;
   });
 
   if (!urgentes && !expirados) { bar.hidden = true; return; }
@@ -652,15 +652,15 @@ function renderKPIs() {
   const parcSet = new Set();
 
   _records.forEach(r => {
-    const st = String(r[statusCol.key] || '').trim();
-    if (st) counts[st] = (counts[st] || 0) + 1;
+    const statusKey = normalizeStatus(r[statusCol.key]);
+    if (statusKey) counts[statusKey] = (counts[statusKey] || 0) + 1;
     if (instKey) { const v = String(r[instKey]||'').trim(); if (v) parcSet.add(v.toLowerCase()); }
   });
 
-  setText('kpi-vigente-num',  counts['Vigente']          || 0);
-  setText('kpi-avencer-num',  counts['A vencer']         || 0);
-  setText('kpi-urgente-num',  counts['Vence em 30 dias'] || 0);
-  setText('kpi-expirado-num', counts['Expirado']         || 0);
+  setText('kpi-vigente-num',  counts['vigente']          || 0);
+  setText('kpi-avencer-num',  counts['a vencer']         || 0);
+  setText('kpi-urgente-num',  counts['vence em 30 dias'] || 0);
+  setText('kpi-expirado-num', counts['expirado']         || 0);
   setText('kpi-parceiros-num', parcSet.size);
 }
 
@@ -676,7 +676,7 @@ function applyFilters() {
     if (_kpiFilt) {
       const statusCol = _schema.find(c => c.key === 'status' || c.key === 'situacao');
       if (!statusCol) return false;
-      if (String(r[statusCol.key]||'').trim() !== _kpiFilt) return false;
+      if (normalizeStatus(r[statusCol.key]) !== normalizeStatus(_kpiFilt)) return false;
     }
     if (q) {
       if (!Object.values(r).join(' ').toLowerCase().includes(q)) return false;
@@ -762,9 +762,10 @@ function renderTable() {
       let cell, tdCls = '', tdTitle = '';
 
       if (kL === 'status' || kL === 'situacao') {
+        const statusKey = normalizeStatus(raw);
         cell = statusBadge(raw);
-        if (raw === 'Vence em 30 dias') rowCls = ' class="row-urgent"';
-        else if (raw === 'Expirado')    rowCls = ' class="row-expirado"';
+        if (statusKey === 'vence em 30 dias') rowCls = ' class="row-urgent"';
+        else if (statusKey === 'expirado')    rowCls = ' class="row-expirado"';
 
       } else if (kL === 'diasrestantes') {
         const n = parseInt(raw, 10);
@@ -942,14 +943,15 @@ document.addEventListener('keydown', e => {
 
 /* ─── KPI FILTER ──────────────────────────────────────────────────────────── */
 function filterByStatus(st) {
-  _kpiFilt = (_kpiFilt === st) ? '' : st;
+  _kpiFilt = (normalizeStatus(_kpiFilt) === normalizeStatus(st)) ? '' : st;
   applyFilters();
 }
 function updateKPIActive() {
   ['kpi-vigente','kpi-avencer','kpi-urgente','kpi-expirado'].forEach(id =>
     document.getElementById(id).classList.remove('active'));
-  const map = { 'Vigente':'kpi-vigente', 'A vencer':'kpi-avencer', 'Vence em 30 dias':'kpi-urgente', 'Expirado':'kpi-expirado' };
-  if (_kpiFilt && map[_kpiFilt]) document.getElementById(map[_kpiFilt]).classList.add('active');
+  const map = { 'vigente':'kpi-vigente', 'a vencer':'kpi-avencer', 'vence em 30 dias':'kpi-urgente', 'expirado':'kpi-expirado' };
+  const statusKey = normalizeStatus(_kpiFilt);
+  if (statusKey && map[statusKey]) document.getElementById(map[statusKey]).classList.add('active');
 }
 function clearFilters() {
   document.getElementById('search-input').value = '';
@@ -1008,20 +1010,36 @@ function findKey(candidates) {
     const col = _schema.find(s =>
       s.key === c ||
       s.key.replace(/_/g,'') === c.replace(/_/g,'') ||
-      s.label.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,'_') === c
+      s.label.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'_') === c
     );
     if (col) return col.key;
   }
   return null;
 }
 
+function normalizeStatus(value) {
+  const st = String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ');
+
+  if (!st) return '';
+  if (st.includes('vence em 30') || st.includes('30 dias')) return 'vence em 30 dias';
+  if (st.includes('a vencer') || st.includes('vencer')) return 'a vencer';
+  if (st.includes('expir') || st.includes('vencido')) return 'expirado';
+  if (st.includes('vigente')) return 'vigente';
+  return st;
+}
+
 function statusBadge(st) {
-  const sL = (st||'').toLowerCase();
+  const statusKey = normalizeStatus(st);
   let cls = 'badge-default';
-  if      (sL.includes('vigente') && !sL.includes('vence')) cls = 'badge-vigente';
-  else if (sL.includes('vence em 30'))   cls = 'badge-urgente';
-  else if (sL.includes('vencer'))        cls = 'badge-avencer';
-  else if (sL.includes('expir'))         cls = 'badge-expirado';
+  if      (statusKey === 'vigente')          cls = 'badge-vigente';
+  else if (statusKey === 'vence em 30 dias') cls = 'badge-urgente';
+  else if (statusKey === 'a vencer')         cls = 'badge-avencer';
+  else if (statusKey === 'expirado')         cls = 'badge-expirado';
   return `<span class="badge ${cls}">${esc(st)}</span>`;
 }
 
