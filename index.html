@@ -9,16 +9,16 @@
 <script src="js/config.js"></script>
 <style>
 :root {
-  --bg: #f5f7fa; --bg2: #fff; --border: #dde3ec; --text: #1a2233;
+  --bg: #f0f2f5; --bg2: #fff; --border: #dde3ec; --text: #1a2233;
   --text2: #5a6880; --accent: #095C18; --accent2: #0d7a22; --accent-light: #e8f5ec;
   --red: #c0392b; --red-light: #fce4ec; --yellow: #d4860a; --blue: #1565c0;
-  --radius: 8px; --shadow: 0 2px 8px rgba(0,0,0,.08);
+  --radius: 10px; --shadow: 0 1px 4px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.04);
   --row-alt: #f7faf8; --header-h: 56px;
 }
 [data-theme="dark"] {
-  --bg: #0f1117; --bg2: #1a1d27; --border: #2a2f3f; --text: #e8ecf4;
-  --text2: #8899bb; --accent: #1aad3a; --accent2: #23d44e; --accent-light: #0d2015;
-  --red-light: #2d0a0a; --row-alt: #1e222e;
+  --bg: #0c0e14; --bg2: #161922; --border: #252a38; --text: #e4e9f4;
+  --text2: #7a8aaa; --accent: #1aad3a; --accent2: #23d44e; --accent-light: #0a1f10;
+  --red-light: #2d0a0a; --row-alt: #1a1d28;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
@@ -29,7 +29,7 @@ a:hover { text-decoration: underline; }
 header {
   background: var(--accent); color: #fff; padding: 0 24px;
   display: flex; align-items: center; gap: 16px; height: 56px;
-  position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,.25);
+  position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 12px rgba(0,0,0,.28);
 }
 header h1 { font-size: 1rem; font-weight: 600; flex: 1; }
 header h1 small { font-weight: 400; opacity: .75; font-size: .8rem; display: block; }
@@ -53,44 +53,108 @@ header h1 small { font-weight: 400; opacity: .75; font-size: .8rem; display: blo
 #cache-note[hidden] { display: none; }
 
 /* MAIN */
-main { max-width: 1400px; margin: 0 auto; padding: 24px 16px; }
+main { max-width: 1400px; margin: 0 auto; padding: 20px 16px; }
 
-/* KPIS */
-.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
-.kpi { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; cursor: pointer; transition: box-shadow .2s; }
-.kpi:hover { box-shadow: var(--shadow); }
-.kpi.active { border-color: var(--accent); background: var(--accent-light); }
-.kpi-num { font-size: 2rem; font-weight: 700; color: var(--accent); line-height: 1; }
-.kpi-num.red { color: var(--red); }
-.kpi-num.yellow { color: var(--yellow); }
-.kpi-num.blue { color: var(--blue); }
-.kpi-label { font-size: .8rem; color: var(--text2); margin-top: 4px; }
-.kpi-ico { font-size: 1.1rem; display: block; margin-bottom: 2px; line-height: 1; }
+/* SECTION HEADER */
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; margin-top: 4px; }
+.section-title { font-size: .69rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text2); }
+
+/* SUMMARY STRIP */
+.summary-strip {
+  display: flex; align-items: stretch;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 0;
+  margin-bottom: 20px; box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.summary-item {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; flex: 1; padding: 16px 12px;
+}
+.summary-num { font-size: 2.2rem; font-weight: 800; color: var(--accent); line-height: 1; }
+.summary-label { font-size: .69rem; color: var(--text2); text-transform: uppercase; letter-spacing: .07em; margin-top: 5px; }
+.summary-div { width: 1px; background: var(--border); align-self: stretch; }
+.summary-update { font-size: .8rem; color: var(--text2); flex: 2; }
+
+/* KPI SECTION — 3 grupos */
+.kpi-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 14px; margin-bottom: 24px; }
+.kpi-group { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 14px 12px; box-shadow: var(--shadow); }
+.kpi-group-label {
+  font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--text2); padding-bottom: 10px; margin-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.kpi-group-cards { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* KPI CARD */
+.kpi {
+  flex: 1; min-width: 82px; padding: 10px 12px 8px;
+  border-radius: 7px; cursor: pointer;
+  border-left: 3px solid var(--border);
+  transition: background .15s, border-color .15s, box-shadow .15s;
+  background: var(--bg);
+}
+.kpi:hover { background: var(--accent-light); border-left-color: var(--accent); box-shadow: 0 2px 8px rgba(0,0,0,.07); }
+.kpi.active { background: var(--accent-light); border-left-color: var(--accent); }
+.kpi[data-color="green"]  { border-left-color: #1aad3a; }
+.kpi[data-color="yellow"] { border-left-color: #d4860a; }
+.kpi[data-color="red"]    { border-left-color: #c0392b; }
+.kpi[data-color="teal"]   { border-left-color: #00897b; }
+.kpi[data-color="blue"]   { border-left-color: #1565c0; }
+.kpi[data-color="purple"] { border-left-color: #7b1fa2; }
+.kpi[data-color="orange"] { border-left-color: #ef6c00; }
+.kpi[data-color="gray"]   { border-left-color: #78909c; }
+.kpi-num { font-size: 1.6rem; font-weight: 800; line-height: 1.15; color: var(--text); }
+.kpi-label { font-size: .69rem; color: var(--text2); margin-top: 2px; line-height: 1.3; }
 
 /* CHARTS */
 .charts-section { margin-bottom: 24px; }
-.charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
-.chart-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
-.chart-title { font-size: .78rem; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 12px; }
-.chart-wrap { position: relative; height: 180px; }
+.charts-grid {
+  display: grid;
+  grid-template-columns: 2fr 3fr;
+  gap: 16px;
+}
+#chart-card-vencimentos { grid-column: 1 / -1; }
+#chart-card-inst        { grid-column: 1 / -1; }
+#chart-card-ano         { grid-column: 1 / -1; }
+.chart-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow);
+}
+.chart-title {
+  font-size: .69rem; font-weight: 700; color: var(--text2);
+  text-transform: uppercase; letter-spacing: .07em;
+  margin-bottom: 14px; display: flex; align-items: center; gap: 7px;
+}
+.chart-title::before {
+  content: ''; display: inline-block; width: 3px; height: 13px;
+  background: var(--accent); border-radius: 2px; flex-shrink: 0;
+}
+.chart-wrap { position: relative; height: 190px; }
+#chart-card-vencimentos .chart-wrap { height: 175px; }
+#chart-card-inst .chart-wrap        { height: 230px; }
 .chart-fallback {
   height: 100%; display: flex; align-items: center; justify-content: center; text-align: center;
   border: 1px dashed var(--border); border-radius: 6px; color: var(--text2);
   background: var(--row-alt); padding: 16px; font-size: .85rem; line-height: 1.4;
 }
 
-/* TOOLBAR */
-.toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
-.toolbar input[type="search"] {
-  flex: 1; min-width: 200px; padding: 8px 12px; border: 1px solid var(--border);
-  border-radius: var(--radius); background: var(--bg2); color: var(--text); font-size: .9rem; outline: none;
+/* TOOLBAR — 2 linhas */
+.toolbar { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.toolbar-search { width: 100%; }
+.toolbar-search input[type="search"] {
+  width: 100%; padding: 10px 16px; border: 1px solid var(--border);
+  border-radius: var(--radius); background: var(--bg2); color: var(--text);
+  font-size: .95rem; outline: none; transition: border-color .2s;
 }
-.toolbar input[type="search"]:focus { border-color: var(--accent); }
-.toolbar select {
-  padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius);
+.toolbar-search input[type="search"]:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(9,92,24,.1); }
+.toolbar-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.toolbar-row select {
+  padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius);
   background: var(--bg2); color: var(--text); font-size: .85rem; cursor: pointer;
 }
-.btn { padding: 8px 14px; border-radius: var(--radius); border: none; cursor: pointer; font-size: .85rem; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; transition: background .2s; }
+.toolbar-sep { flex: 1; min-width: 4px; }
+.btn { padding: 7px 14px; border-radius: var(--radius); border: none; cursor: pointer; font-size: .83rem; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; transition: background .2s; }
 .btn-outline { background: var(--bg2); border: 1px solid var(--border); color: var(--text); }
 .btn-outline:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
 
@@ -98,9 +162,9 @@ main { max-width: 1400px; margin: 0 auto; padding: 24px 16px; }
 .table-wrap { overflow-x: auto; border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); }
 table { width: 100%; border-collapse: collapse; background: var(--bg2); font-size: .855rem; }
 thead th {
-  background: var(--accent); color: #fff; padding: 12px 14px; text-align: left;
-  white-space: nowrap; font-weight: 600; font-size: .8rem; text-transform: uppercase;
-  letter-spacing: .03em; position: sticky; top: var(--header-h); cursor: pointer; user-select: none;
+  background: var(--accent); color: #fff; padding: 11px 14px; text-align: left;
+  white-space: nowrap; font-weight: 600; font-size: .78rem; text-transform: uppercase;
+  letter-spacing: .04em; position: sticky; top: var(--header-h); cursor: pointer; user-select: none;
 }
 thead th:hover { background: var(--accent2); }
 thead th .sort-arrow { opacity: .55; font-size: .8em; margin-left: 3px; }
@@ -114,16 +178,12 @@ tbody tr:hover { background: var(--accent-light); cursor: pointer; }
 }
 tbody tr.row-urgent { animation: urgentPulse 2.5s ease-in-out infinite; }
 tbody tr.row-expirado { box-shadow: inset 3px 0 0 var(--text2); }
-tbody td { padding: 12px 14px; vertical-align: middle; }
+tbody td { padding: 11px 14px; vertical-align: middle; }
 td.num-cell { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 td.num-id   { font-weight: 600; font-family: ui-monospace, monospace; white-space: nowrap; color: var(--text); }
 td.dias-cell { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
-td.dias-urgent { color: var(--red); }
-td.dias-warn   { color: var(--yellow); }
-td.dias-expirado { color: var(--text2); }
 .cell-link { color: var(--accent2); font-weight: 500; }
-.cell-empty { color: var(--text2); }
-.badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: .75rem; font-weight: 600; white-space: nowrap; }
+.badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: .74rem; font-weight: 600; white-space: nowrap; }
 .badge-vigente   { background: #e8f5ec; color: #1b6b2a; }
 .badge-avencer   { background: #fff3e0; color: #a0580a; }
 .badge-urgente   { background: #fce4ec; color: #b71c1c; }
@@ -143,20 +203,20 @@ td.dias-expirado { color: var(--text2); }
 [data-theme="dark"] .badge-suspenso  { background: #3a2700; color: #ffb74d; }
 [data-theme="dark"] .badge-encerrado { background: #1c232e; color: #90a4ae; border-color: #37474f; }
 [data-theme="dark"] .badge-prazo     { background: #00282a; color: #4dd0e1; }
-.empty-state    { text-align: center; padding: 60px 20px; color: var(--text2); }
+.empty-state { text-align: center; padding: 60px 20px; color: var(--text2); }
 
 /* ALERTS */
 .alert-bar {
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-  background: var(--red-light); border: 1px solid var(--red); border-left: 4px solid var(--red);
-  border-radius: var(--radius); padding: 12px 16px; margin-bottom: 20px; cursor: pointer;
-  transition: box-shadow .2s; font-size: .9rem;
+  background: var(--red-light); border-left: 4px solid var(--red);
+  border-radius: var(--radius); padding: 12px 16px; margin-bottom: 18px; cursor: pointer;
+  transition: box-shadow .2s; font-size: .88rem;
 }
 .alert-bar:hover { box-shadow: var(--shadow); }
 .alert-bar[hidden] { display: none; }
-.alert-bar .alert-ico { font-size: 1.3rem; }
+.alert-bar .alert-ico { font-size: 1.2rem; flex-shrink: 0; }
 .alert-bar strong { color: var(--red); }
-.alert-bar .alert-cta { margin-left: auto; font-size: .82rem; font-weight: 600; color: var(--red); white-space: nowrap; }
+.alert-bar .alert-cta { margin-left: auto; font-size: .8rem; font-weight: 600; color: var(--red); white-space: nowrap; }
 
 /* SKELETON */
 @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
@@ -189,36 +249,32 @@ td.dias-expirado { color: var(--text2); }
 .pagination button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 .pagination button:disabled { opacity: .4; cursor: default; }
 
-@media (max-width: 600px) { header h1 small { display: none; } .kpi-num { font-size: 1.5rem; } }
-
-/* MOBILE CARD VIEW */
+/* MOBILE */
 @media (max-width: 640px) {
   .table-wrap { border: none; box-shadow: none; overflow: visible; }
   table, thead, tbody, th, td, tr { display: block; }
   thead tr { position: absolute; top: -9999px; left: -9999px; }
-  tbody tr {
-    border: 1px solid var(--border); border-radius: var(--radius);
-    margin-bottom: 12px; box-shadow: var(--shadow); overflow: hidden;
-  }
+  tbody tr { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 12px; box-shadow: var(--shadow); overflow: hidden; }
   tbody tr:nth-child(even) { background: var(--bg2); }
-  tbody td {
-    display: flex; justify-content: space-between; align-items: flex-start;
-    padding: 9px 12px; border-bottom: 1px solid var(--border); gap: 8px;
-    background: inherit;
-  }
+  tbody td { display: flex; justify-content: space-between; align-items: flex-start; padding: 9px 12px; border-bottom: 1px solid var(--border); gap: 8px; background: inherit; }
   tbody td:last-child { border-bottom: none; }
-  tbody td[data-label]::before {
-    content: attr(data-label); font-size: .72rem; font-weight: 700;
-    color: var(--text2); text-transform: uppercase; letter-spacing: .05em;
-    flex-shrink: 0; min-width: 100px; padding-top: 1px;
-  }
+  tbody td[data-label]::before { content: attr(data-label); font-size: .7rem; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .05em; flex-shrink: 0; min-width: 100px; padding-top: 1px; }
   td.num-cell, td.dias-cell { text-align: left; }
   .pagination { flex-direction: column; gap: 4px; }
+  .kpi-section { grid-template-columns: 1fr; }
+  .charts-grid { grid-template-columns: 1fr; }
+  #chart-card-vencimentos, #chart-card-inst, #chart-card-ano { grid-column: 1; }
+  .summary-strip { flex-wrap: wrap; }
+  .summary-div { display: none; }
 }
 @media (max-width: 480px) {
-  .toolbar { flex-direction: column; align-items: stretch; }
-  .toolbar input[type="search"] { min-width: unset; }
+  .toolbar-row { flex-direction: column; align-items: stretch; }
   .btn { justify-content: center; }
+  .toolbar-sep { display: none; }
+}
+@media (max-width: 700px) {
+  .charts-grid { grid-template-columns: 1fr; }
+  #chart-card-vencimentos, #chart-card-inst, #chart-card-ano { grid-column: 1; }
 }
 
 /* ACCESSIBILITY */
@@ -229,7 +285,7 @@ td.cell-trunc    { max-width: 220px; overflow: hidden; text-overflow: ellipsis; 
 td.cell-trunc-sm { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* DIAS RESTANTES PILL */
-.dias-pill           { display:inline-block; padding:3px 10px; border-radius:12px; font-size:.76rem; font-weight:700; letter-spacing:.02em; }
+.dias-pill           { display:inline-block; padding:3px 10px; border-radius:12px; font-size:.74rem; font-weight:700; letter-spacing:.02em; }
 .dias-pill.pill-ok   { background:#e8f5ec; color:#1b6b2a; }
 .dias-pill.pill-warn { background:#fff3e0; color:#a0580a; }
 .dias-pill.pill-urg  { background:#fce4ec; color:#b71c1c; }
@@ -246,14 +302,8 @@ td.cell-trunc-sm { max-width: 150px; overflow: hidden; text-overflow: ellipsis; 
   background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius);
   box-shadow:0 4px 24px rgba(0,0,0,.18); padding:8px 0;
 }
-.col-toggle-panel .ctp-title {
-  font-size:.69rem; font-weight:700; color:var(--text2); text-transform:uppercase;
-  letter-spacing:.07em; padding:0 14px 8px;
-}
-.col-toggle-panel label {
-  display:flex; align-items:center; gap:9px; padding:5px 14px;
-  cursor:pointer; font-size:.84rem; user-select:none;
-}
+.col-toggle-panel .ctp-title { font-size:.69rem; font-weight:700; color:var(--text2); text-transform:uppercase; letter-spacing:.07em; padding:0 14px 8px; }
+.col-toggle-panel label { display:flex; align-items:center; gap:9px; padding:5px 14px; cursor:pointer; font-size:.84rem; user-select:none; }
 .col-toggle-panel label:hover { background:var(--accent-light); color:var(--accent); }
 .col-toggle-panel input[type=checkbox] { accent-color:var(--accent); width:14px; height:14px; flex-shrink:0; }
 
@@ -263,7 +313,8 @@ td.cell-trunc-sm { max-width: 150px; overflow: hidden; text-overflow: ellipsis; 
   @page { margin: 14mm; size: landscape; }
   body { background: #fff; color: #000; }
   header, #loading-bar, #error-banner, #toast, .toolbar, .charts-section,
-  .pagination, #modal-overlay, .alert-bar, .kpi { display: none !important; }
+  .pagination, #modal-overlay, .alert-bar, .kpi-section, .summary-strip,
+  .section-header { display: none !important; }
   main { max-width: none; padding: 0; }
   #print-header { display: block; margin-bottom: 12px; border-bottom: 2px solid #095C18; padding-bottom: 8px; }
   #print-header h1 { font-size: 16px; color: #095C18; }
@@ -271,8 +322,7 @@ td.cell-trunc-sm { max-width: 150px; overflow: hidden; text-overflow: ellipsis; 
   .table-wrap { overflow: visible; box-shadow: none; border: none; border-radius: 0; }
   table { font-size: 10px; }
   thead { display: table-header-group; }
-  thead th { position: static; background: #095C18 !important; color: #fff !important;
-    -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 6px 8px; }
+  thead th { position: static; background: #095C18 !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 6px 8px; }
   tbody tr { border-bottom: 1px solid #ccc; page-break-inside: avoid; }
   tbody tr:nth-child(even) { background: #f2f2f2 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   tbody td { padding: 5px 8px; }
@@ -328,111 +378,132 @@ td.cell-trunc-sm { max-width: 150px; overflow: hidden; text-overflow: ellipsis; 
     <span class="alert-cta">Ver acordos →</span>
   </div>
 
-  <div class="kpi-grid">
-    <div class="kpi" id="kpi-vigente" role="button" tabindex="0" aria-label="Filtrar acordos vigentes" onclick="filterByStatus('Vigente')">
-      <div class="kpi-num" id="kpi-vigente-num">–</div>
-      <span class="kpi-ico" aria-hidden="true">🟢</span>
-      <div class="kpi-label">Vigentes</div>
+  <!-- SUMMARY STRIP -->
+  <div class="summary-strip" id="summary-strip" style="display:none">
+    <div class="summary-item">
+      <span class="summary-num" id="kpi-total-num">–</span>
+      <span class="summary-label">Total de ACTs</span>
     </div>
-    <div class="kpi" id="kpi-avencer" role="button" tabindex="0" aria-label="Filtrar acordos a vencer em 90 dias" onclick="filterByStatus('A vencer')">
-      <div class="kpi-num yellow" id="kpi-avencer-num">–</div>
-      <span class="kpi-ico" aria-hidden="true">🟡</span>
-      <div class="kpi-label">A vencer (90 dias)</div>
+    <div class="summary-div"></div>
+    <div class="summary-item">
+      <span class="summary-num" id="kpi-parceiros-num">–</span>
+      <span class="summary-label">Instituições</span>
     </div>
-    <div class="kpi" id="kpi-urgente" role="button" tabindex="0" aria-label="Filtrar acordos que vencem em 30 dias" onclick="filterByStatus('Vence em 30 dias')">
-      <div class="kpi-num red" id="kpi-urgente-num">–</div>
-      <span class="kpi-ico" aria-hidden="true">🔴</span>
-      <div class="kpi-label">Urgente (30 dias)</div>
-    </div>
-    <div class="kpi" id="kpi-expirado" role="button" tabindex="0" aria-label="Filtrar acordos expirados" onclick="filterByStatus('Expirado')">
-      <div class="kpi-num" id="kpi-expirado-num">–</div>
-      <span class="kpi-ico" aria-hidden="true">⚫</span>
-      <div class="kpi-label">Expirados</div>
-    </div>
-    <div class="kpi" id="kpi-total" style="cursor:default">
-      <div class="kpi-num" id="kpi-total-num">–</div>
-      <span class="kpi-ico" aria-hidden="true">📋</span>
-      <div class="kpi-label">Total ACTs</div>
-    </div>
-    <div class="kpi" id="kpi-analise" role="button" tabindex="0" aria-label="Filtrar Em Análise" onclick="filterByStatus('Em Análise')">
-      <div class="kpi-num blue" id="kpi-analise-num">–</div>
-      <span class="kpi-ico" aria-hidden="true">🔵</span>
-      <div class="kpi-label">Em Análise</div>
-    </div>
-    <div class="kpi" id="kpi-aguardando" role="button" tabindex="0" aria-label="Filtrar Aguardando Assinatura" onclick="filterByStatus('Aguardando Assinatura')">
-      <div class="kpi-num" style="color:#7b1fa2" id="kpi-aguardando-num">–</div>
-      <span class="kpi-ico" aria-hidden="true">🟣</span>
-      <div class="kpi-label">Aguardando Assin.</div>
-    </div>
-    <div class="kpi" id="kpi-suspenso" role="button" tabindex="0" aria-label="Filtrar Suspensos" onclick="filterByStatus('Suspenso')">
-      <div class="kpi-num yellow" id="kpi-suspenso-num">–</div>
-      <span class="kpi-ico" aria-hidden="true">🟠</span>
-      <div class="kpi-label">Suspensos</div>
-    </div>
-    <div class="kpi" id="kpi-encerrado" role="button" tabindex="0" aria-label="Filtrar Encerrados" onclick="filterByStatus('Encerrado')">
-      <div class="kpi-num" id="kpi-encerrado-num">–</div>
-      <span class="kpi-ico" aria-hidden="true">🔘</span>
-      <div class="kpi-label">Encerrados</div>
-    </div>
-    <div class="kpi" id="kpi-prazo" role="button" tabindex="0" aria-label="Filtrar Prazo Indeterminado" onclick="filterByStatus('Prazo Indeterminado')">
-      <div class="kpi-num" style="color:#00695c" id="kpi-prazo-num">–</div>
-      <span class="kpi-ico" aria-hidden="true">♾️</span>
-      <div class="kpi-label">Prazo Indet.</div>
-    </div>
-    <div class="kpi" style="cursor:default">
-      <div class="kpi-num blue" id="kpi-parceiros-num">–</div>
-      <span class="kpi-ico" aria-hidden="true">🤝</span>
-      <div class="kpi-label">Parceiros únicos</div>
+    <div class="summary-div"></div>
+    <div class="summary-item summary-update">
+      <span id="summary-update-text" style="font-size:.8rem;color:var(--text2)">Carregando…</span>
     </div>
   </div>
 
+  <!-- KPI SECTION -->
+  <div class="section-header">
+    <span class="section-title">Indicadores</span>
+  </div>
+  <div class="kpi-section" id="kpi-section" style="display:none">
+    <!-- Grupo: Ativos -->
+    <div class="kpi-group">
+      <div class="kpi-group-label">Ativos</div>
+      <div class="kpi-group-cards">
+        <div class="kpi" id="kpi-vigente" data-color="green" role="button" tabindex="0" aria-label="Filtrar acordos vigentes" onclick="filterByStatus('Vigente')">
+          <div class="kpi-num" id="kpi-vigente-num">–</div>
+          <div class="kpi-label">Vigentes</div>
+        </div>
+        <div class="kpi" id="kpi-avencer" data-color="yellow" role="button" tabindex="0" aria-label="Filtrar acordos a vencer em 90 dias" onclick="filterByStatus('A vencer')">
+          <div class="kpi-num" id="kpi-avencer-num">–</div>
+          <div class="kpi-label">A vencer (90d)</div>
+        </div>
+        <div class="kpi" id="kpi-urgente" data-color="red" role="button" tabindex="0" aria-label="Filtrar acordos que vencem em 30 dias" onclick="filterByStatus('Vence em 30 dias')">
+          <div class="kpi-num" id="kpi-urgente-num">–</div>
+          <div class="kpi-label">Urgente (30d)</div>
+        </div>
+        <div class="kpi" id="kpi-prazo" data-color="teal" role="button" tabindex="0" aria-label="Filtrar Prazo Indeterminado" onclick="filterByStatus('Prazo Indeterminado')">
+          <div class="kpi-num" id="kpi-prazo-num">–</div>
+          <div class="kpi-label">Prazo Indet.</div>
+        </div>
+      </div>
+    </div>
+    <!-- Grupo: Em Processo -->
+    <div class="kpi-group">
+      <div class="kpi-group-label">Em Processo</div>
+      <div class="kpi-group-cards">
+        <div class="kpi" id="kpi-analise" data-color="blue" role="button" tabindex="0" aria-label="Filtrar Em Análise" onclick="filterByStatus('Em Análise')">
+          <div class="kpi-num" id="kpi-analise-num">–</div>
+          <div class="kpi-label">Em Análise</div>
+        </div>
+        <div class="kpi" id="kpi-aguardando" data-color="purple" role="button" tabindex="0" aria-label="Filtrar Aguardando Assinatura" onclick="filterByStatus('Aguardando Assinatura')">
+          <div class="kpi-num" id="kpi-aguardando-num">–</div>
+          <div class="kpi-label">Aguardando Assin.</div>
+        </div>
+        <div class="kpi" id="kpi-suspenso" data-color="orange" role="button" tabindex="0" aria-label="Filtrar Suspensos" onclick="filterByStatus('Suspenso')">
+          <div class="kpi-num" id="kpi-suspenso-num">–</div>
+          <div class="kpi-label">Suspensos</div>
+        </div>
+      </div>
+    </div>
+    <!-- Grupo: Finalizados -->
+    <div class="kpi-group">
+      <div class="kpi-group-label">Finalizados</div>
+      <div class="kpi-group-cards">
+        <div class="kpi" id="kpi-expirado" data-color="gray" role="button" tabindex="0" aria-label="Filtrar acordos expirados" onclick="filterByStatus('Expirado')">
+          <div class="kpi-num" id="kpi-expirado-num">–</div>
+          <div class="kpi-label">Expirados</div>
+        </div>
+        <div class="kpi" id="kpi-encerrado" data-color="gray" role="button" tabindex="0" aria-label="Filtrar Encerrados" onclick="filterByStatus('Encerrado')">
+          <div class="kpi-num" id="kpi-encerrado-num">–</div>
+          <div class="kpi-label">Encerrados</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHARTS -->
   <div class="charts-section" id="charts-section" style="display:none">
+    <div class="section-header">
+      <span class="section-title">Análise Visual</span>
+    </div>
     <div class="charts-grid">
-      <div class="chart-card" id="chart-card-status" style="display:none">
-        <div class="chart-title">Situação</div>
-        <div class="chart-wrap"><canvas id="chart-status"></canvas></div>
-      </div>
-      <div class="chart-card" id="chart-card-tipo" style="display:none">
-        <div class="chart-title">Por Tipo</div>
-        <div class="chart-wrap"><canvas id="chart-tipo"></canvas></div>
-      </div>
-      <div class="chart-card" id="chart-card-ano" style="display:none">
-        <div class="chart-title">Vencimentos por Ano</div>
-        <div class="chart-wrap"><canvas id="chart-ano"></canvas></div>
-      </div>
       <div class="chart-card" id="chart-card-vencimentos" style="display:none">
         <div class="chart-title">Vencimentos — próximos 12 meses</div>
         <div class="chart-wrap"><canvas id="chart-vencimentos"></canvas></div>
+      </div>
+      <div class="chart-card" id="chart-card-status" style="display:none">
+        <div class="chart-title">Situação Atual</div>
+        <div class="chart-wrap"><canvas id="chart-status"></canvas></div>
+      </div>
+      <div class="chart-card" id="chart-card-tipo" style="display:none">
+        <div class="chart-title">Por Tipo de Acordo</div>
+        <div class="chart-wrap"><canvas id="chart-tipo"></canvas></div>
       </div>
       <div class="chart-card" id="chart-card-inst" style="display:none">
         <div class="chart-title">Por Instituição (top 8)</div>
         <div class="chart-wrap"><canvas id="chart-inst"></canvas></div>
       </div>
-      <div class="chart-card" id="chart-card-area" style="display:none">
-        <div class="chart-title">Por Área</div>
-        <div class="chart-wrap"><canvas id="chart-area"></canvas></div>
-      </div>
-      <div class="chart-card" id="chart-card-esfera" style="display:none">
-        <div class="chart-title">Por Esfera</div>
-        <div class="chart-wrap"><canvas id="chart-esfera"></canvas></div>
+      <div class="chart-card" id="chart-card-ano" style="display:none">
+        <div class="chart-title">Vencimentos por Ano</div>
+        <div class="chart-wrap"><canvas id="chart-ano"></canvas></div>
       </div>
     </div>
   </div>
 
+  <!-- TOOLBAR -->
   <div class="toolbar">
-    <label for="search-input" class="visually-hidden">Buscar acordos</label>
-    <input type="search" id="search-input" placeholder="🔍 Buscar em qualquer campo…" oninput="onSearchInput()" aria-label="Buscar acordos">
-    <select id="filter-col1" onchange="applyFilters()"><option value="">Todos os tipos</option></select>
-    <select id="filter-col2" onchange="applyFilters()"><option value="">Todos os status</option></select>
-    <select id="filter-col3" onchange="applyFilters()"><option value="">Todas as áreas</option></select>
-    <button class="btn btn-outline" onclick="exportCSV()">⬇ CSV</button>
-    <button class="btn btn-outline" onclick="exportXLSX()">⬇ XLSX</button>
-    <button class="btn btn-outline" onclick="copyLink()" title="Copiar link com filtros ativos">🔗 Link</button>
-    <button class="btn btn-outline" onclick="printReport()">🖨 PDF</button>
-    <button class="btn btn-outline" onclick="clearFilters()">✕ Limpar</button>
-    <div class="col-toggle-wrap">
-      <button class="btn btn-outline" id="btn-col-toggle" onclick="toggleColPanel(event)" title="Mostrar/ocultar colunas" aria-expanded="false">⚙ Colunas</button>
-      <div class="col-toggle-panel" id="col-toggle-panel" hidden></div>
+    <div class="toolbar-search">
+      <label for="search-input" class="visually-hidden">Buscar acordos</label>
+      <input type="search" id="search-input" placeholder="🔍 Buscar em qualquer campo…" oninput="onSearchInput()" aria-label="Buscar acordos">
+    </div>
+    <div class="toolbar-row">
+      <select id="filter-col1" onchange="applyFilters()"><option value="">Todos os tipos</option></select>
+      <select id="filter-col2" onchange="applyFilters()"><option value="">Todos os status</option></select>
+      <div class="toolbar-sep"></div>
+      <button class="btn btn-outline" onclick="exportCSV()">⬇ CSV</button>
+      <button class="btn btn-outline" onclick="exportXLSX()">⬇ XLSX</button>
+      <button class="btn btn-outline" onclick="copyLink()" title="Copiar link com filtros ativos">🔗 Link</button>
+      <button class="btn btn-outline" onclick="printReport()">🖨 PDF</button>
+      <button class="btn btn-outline" onclick="clearFilters()">✕ Limpar</button>
+      <div class="col-toggle-wrap">
+        <button class="btn btn-outline" id="btn-col-toggle" onclick="toggleColPanel(event)" title="Mostrar/ocultar colunas" aria-expanded="false">⚙ Colunas</button>
+        <div class="col-toggle-panel" id="col-toggle-panel" hidden></div>
+      </div>
     </div>
   </div>
 
@@ -464,9 +535,12 @@ let GAS_URL = 'https://script.google.com/macros/s/SEU_SCRIPT_ID/exec';
 
 const POLL_MS    = 60_000;
 const CACHE_KEY  = 'sema_data_v2';
-const CACHE_TTL  = 5 * 60 * 1000;  // 5 min
+const CACHE_TTL  = 5 * 60 * 1000;
 const RETRY_DELAYS = [5000, 15000, 30000, 60000];
 const CHART_COLORS = ['#1FAD35','#F5C71A','#E05B3A','#3B82F6','#8B5CF6','#EC4899','#14B8A6','#F97316'];
+
+// Colunas âncora — registro válido somente se ao menos uma tiver conteúdo
+const ANCHOR_KEYS = ['tipo','num','objeto','inst','termino','inicio','link','sei','doe','dou'];
 
 /* ─── ESTADO ──────────────────────────────────────────────────────────────── */
 let _schema   = [];
@@ -505,7 +579,6 @@ function init() {
     return;
   }
 
-  // Render cache immediately for instant page load
   const cached = loadCache();
   if (cached) {
     _schema = cached.schema;
@@ -579,16 +652,10 @@ async function syncWithRetry() {
     document.getElementById('error-banner').hidden = false;
     const _urlHint = GAS_URL.includes('SEU_SCRIPT_ID') ? '' : ' [GAS: …' + GAS_URL.slice(-20) + ']';
     document.getElementById('error-detail').textContent = (e.message || '') + _urlHint;
-    const _setupKeywords = [
-      'não encontrada', 'not found',
-      'HTTP 403', 'HTTP 404', 'HTTP 302',
-      'Failed to fetch', 'NetworkError',
-      'HTML', 'inválida', 'JSON',
-    ];
+    const _setupKeywords = ['não encontrada','not found','HTTP 403','HTTP 404','HTTP 302','Failed to fetch','NetworkError','HTML','inválida','JSON'];
     const _isSetupError = _setupKeywords.some(s => (e.message || '').includes(s));
     const _guide = document.getElementById('setup-guide');
     if (_guide) { _guide.hidden = !_isSetupError; if (!_guide.hidden) _guide.open = true; }
-    // Show cached data if available and schema not yet loaded
     if (!_schema.length) {
       const cached = loadCache();
       if (cached) {
@@ -629,16 +696,27 @@ async function syncAll() {
     else if (Array.isArray(schemaRes.publicColumns))
       _schema = schemaRes.publicColumns.map(k => ({ key: k, label: k }));
 
-    if (Array.isArray(listRes.records)) _records = listRes.records.map(computeStatusClientSide);
+    if (Array.isArray(listRes.records)) {
+      // Defense-in-depth: filtrar linhas fantasma mesmo que o GAS já tenha filtrado
+      _records = listRes.records
+        .filter(r => ANCHOR_KEYS.some(k => r[k] && String(r[k]).trim()))
+        .map(computeStatusClientSide);
+    }
 
     _loading = false;
     saveCache();
     buildFilterDefs();
     renderAll();
     setStatus('ok');
-    if (_records.length) document.title = `SEMA/AC — ACT (${_records.length} acordos)`;
-    document.getElementById('last-update').textContent =
-      'Atualizado: ' + new Date().toLocaleTimeString('pt-BR');
+    if (_records.length) {
+      document.title = `SEMA/AC — ACT (${_records.length} acordos)`;
+    } else {
+      document.title = 'SEMA/AC — ACT';
+    }
+    const now = new Date().toLocaleTimeString('pt-BR');
+    document.getElementById('last-update').textContent = 'Atualizado: ' + now;
+    const su = document.getElementById('summary-update-text');
+    if (su) su.textContent = 'Atualizado: ' + now;
   } finally {
     loadingBar(100);
     setTimeout(() => loadingBar(0), 400);
@@ -646,8 +724,6 @@ async function syncAll() {
 }
 
 /* ─── STATUS CLIENT-SIDE ─────────────────────────────────────────────────── */
-
-// Aceita yyyy-MM-dd (GAS), dd/mm/yyyy e dd-mm-yyyy (entrada manual no Sheets)
 function parseDateFlexible(s) {
   if (!s) return null;
   const br = String(s).match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
@@ -725,16 +801,15 @@ function showCacheNote(msg) {
 function buildFilterDefs() {
   const typeKey   = findKey(['tipo', 'type', 'instrumento']);
   const statusKey = findKey(['status', 'situacao', 'situação']);
-  const areaKey   = findKey(['area', 'área', 'tema', 'eixo']);
 
   _filterDefs = [
     { id: 'filter-col1', key: typeKey,   placeholder: 'Todos os tipos'  },
     { id: 'filter-col2', key: statusKey, placeholder: 'Todos os status' },
-    { id: 'filter-col3', key: areaKey,   placeholder: 'Todas as áreas'  },
   ];
 
   _filterDefs.forEach(({ id, key, placeholder }) => {
     const sel = document.getElementById(id);
+    if (!sel) return;
     sel.innerHTML = `<option value="">${placeholder}</option>`;
     if (!key) { sel.style.display = 'none'; return; }
     sel.style.display = '';
@@ -752,7 +827,7 @@ function renderAll() {
   renderCharts();
 }
 
-/* ─── ALERTAS DE VENCIMENTO ───────────────────────────────────────────────── */
+/* ─── ALERTAS ─────────────────────────────────────────────────────────────── */
 function renderAlerts() {
   const bar = document.getElementById('alert-bar');
   if (!bar) return;
@@ -762,9 +837,9 @@ function renderAlerts() {
   let urgentes = 0, expirados = 0, analise = 0, aguardando = 0;
   _records.forEach(r => {
     const statusKey = normalizeStatus(r[statusCol.key]);
-    if (statusKey === 'vence em 30 dias')      urgentes++;
-    else if (statusKey === 'expirado')         expirados++;
-    else if (statusKey === 'em análise')       analise++;
+    if (statusKey === 'vence em 30 dias')           urgentes++;
+    else if (statusKey === 'expirado')              expirados++;
+    else if (statusKey === 'em análise')            analise++;
     else if (statusKey === 'aguardando assinatura') aguardando++;
   });
 
@@ -794,11 +869,19 @@ function onSearchInput() {
   _searchT = setTimeout(applyFilters, 250);
 }
 
+/* ─── KPIs ────────────────────────────────────────────────────────────────── */
 function renderKPIs() {
-  const statusCol = _schema.find(c => c.key === 'status' || c.key === 'situacao');
-  const kpiGrid   = document.querySelector('.kpi-grid');
-  if (!statusCol) { if (kpiGrid) kpiGrid.style.display = 'none'; return; }
-  if (kpiGrid) kpiGrid.style.display = '';
+  const statusCol  = _schema.find(c => c.key === 'status' || c.key === 'situacao');
+  const kpiSection = document.getElementById('kpi-section');
+  const strip      = document.getElementById('summary-strip');
+
+  if (!statusCol) {
+    if (kpiSection) kpiSection.style.display = 'none';
+    if (strip)      strip.style.display = 'none';
+    return;
+  }
+  if (kpiSection) kpiSection.style.display = '';
+  if (strip)      strip.style.display = '';
 
   const instKey = findKey(['inst', 'instituicao', 'instituição', 'parceiro', 'entidade']);
   const counts  = {};
@@ -814,15 +897,16 @@ function renderKPIs() {
   setText('kpi-avencer-num',    counts['a vencer']              || 0);
   setText('kpi-urgente-num',    counts['vence em 30 dias']      || 0);
   setText('kpi-expirado-num',   counts['expirado']              || 0);
-  setText('kpi-total-num',      _records.length);
   setText('kpi-analise-num',    counts['em análise']            || 0);
   setText('kpi-aguardando-num', counts['aguardando assinatura'] || 0);
   setText('kpi-suspenso-num',   counts['suspenso']              || 0);
   setText('kpi-encerrado-num',  counts['encerrado']             || 0);
   setText('kpi-prazo-num',      counts['prazo indeterminado']   || 0);
+  setText('kpi-total-num',      _records.length);
   setText('kpi-parceiros-num',  parcSet.size);
 }
 
+/* ─── FILTROS ─────────────────────────────────────────────────────────────── */
 function applyFilters() {
   const q = document.getElementById('search-input').value.toLowerCase().trim();
 
@@ -881,7 +965,6 @@ function renderTable() {
     return;
   }
 
-  // Colunas visíveis (respeita toggle de colunas)
   const visSchema = _schema.filter(c => !_hiddenCols.has(c.key));
 
   thead.innerHTML = visSchema.map(c => {
@@ -902,16 +985,21 @@ function renderTable() {
   }
 
   if (!rows.length) {
+    const isEmpty = _records.length === 0;
+    const ico = isEmpty ? '📋' : '📭';
+    const msg = isEmpty
+      ? 'Não existem ACTs cadastrados.'
+      : 'Nenhum registro encontrado para os filtros aplicados.';
     tbody.innerHTML = `<tr><td colspan="${visSchema.length}" class="empty-state">
-      <div style="font-size:2rem;margin-bottom:8px">📭</div>
-      <div>Nenhum registro encontrado</div>
+      <div style="font-size:2rem;margin-bottom:8px">${ico}</div>
+      <div>${msg}</div>
     </td></tr>`;
     return;
   }
 
-  const numKeys    = new Set(['num', 'doe', 'dou']);
-  const truncKeys  = new Set(['objeto', 'obs', 'observacao', 'observacoes']);
-  const truncSmKeys = new Set(['inst', 'instituicao', 'esfera', 'area', 'responsavel']);
+  const numKeys     = new Set(['num', 'doe', 'dou']);
+  const truncKeys   = new Set(['objeto', 'obs', 'observacao', 'observacoes']);
+  const truncSmKeys = new Set(['inst', 'instituicao', 'responsavel']);
 
   tbody.innerHTML = rows.map((r, i) => {
     let rowCls = '';
@@ -1000,6 +1088,7 @@ function renderCharts() {
   const statusCol = _schema.find(c => c.key === 'status' || c.key === 'situacao');
   const tipoCol   = _schema.find(c => c.key === 'tipo');
   const anoCol    = _schema.find(c => c.key === 'termino' || c.key === 'inicio');
+  const instCol   = _schema.find(c => c.key === 'inst');
 
   const section = document.getElementById('charts-section');
   if (!statusCol && !tipoCol && !anoCol) { section.style.display = 'none'; return; }
@@ -1007,14 +1096,18 @@ function renderCharts() {
 
   if (typeof Chart === 'undefined') {
     _showChartUnavailable({
-      'chart-card-status': !!statusCol,
-      'chart-card-tipo': !!tipoCol,
-      'chart-card-ano': !!anoCol,
+      'chart-card-status':      !!statusCol,
+      'chart-card-tipo':        !!tipoCol,
+      'chart-card-vencimentos': true,
+      'chart-card-inst':        !!instCol,
+      'chart-card-ano':         !!anoCol,
     });
     return;
   }
 
   _clearChartFallbacks();
+
+  _buildVencimentos('chart-vencimentos', 'chart-card-vencimentos');
 
   if (statusCol) _buildDonut('chart-status', 'chart-card-status', statusCol.key);
   else           document.getElementById('chart-card-status').style.display = 'none';
@@ -1022,20 +1115,11 @@ function renderCharts() {
   if (tipoCol)   _buildBarH('chart-tipo', 'chart-card-tipo', tipoCol.key);
   else           document.getElementById('chart-card-tipo').style.display = 'none';
 
+  if (instCol)   _buildBarH('chart-inst', 'chart-card-inst', instCol.key);
+  else           document.getElementById('chart-card-inst').style.display = 'none';
+
   if (anoCol)    _buildBarTimeline('chart-ano', 'chart-card-ano', anoCol.key);
   else           document.getElementById('chart-card-ano').style.display = 'none';
-
-  _buildVencimentos('chart-vencimentos', 'chart-card-vencimentos');
-
-  const instCol   = _schema.find(c => c.key === 'inst');
-  const areaCol   = _schema.find(c => c.key === 'area');
-  const esferaCol = _schema.find(c => c.key === 'esfera');
-  if (instCol)   _buildBarH('chart-inst',   'chart-card-inst',   instCol.key);
-  else           document.getElementById('chart-card-inst').style.display   = 'none';
-  if (areaCol)   _buildBarH('chart-area',   'chart-card-area',   areaCol.key);
-  else           document.getElementById('chart-card-area').style.display   = 'none';
-  if (esferaCol) _buildDonut('chart-esfera','chart-card-esfera', esferaCol.key);
-  else           document.getElementById('chart-card-esfera').style.display = 'none';
 }
 
 function _buildVencimentos(cid, cardId) {
@@ -1061,7 +1145,7 @@ function _buildVencimentos(cid, cardId) {
   _destroyChart(cid);
   _charts[cid] = new Chart(document.getElementById(cid), {
     type: 'bar',
-    data: { labels, datasets: [{ data, backgroundColor: '#095C18', borderRadius: 4 }] },
+    data: { labels, datasets: [{ data, backgroundColor: '#095C18', borderRadius: 5 }] },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
@@ -1208,7 +1292,7 @@ function updateKPIActive() {
 }
 function clearFilters() {
   document.getElementById('search-input').value = '';
-  ['filter-col1','filter-col2','filter-col3'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  ['filter-col1','filter-col2'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   _kpiFilt  = '';
   _sortCol  = null;
   _sortAsc  = true;
@@ -1224,8 +1308,7 @@ function exportCSV() {
   if (!_filtered.length) { showToast('Nenhum dado para exportar'); return; }
   const sep = ';';
   const header = _schema.map(c => csvEscape(c.label)).join(sep);
-  const rows   = _filtered.map(r =>
-    _schema.map(c => csvEscape(r[c.key])).join(sep));
+  const rows   = _filtered.map(r => _schema.map(c => csvEscape(r[c.key])).join(sep));
   const blob = new Blob(['﻿' + [header,...rows].join('\r\n')], { type: 'text/csv;charset=utf-8' });
   const a = Object.assign(document.createElement('a'), {
     href: URL.createObjectURL(blob),
@@ -1239,8 +1322,7 @@ function exportCSV() {
 function exportXLSX() {
   if (!_filtered.length) { showToast('Nenhum dado para exportar'); return; }
   if (typeof XLSX === 'undefined') { showToast('Biblioteca XLSX indisponível'); return; }
-  const rows = _filtered.map(r =>
-    Object.fromEntries(_schema.map(c => [c.label, String(r[c.key] || '')])));
+  const rows = _filtered.map(r => Object.fromEntries(_schema.map(c => [c.label, String(r[c.key] || '')])));
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'ACTs SEMA');
@@ -1258,12 +1340,11 @@ function copyLink() {
 /* ─── PRINT / PDF ─────────────────────────────────────────────────────────── */
 function printReport() {
   if (!_filtered.length) { showToast('Nenhum dado para imprimir'); return; }
-  // Cabeçalho do relatório (visível só na impressão)
   const filtros = [];
   const q = document.getElementById('search-input').value.trim();
   if (q) filtros.push(`busca: "${q}"`);
   if (_kpiFilt) filtros.push(`status: ${_kpiFilt}`);
-  ['filter-col1','filter-col2','filter-col3'].forEach(id => {
+  ['filter-col1','filter-col2'].forEach(id => {
     const el = document.getElementById(id);
     if (el && el.value) filtros.push(el.value);
   });
@@ -1271,13 +1352,11 @@ function printReport() {
     `Emitido em ${new Date().toLocaleString('pt-BR')} · ${_filtered.length} registro(s)` +
     (filtros.length ? ` · Filtros: ${filtros.join(', ')}` : ' · Todos os registros');
 
-  // Renderiza todas as linhas filtradas, imprime, depois restaura a paginação
   _printAll = true;
   renderTable();
   const restore = () => { _printAll = false; renderTable(); window.removeEventListener('afterprint', restore); };
   window.addEventListener('afterprint', restore);
   window.print();
-  // Fallback caso afterprint não dispare (alguns navegadores)
   setTimeout(() => { if (_printAll) restore(); }, 1500);
 }
 
@@ -1287,7 +1366,7 @@ function findKey(candidates) {
     const col = _schema.find(s =>
       s.key === c ||
       s.key.replace(/_/g,'') === c.replace(/_/g,'') ||
-      s.label.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'_') === c
+      s.label.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,'_') === c
     );
     if (col) return col.key;
   }
@@ -1296,18 +1375,14 @@ function findKey(candidates) {
 
 function normalizeStatus(value) {
   const st = String(value || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, ' ');
-
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase().trim().replace(/\s+/g, ' ');
   if (!st) return '';
   if (st.includes('vence em 30') || st.includes('30 dias')) return 'vence em 30 dias';
   if (st.includes('a vencer') || st.includes('vencer')) return 'a vencer';
   if (st.includes('expir') || st.includes('vencido')) return 'expirado';
   if (st.includes('vigente')) return 'vigente';
-  if (st.includes('analise') || st === 'em analise') return 'em an\u00e1lise';
+  if (st.includes('analise') || st === 'em analise') return 'em análise';
   if (st.includes('aguardando')) return 'aguardando assinatura';
   if (st === 'suspenso') return 'suspenso';
   if (st === 'encerrado') return 'encerrado';
@@ -1410,10 +1485,7 @@ function syncUrlState() {
 function readUrlState() {
   try {
     const p = new URLSearchParams(location.search);
-    if (p.has('q')) {
-      const el = document.getElementById('search-input');
-      if (el) el.value = p.get('q');
-    }
+    if (p.has('q')) { const el = document.getElementById('search-input'); if (el) el.value = p.get('q'); }
     if (p.has('status')) _kpiFilt = p.get('status');
     if (p.has('sort'))   { _sortCol = p.get('sort'); _sortAsc = p.get('asc') !== '0'; }
   } catch {}

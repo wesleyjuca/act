@@ -6,7 +6,8 @@
  * Os dados são editados diretamente na planilha; Status e Dias Restantes
  * são calculados por fórmula automática na aba.
  *
- * VERSÃO 7.0 — SOMENTE LEITURA + SETUP/MIGRAÇÃO
+ * VERSÃO 8.0 — 19 colunas (sem Esfera/Área), correção de linhas fantasma,
+ *              menu personalizado, backup automático, migração robusta.
  */
 
 // ─────────────────────────────────────────────────────────────
@@ -192,15 +193,18 @@ function getSheet(sheetName) {
 function applyFormulaRangeDynamic(sheet, startRow, headers) {
   const terminoIdx    = headers.findIndex(h => headerKey(String(h)) === 'termino');
   const prazoIndIdx   = headers.findIndex(h => headerKey(String(h)) === 'prazoIndeterminado');
-  if (terminoIdx < 0) return; // sem Término → sem fórmulas automáticas
+  if (terminoIdx < 0) return;
 
   const cols = {
     termino:            colLetter(terminoIdx + 1),
     prazoIndeterminado: prazoIndIdx >= 0 ? colLetter(prazoIndIdx + 1) : null,
   };
 
-  const maxRow = sheet.getMaxRows();
-  const count  = Math.max(maxRow - startRow + 1, 1);
+  // Usa getLastRow() para não pré-preencher 1000+ linhas vazias com fórmulas
+  // (causa raiz do bug dos 900+ ACTs fantasmas)
+  const lastDataRow = Math.max(sheet.getLastRow(), startRow - 1);
+  const count       = Math.max(lastDataRow - startRow + 1, 0);
+  if (count === 0) return; // planilha vazia — não aplicar fórmulas
 
   headers.forEach((h, colIdx) => {
     const key = headerKey(String(h));
@@ -305,10 +309,14 @@ function handlePing() {
     }
 
     if (lastRow >= 3 && lastCol > 0) {
+      const hdrs = headers.map(h => headerKey(h));
+      const ANCHOR_KEYS = new Set(['tipo','num','objeto','inst','termino','inicio','link','sei','doe','dou']);
       const rows = sheet.getRange(3, 1, lastRow - 2, lastCol).getValues();
-      dataRows = rows.filter(row =>
-        row.some(cell => String(cell === undefined || cell === null ? '' : cell).trim())
-      ).length;
+      dataRows = rows.filter(row => {
+        const rec = {};
+        hdrs.forEach((k, j) => { rec[k] = String(row[j] ?? '').trim(); });
+        return [...ANCHOR_KEYS].some(k => rec[k]);
+      }).length;
     }
   }
 
@@ -318,7 +326,7 @@ function handlePing() {
 
   const result = {
     ok: !!sheet && missingRequiredColumns.length === 0,
-    version: '7.0',
+    version: '8.0',
     sheet: SHEET_DADOS,
     sheetExists: !!sheet,
     spreadsheetId: ss.getId().replace(/.{30}$/, '…'),
@@ -354,6 +362,10 @@ function handleList(params = {}) {
   const keys    = headers.map(h => headerKey(h));
   const records = [];
 
+  // Colunas âncora: registro válido somente quando ao menos uma tem conteúdo.
+  // Evita incluir linhas onde só fórmulas (Status="Prazo Indeterminado") estão preenchidas.
+  const ANCHOR_KEYS = new Set(['tipo','num','objeto','inst','termino','inicio','link','sei','doe','dou']);
+
   for (let i = 2; i < data.length; i++) {
     const row = data[i];
     if (!row.some(c => String(c).trim())) continue;
@@ -371,6 +383,11 @@ function handleList(params = {}) {
         rec[k] = String(v ?? '');
       }
     });
+
+    // Pular linhas fantasma (só fórmulas, sem dados reais em colunas âncora)
+    const hasData = [...ANCHOR_KEYS].some(k => rec[k] && String(rec[k]).trim());
+    if (!hasData) continue;
+
     rec._row = i + 1;
     records.push(rec);
   }
@@ -408,7 +425,7 @@ function handleStatus() {
     ok:      true,
     rows:    Math.max(sheet.getLastRow() - 2, 0),
     updated: new Date().toISOString(),
-    version: '7.0',
+    version: '8.0',
   };
 }
 
@@ -427,9 +444,16 @@ function exportCsv() {
   const hdrs = data[1].map(h => String(h || '').trim());
   const lines = [hdrs.map(csvCell).join(SEP)];
 
+  const ANCHOR_KEYS_CSV = new Set(['tipo','num','objeto','inst','termino','inicio','link','sei','doe','dou']);
+  const hdrsKeys = hdrs.map(h => headerKey(h));
+
   for (let i = 2; i < data.length; i++) {
     const row = data[i];
     if (!row.some(c => String(c).trim())) continue;
+    // Pular linhas fantasma (só fórmulas, sem dados âncora)
+    const tmpRec = {};
+    hdrsKeys.forEach((k, j) => { tmpRec[k] = String(row[j] ?? '').trim(); });
+    if (![...ANCHOR_KEYS_CSV].some(k => tmpRec[k])) continue;
     lines.push(hdrs.map((_, j) => {
       const v = row[j];
       if (typeof v === 'boolean') return csvCell(v ? 'TRUE' : 'FALSE');
@@ -528,7 +552,7 @@ function _atualizarSaude(ss, pingResult, dataRows) {
   const set = (key, val) => {
     if (map[key]) sheet.getRange(map[key], 2, 1, 2).setValues([[val, now]]);
   };
-  set('versao',             '7.0');
+  set('versao',             '8.0');
   set('totalRegistros',     dataRows);
   set('ultimaSincronizacao', now.toISOString());
   set('abas_ok', pingResult.ok ? 'SIM' : 'NÃO — ' + (pingResult.warnings || []).join('; '));
@@ -576,111 +600,55 @@ function instalarTriggers() {
 }
 
 // ─────────────────────────────────────────────────────────────
-// CRIAR PLANILHA MODELO — v7.0 (reescrita completa)
+// MENU PERSONALIZADO
+// ─────────────────────────────────────────────────────────────
+
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu('ACT')
+    .addItem('Criar Planilha Modelo',       'criarPlanilhaModelo')
+    .addItem('Migrar Dados (antigo→novo)',  'migrarPlanilhaAtual')
+    .addItem('Reaplicar Fórmulas',          'reaplicarFormulas')
+    .addSeparator()
+    .addItem('Instalar Triggers',           'instalarTriggers')
+    .addItem('Diagnóstico',                 'diagnostico')
+    .addToUi();
+}
+
+// ─────────────────────────────────────────────────────────────
+// CRIAR PLANILHA MODELO — v8.0
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Cria (ou recria) a aba 'ACT - PAINEL PUBLICO' com o modelo padrão v7.0.
- * Antes de recriar, faz backup automático se houver dados.
+ * Cria (ou recria) a aba 'ACT - PAINEL PUBLICO' com o modelo padrão v8.0.
+ * Antes de recriar com dados, exibe diálogo de confirmação.
  * Usa delete+recreate para evitar bugs de clear/merge/proteção.
  *
- * Execute no Apps Script → Executar → criarPlanilhaModelo
+ * Execute via: menu ACT ▸ Criar Planilha Modelo
  *
- * 21 colunas:
- * Tipo | Número | Objeto | Instituição | Esfera | Área |
+ * 19 colunas:
+ * Tipo | Número | Objeto | Instituição |
  * Início | Término | Prazo_Indeterminado | Status* | Dias_Restantes* |
  * DOE | DOU | SEI | Link | Observação |
  * Data_Assinatura | Data_Publicação | Data_Cadastro | Data_Atualização | Responsável
- * (* = fórmula automática)
+ * (* = fórmula automática — só aplicada a linhas com dados)
  */
 function criarPlanilhaModelo() {
   const ss      = SpreadsheetApp.getActiveSpreadsheet();
   const tabName = SHEET_DADOS;
 
   try {
-    // 1. Backup se existirem dados
     const existing = ss.getSheetByName(tabName);
-    if (existing && existing.getLastRow() >= 3) {
-      _criarBackup(ss, tabName);
+    const hasData  = existing && existing.getLastRow() >= 3;
+
+    if (hasData) {
+      const action = _dialogCriarOuMigrar(ss, tabName);
+      if (action === 'migrated') return; // migrarPlanilhaAtual() já foi chamado
+      if (action === 'cancelled') { Logger.log('ℹ️ Operação cancelada pelo usuário.'); return; }
+      // action === 'empty' → continua para criar vazia (backup já feito no dialog)
     }
 
-    // 2. Delete + recreate (evita todos os problemas de clear/merge/proteção)
-    if (existing) {
-      const tempName = tabName + '_DEL_' + Date.now();
-      existing.setName(tempName);
-      ss.insertSheet(tabName, 0);
-      SpreadsheetApp.flush();
-      ss.deleteSheet(ss.getSheetByName(tempName));
-    } else {
-      ss.insertSheet(tabName, 0);
-    }
-    SpreadsheetApp.flush();
-
-    const sh = ss.getSheetByName(tabName);
-
-    const headers = [
-      'Tipo', 'Número', 'Objeto', 'Instituição', 'Esfera', 'Área',
-      'Início', 'Término', 'Prazo_Indeterminado', 'Status', 'Dias_Restantes',
-      'DOE', 'DOU', 'SEI', 'Link', 'Observação',
-      'Data_Assinatura', 'Data_Publicação', 'Data_Cadastro', 'Data_Atualização', 'Responsável',
-    ];
-    const nCols  = headers.length; // 21
-    const maxRow = sh.getMaxRows();
-
-    // 3. Linha 1: título decorativo
-    sh.getRange(1, 1, 1, nCols).merge()
-      .setValue('SEMA/AC — Acordos de Cooperação Técnica — Acre')
-      .setFontSize(13).setFontWeight('bold')
-      .setFontColor('#FFFFFF').setBackground('#095C18')
-      .setHorizontalAlignment('center');
-
-    // 4. Linha 2: cabeçalhos reais
-    sh.getRange(2, 1, 1, nCols).setValues([headers])
-      .setFontWeight('bold').setBackground('#1FAD35').setFontColor('#FFFFFF').setWrap(true);
-
-    // 5. Linha 3: registro exemplo (colunas 1–8)
-    sh.getRange(3, 1, 1, 8).setValues([[
-      'ACT', '001/2025',
-      'Cooperação técnica para monitoramento ambiental',
-      'Exemplo Instituição', 'Estadual', 'Recursos Hídricos',
-      new Date(2025, 0, 1), new Date(2027, 11, 31),
-    ]]);
-
-    // 6. Checkbox na coluna Prazo_Indeterminado (col 9) — todas as linhas de dados
-    sh.getRange(3, 9, maxRow - 2, 1)
-      .setDataValidation(SpreadsheetApp.newDataValidation().requireCheckbox().build());
-
-    // 7. Fórmulas dinâmicas (sem limite fixo)
-    applyFormulaRangeDynamic(sh, 3, headers);
-
-    // 8. Formatos de data: Início(7), Término(8), Data_Assinatura(17),
-    //    Data_Publicação(18), Data_Cadastro(19), Data_Atualização(20)
-    [7, 8, 17, 18, 19, 20].forEach(c =>
-      sh.getRange(3, c, maxRow - 2, 1).setNumberFormat('dd/mm/yyyy'));
-    // Número (col 2) como texto para preservar zeros à esquerda
-    sh.getRange(3, 2, maxRow - 2, 1).setNumberFormat('@');
-
-    // 9. Larguras de coluna
-    // Tipo|Núm|Objeto|Inst|Esfera|Área|Iníc|Term|PrazoInd|Status|Dias|DOE|DOU|SEI|Link|Obs|Assina|Publ|Cad|Atual|Resp
-    [80, 100, 300, 200, 110, 150, 90, 90, 120, 130, 80, 80, 80, 160, 180, 220, 90, 90, 90, 90, 140]
-      .forEach((w, i) => sh.setColumnWidth(i + 1, w));
-
-    // 10. Congelar 2 linhas; ajustar altura da linha de cabeçalhos
-    sh.setFrozenRows(2);
-    sh.setRowHeight(2, 30);
-
-    // 11. Garantir abas auxiliares
-    _garantirAbasAuxiliares(ss);
-
-    logInfo('criarPlanilhaModelo', `Aba '${tabName}' criada com ${nCols} colunas e fórmulas dinâmicas.`);
-    Logger.log('✅ criarPlanilhaModelo concluído com sucesso.');
-    Logger.log('• ' + nCols + ' colunas criadas (linha 2)');
-    Logger.log('• Linha 3: registro exemplo');
-    Logger.log('• Fórmulas aplicadas dinamicamente (sem limite de linhas)');
-    Logger.log('• Checkbox na coluna Prazo_Indeterminado');
-    Logger.log('• Abas ACT_HISTORICO e SAUDE_SISTEMA garantidas');
-    Logger.log('• Adicione seus dados a partir da linha 4.');
-    Logger.log('• Execute instalarTriggers() para ativar o histórico automático.');
+    _criarAba(ss, tabName, existing, hasData);
 
   } catch (err) {
     logError('criarPlanilhaModelo', err);
@@ -689,18 +657,124 @@ function criarPlanilhaModelo() {
   }
 }
 
+function _dialogCriarOuMigrar(ss, tabName) {
+  const ui  = SpreadsheetApp.getUi();
+  const res = ui.alert(
+    'Planilha existente com dados',
+    'Foi identificada uma planilha com registros.\n\n' +
+    '• SIM — Migrar dados para o novo modelo (19 colunas)\n' +
+    '• NÃO — Criar planilha VAZIA (um backup será feito antes)\n' +
+    '• CANCELAR — Abortar sem alterações',
+    ui.ButtonSet.YES_NO_CANCEL
+  );
+  if (res === ui.Button.YES) {
+    migrarPlanilhaAtual();
+    return 'migrated';
+  }
+  if (res === ui.Button.NO) {
+    const conf = ui.alert(
+      'Confirmar criação vazia',
+      'Todos os dados atuais serão perdidos.\nUm backup automático será criado primeiro.\n\nContinuar?',
+      ui.ButtonSet.OK_CANCEL
+    );
+    if (conf === ui.Button.OK) {
+      _criarBackup(ss, tabName);
+      return 'empty';
+    }
+  }
+  return 'cancelled';
+}
+
+function _criarAba(ss, tabName, existing, hasData) {
+  // Delete + recreate (evita problemas de clear/merge/proteção)
+  if (existing) {
+    const tempName = tabName + '_DEL_' + Date.now();
+    existing.setName(tempName);
+    ss.insertSheet(tabName, 0);
+    SpreadsheetApp.flush();
+    ss.deleteSheet(ss.getSheetByName(tempName));
+  } else {
+    ss.insertSheet(tabName, 0);
+  }
+  SpreadsheetApp.flush();
+
+  const sh = ss.getSheetByName(tabName);
+
+  // 19 colunas (sem Esfera e Área)
+  const headers = [
+    'Tipo', 'Número', 'Objeto', 'Instituição',
+    'Início', 'Término', 'Prazo_Indeterminado', 'Status', 'Dias_Restantes',
+    'DOE', 'DOU', 'SEI', 'Link', 'Observação',
+    'Data_Assinatura', 'Data_Publicação', 'Data_Cadastro', 'Data_Atualização', 'Responsável',
+  ];
+  const nCols  = headers.length; // 19
+  const maxRow = sh.getMaxRows();
+
+  // Linha 1: título
+  sh.getRange(1, 1, 1, nCols).merge()
+    .setValue('SEMA/AC — Acordos de Cooperação Técnica — Acre')
+    .setFontSize(13).setFontWeight('bold')
+    .setFontColor('#FFFFFF').setBackground('#095C18')
+    .setHorizontalAlignment('center');
+
+  // Linha 2: cabeçalhos
+  sh.getRange(2, 1, 1, nCols).setValues([headers])
+    .setFontWeight('bold').setBackground('#1FAD35').setFontColor('#FFFFFF').setWrap(true);
+
+  // Checkbox na coluna Prazo_Indeterminado (col 7) — todas as linhas de dados
+  sh.getRange(3, 7, maxRow - 2, 1)
+    .setDataValidation(SpreadsheetApp.newDataValidation().requireCheckbox().build());
+
+  // Fórmulas dinâmicas — apenas se houver dados (count=0 em planilha vazia → skip)
+  applyFormulaRangeDynamic(sh, 3, headers);
+
+  // Formatos de data: Início(5), Término(6), Data_Assinatura(15),
+  //                  Data_Publicação(16), Data_Cadastro(17), Data_Atualização(18)
+  [5, 6, 15, 16, 17, 18].forEach(c =>
+    sh.getRange(3, c, maxRow - 2, 1).setNumberFormat('dd/mm/yyyy'));
+  sh.getRange(3, 2, maxRow - 2, 1).setNumberFormat('@'); // Número como texto
+
+  // Larguras: Tipo|Núm|Objeto|Inst|Iníc|Term|PrazoInd|Status|Dias|DOE|DOU|SEI|Link|Obs|Assina|Publ|Cad|Atual|Resp
+  [80, 100, 300, 200, 90, 90, 120, 130, 80, 80, 80, 160, 180, 220, 90, 90, 90, 90, 140]
+    .forEach((w, i) => sh.setColumnWidth(i + 1, w));
+
+  sh.setFrozenRows(2);
+  sh.setRowHeight(2, 30);
+
+  _garantirAbasAuxiliares(ss);
+
+  logInfo('criarPlanilhaModelo', `Aba '${tabName}' criada com ${nCols} colunas.`);
+  Logger.log('✅ criarPlanilhaModelo concluído.');
+  Logger.log('• ' + nCols + ' colunas (sem Esfera e Área)');
+  Logger.log('• Planilha vazia — adicione dados a partir da linha 3.');
+  Logger.log('• Após inserir dados, execute ACT ▸ Reaplicar Fórmulas.');
+  Logger.log('• Execute ACT ▸ Instalar Triggers para ativar o histórico automático.');
+}
+
+/**
+ * Reaplica fórmulas de Status e Dias_Restantes para todas as linhas com dados.
+ * Execute após inserir dados manualmente ou importar via CSV.
+ */
+function reaplicarFormulas() {
+  const ss  = SpreadsheetApp.getActiveSpreadsheet();
+  const sh  = ss.getSheetByName(SHEET_DADOS);
+  if (!sh) throw new Error('Aba não encontrada: ' + SHEET_DADOS);
+  const headers = sh.getRange(2, 1, 1, sh.getLastColumn()).getValues()[0];
+  applyFormulaRangeDynamic(sh, 3, headers);
+  logInfo('reaplicarFormulas', 'Fórmulas reaplicadas até linha ' + sh.getLastRow());
+  Logger.log('✅ Fórmulas reaplicadas até linha ' + sh.getLastRow());
+}
+
 // ─────────────────────────────────────────────────────────────
 // MIGRAR PLANILHA ATUAL
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Migra uma planilha existente (estrutura antiga 15-col ou qualquer variante)
- * para o modelo oficial v7.0 de 21 colunas.
+ * Migra uma planilha existente (qualquer estrutura anterior) para o modelo v8.0 de 19 colunas.
+ * Colunas Esfera e Área são descartadas (não existem no novo modelo).
+ * Preserva todos os demais dados. Cria backup automático.
  *
- * Preserva todos os dados existentes.
- * Cria backup automático antes de qualquer alteração.
- *
- * Execute no Apps Script → Executar → migrarPlanilhaAtual
+ * Execute via: menu ACT ▸ Migrar Dados (antigo→novo)
  */
 function migrarPlanilhaAtual() {
   const ss      = SpreadsheetApp.getActiveSpreadsheet();
@@ -712,79 +786,84 @@ function migrarPlanilhaAtual() {
     return;
   }
 
-  // Verificar se já é o novo modelo (21 colunas)
   const lastCol = sheet.getLastColumn();
   const existingHeaders = lastCol > 0
     ? sheet.getRange(2, 1, 1, lastCol).getValues()[0].map(h => String(h || '').trim())
     : [];
   const existingKeys = existingHeaders.map(h => headerKey(h));
 
-  // Detectar se já é o modelo novo
-  const hasNewCols = existingKeys.includes('prazoIndeterminado') &&
-                     existingKeys.includes('dataCadastro') &&
-                     existingKeys.includes('responsavel');
-  if (hasNewCols && lastCol >= 21) {
-    Logger.log('ℹ️ Planilha já está no modelo v7.0 — nenhuma migração necessária.');
+  // Detectar se já é o modelo v8.0 (19 colunas sem Esfera/Área)
+  const hasNewCols   = existingKeys.includes('prazoIndeterminado') &&
+                       existingKeys.includes('dataCadastro') &&
+                       existingKeys.includes('responsavel');
+  const hasEsferaArea = existingKeys.includes('esfera') || existingKeys.includes('area');
+
+  if (hasNewCols && !hasEsferaArea && lastCol >= 19) {
+    Logger.log('ℹ️ Planilha já está no modelo v8.0 — nenhuma migração necessária.');
     return;
   }
 
-  Logger.log('🔄 Iniciando migração para o modelo v7.0...');
+  Logger.log('🔄 Iniciando migração para o modelo v8.0...');
   Logger.log('• Estrutura atual: ' + lastCol + ' colunas');
-  Logger.log('• Cabeçalhos encontrados: ' + existingHeaders.join(' | '));
+  Logger.log('• Cabeçalhos: ' + existingHeaders.join(' | '));
+  if (hasEsferaArea) Logger.log('• Colunas Esfera e/ou Área serão descartadas (removidas do modelo)');
 
-  // 1. Backup
   const backupName = _criarBackup(ss, tabName);
   Logger.log('• Backup criado: ' + backupName);
 
-  // 2. Ler todos os dados (linhas 3+)
+  // Ler todos os dados (linhas 3+)
   const lastRow = sheet.getLastRow();
   let dados = [];
   if (lastRow >= 3 && lastCol > 0) {
     dados = sheet.getRange(3, 1, lastRow - 2, lastCol).getValues();
   }
+  Logger.log('• ' + dados.length + ' linhas lidas para migração');
 
-  Logger.log('• ' + dados.length + ' linhas de dados lidas para migração');
+  // Recriar aba com novo modelo (sem diálogo — já confirmado pelo caller)
+  _criarAba(ss, tabName, sheet, false);
 
-  // 3. Recriar sheet com novo modelo (criarPlanilhaModelo faz o backup de novo — ok)
-  criarPlanilhaModelo();
-
-  // 4. Reescrever dados nas novas posições
-  const newSheet = ss.getSheetByName(tabName);
+  // Reescrever dados nas novas posições
+  const newSheet   = ss.getSheetByName(tabName);
   const newHeaders = newSheet.getRange(2, 1, 1, newSheet.getLastColumn()).getValues()[0];
   const newKeys    = newHeaders.map(h => headerKey(h));
 
-  let migratedRows = 0;
-  let skippedRows  = 0;
+  const ANCHOR_KEYS = new Set(['tipo','num','objeto','inst','termino','inicio','link','sei','doe','dou']);
+  let migratedRows = 0, skippedRows = 0, phantomRows = 0;
 
   dados.forEach((oldRow, idx) => {
-    // Pular linhas totalmente vazias
     if (!oldRow.some(c => String(c).trim())) { skippedRows++; return; }
+
+    // Montar rec temporário para testar se é linha fantasma
+    const tmpRec = {};
+    existingKeys.forEach((k, j) => { tmpRec[k] = String(oldRow[j] ?? '').trim(); });
+    const hasData = [...ANCHOR_KEYS].some(k => tmpRec[k]);
+    if (!hasData) { phantomRows++; return; }
 
     const newRow = new Array(newHeaders.length).fill('');
     existingKeys.forEach((oldKey, oldColIdx) => {
-      if (!oldKey) return;
+      if (!oldKey || oldKey === 'esfera' || oldKey === 'area') return; // descartar
       const newColIdx = newKeys.indexOf(oldKey);
       if (newColIdx < 0) return;
       newRow[newColIdx] = oldRow[oldColIdx];
     });
 
-    const targetRow = 3 + idx + 1; // +1 porque linha 3 é o exemplo
+    const targetRow = 3 + migratedRows;
     try {
       newSheet.getRange(targetRow, 1, 1, newRow.length).setValues([newRow]);
       migratedRows++;
     } catch (_) {}
   });
 
-  // 5. Reaplicar fórmulas sobre os dados migrados
+  // Reaplicar fórmulas sobre os dados migrados
   applyFormulaRangeDynamic(newSheet, 3, newHeaders);
 
   Logger.log('✅ Migração concluída:');
   Logger.log('• ' + migratedRows + ' linhas migradas');
   Logger.log('• ' + skippedRows  + ' linhas em branco ignoradas');
-  Logger.log('• Modelo v7.0 com ' + newHeaders.length + ' colunas');
-  Logger.log('• Colunas novas (sem dados anteriores): Prazo_Indeterminado, Data_Assinatura,');
-  Logger.log('  Data_Publicação, Data_Cadastro, Data_Atualização, Responsável');
-  Logger.log('• Execute instalarTriggers() para ativar o histórico automático.');
+  Logger.log('• ' + phantomRows  + ' linhas fantasma descartadas');
+  Logger.log('• Modelo v8.0 com ' + newHeaders.length + ' colunas');
+  Logger.log('• Colunas descartadas: Esfera, Área');
+  Logger.log('• Execute ACT ▸ Instalar Triggers para ativar o histórico automático.');
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -806,7 +885,7 @@ function testPing() {
 function diagnostico() {
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_DADOS);
-  Logger.log('=== DIAGNÓSTICO SEMA/AC v7.0 ===');
+  Logger.log('=== DIAGNÓSTICO SEMA/AC v8.0 ===');
   Logger.log('Planilha: ' + ss.getName());
   Logger.log('ID: ' + ss.getId());
   Logger.log('Aba "' + SHEET_DADOS + '": ' + (sheet ? 'EXISTE' : 'NÃO ENCONTRADA'));
