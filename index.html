@@ -374,6 +374,11 @@ td.cell-trunc-sm { max-width: 150px; overflow: hidden; text-overflow: ellipsis; 
       <span class="kpi-ico" aria-hidden="true">🔘</span>
       <div class="kpi-label">Encerrados</div>
     </div>
+    <div class="kpi" id="kpi-prazo" role="button" tabindex="0" aria-label="Filtrar Prazo Indeterminado" onclick="filterByStatus('Prazo Indeterminado')">
+      <div class="kpi-num" style="color:#00695c" id="kpi-prazo-num">–</div>
+      <span class="kpi-ico" aria-hidden="true">♾️</span>
+      <div class="kpi-label">Prazo Indet.</div>
+    </div>
     <div class="kpi" style="cursor:default">
       <div class="kpi-num blue" id="kpi-parceiros-num">–</div>
       <span class="kpi-ico" aria-hidden="true">🤝</span>
@@ -398,6 +403,18 @@ td.cell-trunc-sm { max-width: 150px; overflow: hidden; text-overflow: ellipsis; 
       <div class="chart-card" id="chart-card-vencimentos" style="display:none">
         <div class="chart-title">Vencimentos — próximos 12 meses</div>
         <div class="chart-wrap"><canvas id="chart-vencimentos"></canvas></div>
+      </div>
+      <div class="chart-card" id="chart-card-inst" style="display:none">
+        <div class="chart-title">Por Instituição (top 8)</div>
+        <div class="chart-wrap"><canvas id="chart-inst"></canvas></div>
+      </div>
+      <div class="chart-card" id="chart-card-area" style="display:none">
+        <div class="chart-title">Por Área</div>
+        <div class="chart-wrap"><canvas id="chart-area"></canvas></div>
+      </div>
+      <div class="chart-card" id="chart-card-esfera" style="display:none">
+        <div class="chart-title">Por Esfera</div>
+        <div class="chart-wrap"><canvas id="chart-esfera"></canvas></div>
       </div>
     </div>
   </div>
@@ -802,6 +819,7 @@ function renderKPIs() {
   setText('kpi-aguardando-num', counts['aguardando assinatura'] || 0);
   setText('kpi-suspenso-num',   counts['suspenso']              || 0);
   setText('kpi-encerrado-num',  counts['encerrado']             || 0);
+  setText('kpi-prazo-num',      counts['prazo indeterminado']   || 0);
   setText('kpi-parceiros-num',  parcSet.size);
 }
 
@@ -893,7 +911,7 @@ function renderTable() {
 
   const numKeys    = new Set(['num', 'doe', 'dou']);
   const truncKeys  = new Set(['objeto', 'obs', 'observacao', 'observacoes']);
-  const truncSmKeys = new Set(['inst', 'instituicao', 'esfera', 'area']);
+  const truncSmKeys = new Set(['inst', 'instituicao', 'esfera', 'area', 'responsavel']);
 
   tbody.innerHTML = rows.map((r, i) => {
     let rowCls = '';
@@ -902,7 +920,10 @@ function renderTable() {
       const kL  = col.key.toLowerCase();
       let cell, tdCls = '', tdTitle = '';
 
-      if (kL === 'status' || kL === 'situacao') {
+      if (kL === 'prazoindeterminado') {
+        cell = raw === 'TRUE' ? '✅' : '';
+
+      } else if (kL === 'status' || kL === 'situacao') {
         const statusKey = normalizeStatus(raw);
         cell = statusBadge(raw);
         if (statusKey === 'vence em 30 dias') rowCls = ' class="row-urgent"';
@@ -1005,6 +1026,16 @@ function renderCharts() {
   else           document.getElementById('chart-card-ano').style.display = 'none';
 
   _buildVencimentos('chart-vencimentos', 'chart-card-vencimentos');
+
+  const instCol   = _schema.find(c => c.key === 'inst');
+  const areaCol   = _schema.find(c => c.key === 'area');
+  const esferaCol = _schema.find(c => c.key === 'esfera');
+  if (instCol)   _buildBarH('chart-inst',   'chart-card-inst',   instCol.key);
+  else           document.getElementById('chart-card-inst').style.display   = 'none';
+  if (areaCol)   _buildBarH('chart-area',   'chart-card-area',   areaCol.key);
+  else           document.getElementById('chart-card-area').style.display   = 'none';
+  if (esferaCol) _buildDonut('chart-esfera','chart-card-esfera', esferaCol.key);
+  else           document.getElementById('chart-card-esfera').style.display = 'none';
 }
 
 function _buildVencimentos(cid, cardId) {
@@ -1158,7 +1189,7 @@ function filterByStatus(st) {
   applyFilters();
 }
 function updateKPIActive() {
-  ['kpi-vigente','kpi-avencer','kpi-urgente','kpi-expirado','kpi-analise','kpi-aguardando','kpi-suspenso','kpi-encerrado'].forEach(id => {
+  ['kpi-vigente','kpi-avencer','kpi-urgente','kpi-expirado','kpi-analise','kpi-aguardando','kpi-suspenso','kpi-encerrado','kpi-prazo'].forEach(id => {
     const el = document.getElementById(id); if (el) el.classList.remove('active');
   });
   const map = {
@@ -1170,6 +1201,7 @@ function updateKPIActive() {
     'aguardando assinatura': 'kpi-aguardando',
     'suspenso':              'kpi-suspenso',
     'encerrado':             'kpi-encerrado',
+    'prazo indeterminado':   'kpi-prazo',
   };
   const statusKey = normalizeStatus(_kpiFilt);
   if (statusKey && map[statusKey]) document.getElementById(map[statusKey])?.classList.add('active');
