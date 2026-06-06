@@ -79,9 +79,9 @@ header h1 small { font-weight: 400; opacity: .75; font-size: .8rem; display: blo
 /* THEME PICKER */
 .theme-picker-wrap { position: relative; }
 .theme-picker {
-  position: absolute; right: 0; top: calc(100% + 8px); z-index: 400;
-  background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
-  box-shadow: 0 6px 28px rgba(0,0,0,.22); padding: 14px 16px; min-width: 210px;
+  position: fixed; z-index: 1000;
+  background: var(--bg2); border: 1.5px solid var(--border); border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.28); padding: 14px 16px; min-width: 220px;
   color: var(--text);
 }
 .tp-label { font-size: .69rem; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px; }
@@ -220,13 +220,13 @@ main { max-width: 1400px; margin: 0 auto; padding: 20px 16px; }
 .btn-outline:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
 
 /* TABLE */
-.table-wrap { overflow-x: auto; border-radius: var(--radius); box-shadow: var(--shadow); }
+.table-wrap { overflow-x: auto; overflow-y: auto; max-height: calc(100vh - var(--header-h) - 40px); border-radius: var(--radius); box-shadow: var(--shadow); scroll-behavior: smooth; }
 table { width: 100%; border-collapse: collapse; background: var(--bg2); font-size: .855rem; }
 thead th {
   background: var(--tbl-head-bg); color: var(--tbl-head-text);
   padding: 10px 12px; text-align: left;
   white-space: nowrap; font-weight: 600; font-size: .76rem; text-transform: uppercase;
-  letter-spacing: .05em; position: sticky; top: var(--header-h);
+  letter-spacing: .05em; position: sticky; top: 0;
   cursor: pointer; user-select: none;
   border-bottom: 2px solid var(--tbl-head-border); z-index: 10;
 }
@@ -426,6 +426,12 @@ td.cell-trunc-sm { max-width: 160px; overflow: hidden; text-overflow: ellipsis; 
 .col-toggle-panel label:hover { background:var(--accent-light); color:var(--accent); }
 .col-toggle-panel input[type=checkbox] { accent-color:var(--accent); width:14px; height:14px; flex-shrink:0; }
 
+/* DRAG COLUMN REORDER */
+thead th[draggable="true"] { cursor: grab; }
+thead th[draggable="true"]:active { cursor: grabbing; }
+thead th.col-dragging { opacity: .45; }
+thead th.col-drag-over { background: var(--tbl-head-hover); box-shadow: inset 3px 0 0 var(--tbl-head-text); }
+
 /* PRINT / PDF */
 #print-header { display: none; }
 @media print {
@@ -470,19 +476,7 @@ td.cell-trunc-sm { max-width: 160px; overflow: hidden; text-overflow: ellipsis; 
   </div>
   <span id="last-update"></span>
   <button class="btn-icon" id="btn-refresh" title="Atualizar dados" onclick="manualRefresh()">🔄</button>
-  <div class="theme-picker-wrap">
-    <button class="btn-icon" id="btn-theme-picker" title="Escolher tema de cores" onclick="toggleThemePicker(event)">🎨</button>
-    <div class="theme-picker" id="theme-picker" hidden>
-      <div class="tp-label">Tema de cores</div>
-      <div class="tp-names" id="tp-names">
-        <div class="tp-name-item" data-theme="verde"          onclick="applyTheme('verde')">         <span class="tp-name-dot" style="background:#095C18"></span> Verde SEMA</div>
-        <div class="tp-name-item" data-theme="azul"           onclick="applyTheme('azul')">          <span class="tp-name-dot" style="background:#1565c0"></span> Azul Institucional</div>
-        <div class="tp-name-item" data-theme="escuro"         onclick="applyTheme('escuro')">        <span class="tp-name-dot" style="background:#1aad3a;border-color:#0c0e14;box-shadow:inset 0 0 0 6px #0c0e14"></span> Noturno</div>
-        <div class="tp-name-item" data-theme="carvao"         onclick="applyTheme('carvao')">        <span class="tp-name-dot" style="background:#2c3036;border-color:#404850"></span> Carvão</div>
-        <div class="tp-name-item" data-theme="alto-contraste" onclick="applyTheme('alto-contraste')"><span class="tp-name-dot" style="background:#000"></span> Alto Contraste</div>
-      </div>
-    </div>
-  </div>
+  <button class="btn-icon" id="btn-theme-picker" title="Escolher tema de cores" onclick="toggleThemePicker(event)">🎨</button>
 </header>
 
 <div id="error-banner" class="error-banner" hidden>
@@ -680,6 +674,17 @@ td.cell-trunc-sm { max-width: 160px; overflow: hidden; text-overflow: ellipsis; 
   </div>
 </div>
 
+<div class="theme-picker" id="theme-picker" hidden role="dialog" aria-label="Escolher tema">
+  <div class="tp-label">Tema de cores</div>
+  <div class="tp-names" id="tp-names">
+    <div class="tp-name-item" data-theme="verde"          onclick="applyTheme('verde')">         <span class="tp-name-dot" style="background:#095C18"></span> Verde SEMA</div>
+    <div class="tp-name-item" data-theme="azul"           onclick="applyTheme('azul')">          <span class="tp-name-dot" style="background:#1565c0"></span> Azul Institucional</div>
+    <div class="tp-name-item" data-theme="escuro"         onclick="applyTheme('escuro')">        <span class="tp-name-dot" style="background:#1aad3a;border-color:#0c0e14;box-shadow:inset 0 0 0 6px #0c0e14"></span> Noturno</div>
+    <div class="tp-name-item" data-theme="carvao"         onclick="applyTheme('carvao')">        <span class="tp-name-dot" style="background:#2c3036;border-color:#404850"></span> Carvão</div>
+    <div class="tp-name-item" data-theme="alto-contraste" onclick="applyTheme('alto-contraste')"><span class="tp-name-dot" style="background:#000"></span> Alto Contraste</div>
+  </div>
+</div>
+
 <script>
 /* ─── CONFIG ─────────────────────────────────────────────────────────────── */
 let GAS_URL = 'https://script.google.com/macros/s/SEU_SCRIPT_ID/exec';
@@ -713,6 +718,12 @@ function _loadHiddenCols() {
   catch { return new Set(); }
 }
 let _hiddenCols = _loadHiddenCols();
+function _loadColOrder() {
+  try { return JSON.parse(localStorage.getItem('sema_col_order') || 'null') || null; }
+  catch { return null; }
+}
+let _colOrder = _loadColOrder();
+let _dragColKey = null;
 
 /* ─── INICIALIZAÇÃO ───────────────────────────────────────────────────────── */
 function init() {
@@ -752,6 +763,47 @@ function setupDelegatedListeners() {
       const th = e.target.closest('th[data-sort-key]');
       if (!th || !tableHead.contains(th)) return;
       sortBy(th.dataset.sortKey);
+    });
+    tableHead.addEventListener('dragstart', e => {
+      const th = e.target.closest('th[data-col-key]');
+      if (!th) return;
+      _dragColKey = th.dataset.colKey;
+      e.dataTransfer.effectAllowed = 'move';
+      th.classList.add('col-dragging');
+    });
+    tableHead.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const th = e.target.closest('th[data-col-key]');
+      document.querySelectorAll('thead th.col-drag-over').forEach(el => el.classList.remove('col-drag-over'));
+      if (th && th.dataset.colKey !== _dragColKey) th.classList.add('col-drag-over');
+    });
+    tableHead.addEventListener('drop', e => {
+      e.preventDefault();
+      const th = e.target.closest('th[data-col-key]');
+      if (!th || !_dragColKey || th.dataset.colKey === _dragColKey) return;
+      let _vis = _schema.filter(c => !_hiddenCols.has(c.key));
+      if (_colOrder && _colOrder.length) {
+        const _om = new Map(_colOrder.map((k, i) => [k, i]));
+        _vis = [..._vis].sort((a, b) => (_om.get(a.key) ?? 999) - (_om.get(b.key) ?? 999));
+      }
+      const keys = (_colOrder && _colOrder.length) ? [..._colOrder] : _vis.map(c => c.key);
+      const fromIdx = keys.indexOf(_dragColKey);
+      const toIdx   = keys.indexOf(th.dataset.colKey);
+      if (fromIdx >= 0 && toIdx >= 0) {
+        keys.splice(fromIdx, 1);
+        keys.splice(toIdx, 0, _dragColKey);
+        _colOrder = keys;
+        try { localStorage.setItem('sema_col_order', JSON.stringify(_colOrder)); } catch {}
+        renderTable(); renderPagination();
+      }
+      document.querySelectorAll('thead th.col-drag-over, thead th.col-dragging').forEach(el => {
+        el.classList.remove('col-drag-over', 'col-dragging');
+      });
+    });
+    tableHead.addEventListener('dragend', () => {
+      document.querySelectorAll('thead th').forEach(el => el.classList.remove('col-dragging', 'col-drag-over'));
+      _dragColKey = null;
     });
     tableHead.dataset.listenerReady = '1';
   }
@@ -1126,13 +1178,17 @@ function renderTable() {
     return;
   }
 
-  const visSchema = _schema.filter(c => !_hiddenCols.has(c.key));
+  let visSchema = _schema.filter(c => !_hiddenCols.has(c.key));
+  if (_colOrder && _colOrder.length) {
+    const orderMap = new Map(_colOrder.map((k, i) => [k, i]));
+    visSchema = [...visSchema].sort((a, b) => (orderMap.get(a.key) ?? 999) - (orderMap.get(b.key) ?? 999));
+  }
 
   thead.innerHTML = visSchema.map(c => {
     const sorted = _sortCol === c.key;
     const arrow  = sorted ? (_sortAsc ? '↑' : '↓') : '↕';
     const ariaSort = sorted ? ` aria-sort="${_sortAsc ? 'ascending' : 'descending'}"` : '';
-    return `<th${ariaSort} data-sort-key="${esc(c.key)}" title="Ordenar por ${esc(c.label)}">${esc(c.label)}<span class="sort-arrow">${arrow}</span></th>`;
+    return `<th draggable="true"${ariaSort} data-sort-key="${esc(c.key)}" data-col-key="${esc(c.key)}" title="Ordenar por ${esc(c.label)}">${esc(c.label)}<span class="sort-arrow">${arrow}</span></th>`;
   }).join('');
 
   const start = _printAll ? 0 : (_page - 1) * PAGE;
@@ -1727,11 +1783,22 @@ function loadTheme() {
 function toggleThemePicker(e) {
   e && e.stopPropagation();
   const p = document.getElementById('theme-picker');
+  const btn = document.getElementById('btn-theme-picker');
   if (!p) return;
-  p.hidden = !p.hidden;
-  if (!p.hidden) {
-    const close = () => { p.hidden = true; document.removeEventListener('click', close); };
+  if (p.hidden) {
+    const rect = btn.getBoundingClientRect();
+    p.style.top   = (rect.bottom + 8) + 'px';
+    p.style.right = (window.innerWidth - rect.right) + 'px';
+    p.hidden = false;
+    const close = ev => {
+      if (!p.contains(ev.target) && ev.target !== btn) {
+        p.hidden = true;
+        document.removeEventListener('click', close);
+      }
+    };
     setTimeout(() => document.addEventListener('click', close), 0);
+  } else {
+    p.hidden = true;
   }
 }
 
@@ -1749,7 +1816,16 @@ function buildColToggle() {
   panel.innerHTML = `<div class="ctp-title">Colunas visíveis</div>` +
     _schema.map(c =>
       `<label><input type="checkbox" data-col-key="${esc(c.key)}" ${_hiddenCols.has(c.key) ? '' : 'checked'}> ${esc(c.label)}</label>`
-    ).join('');
+    ).join('') +
+    `<div style="padding:8px 14px 4px;border-top:1px solid var(--border);margin-top:4px">
+       <button onclick="resetColOrder()" class="btn btn-outline" style="font-size:.75rem;padding:4px 10px;width:100%">↺ Resetar ordem</button>
+     </div>`;
+}
+
+function resetColOrder() {
+  _colOrder = null;
+  try { localStorage.removeItem('sema_col_order'); } catch {}
+  renderTable(); renderPagination();
 }
 
 function toggleColPanel(e) {
