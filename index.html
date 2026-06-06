@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SEMA/AC — Termos de Cooperação Técnica</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" integrity="sha512-SIMGYRUjwY8+gKg7nn9EItdD8LCADSDfJNutF9TPrvEo86sQmFMh6MyralfIyhADlajSxqc7G0gs7+MwWF/ogQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="js/config.js"></script>
 <style>
 :root {
@@ -55,7 +56,7 @@ header h1 small { font-weight: 400; opacity: .75; font-size: .8rem; display: blo
 main { max-width: 1400px; margin: 0 auto; padding: 24px 16px; }
 
 /* KPIS */
-.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
 .kpi { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; cursor: pointer; transition: box-shadow .2s; }
 .kpi:hover { box-shadow: var(--shadow); }
 .kpi.active { border-color: var(--accent); background: var(--accent-light); }
@@ -123,15 +124,25 @@ td.dias-expirado { color: var(--text2); }
 .cell-link { color: var(--accent2); font-weight: 500; }
 .cell-empty { color: var(--text2); }
 .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: .75rem; font-weight: 600; white-space: nowrap; }
-.badge-vigente  { background: #e8f5ec; color: #1b6b2a; }
-.badge-avencer  { background: #fff3e0; color: #a0580a; }
-.badge-urgente  { background: #fce4ec; color: #b71c1c; }
-.badge-expirado { background: #f0f0f0; color: #555; border: 1px solid #d5d5d5; }
-.badge-default  { background: var(--accent-light); color: var(--accent); }
-[data-theme="dark"] .badge-vigente  { background: #143a1f; color: #5fd97e; }
-[data-theme="dark"] .badge-avencer  { background: #3a2a0c; color: #f0b84a; }
-[data-theme="dark"] .badge-urgente  { background: #3a1218; color: #ff7a8a; }
-[data-theme="dark"] .badge-expirado { background: #262a36; color: #9aa6bd; border-color: #39405220; }
+.badge-vigente   { background: #e8f5ec; color: #1b6b2a; }
+.badge-avencer   { background: #fff3e0; color: #a0580a; }
+.badge-urgente   { background: #fce4ec; color: #b71c1c; }
+.badge-expirado  { background: #f0f0f0; color: #555; border: 1px solid #d5d5d5; }
+.badge-default   { background: var(--accent-light); color: var(--accent); }
+.badge-analise   { background: #e3f2fd; color: #1565c0; }
+.badge-aguardando{ background: #f3e5f5; color: #7b1fa2; }
+.badge-suspenso  { background: #fff8e1; color: #ef6c00; }
+.badge-encerrado { background: #eceff1; color: #455a64; border: 1px solid #cfd8dc; }
+.badge-prazo     { background: #e0f7fa; color: #00695c; }
+[data-theme="dark"] .badge-vigente   { background: #143a1f; color: #5fd97e; }
+[data-theme="dark"] .badge-avencer   { background: #3a2a0c; color: #f0b84a; }
+[data-theme="dark"] .badge-urgente   { background: #3a1218; color: #ff7a8a; }
+[data-theme="dark"] .badge-expirado  { background: #262a36; color: #9aa6bd; border-color: #39405220; }
+[data-theme="dark"] .badge-analise   { background: #0d2744; color: #64b5f6; }
+[data-theme="dark"] .badge-aguardando{ background: #2d1040; color: #ce93d8; }
+[data-theme="dark"] .badge-suspenso  { background: #3a2700; color: #ffb74d; }
+[data-theme="dark"] .badge-encerrado { background: #1c232e; color: #90a4ae; border-color: #37474f; }
+[data-theme="dark"] .badge-prazo     { background: #00282a; color: #4dd0e1; }
 .empty-state    { text-align: center; padding: 60px 20px; color: var(--text2); }
 
 /* ALERTS */
@@ -179,6 +190,39 @@ td.dias-expirado { color: var(--text2); }
 .pagination button:disabled { opacity: .4; cursor: default; }
 
 @media (max-width: 600px) { header h1 small { display: none; } .kpi-num { font-size: 1.5rem; } }
+
+/* MOBILE CARD VIEW */
+@media (max-width: 640px) {
+  .table-wrap { border: none; box-shadow: none; overflow: visible; }
+  table, thead, tbody, th, td, tr { display: block; }
+  thead tr { position: absolute; top: -9999px; left: -9999px; }
+  tbody tr {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    margin-bottom: 12px; box-shadow: var(--shadow); overflow: hidden;
+  }
+  tbody tr:nth-child(even) { background: var(--bg2); }
+  tbody td {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding: 9px 12px; border-bottom: 1px solid var(--border); gap: 8px;
+    background: inherit;
+  }
+  tbody td:last-child { border-bottom: none; }
+  tbody td[data-label]::before {
+    content: attr(data-label); font-size: .72rem; font-weight: 700;
+    color: var(--text2); text-transform: uppercase; letter-spacing: .05em;
+    flex-shrink: 0; min-width: 100px; padding-top: 1px;
+  }
+  td.num-cell, td.dias-cell { text-align: left; }
+  .pagination { flex-direction: column; gap: 4px; }
+}
+@media (max-width: 480px) {
+  .toolbar { flex-direction: column; align-items: stretch; }
+  .toolbar input[type="search"] { min-width: unset; }
+  .btn { justify-content: center; }
+}
+
+/* ACCESSIBILITY */
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
 
 /* CELL TRUNCATION */
 td.cell-trunc    { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -278,7 +322,7 @@ td.cell-trunc-sm { max-width: 150px; overflow: hidden; text-overflow: ellipsis; 
     <div class="meta" id="print-meta"></div>
   </div>
 
-  <div class="alert-bar" id="alert-bar" hidden onclick="onAlertClick()">
+  <div class="alert-bar" id="alert-bar" hidden onclick="onAlertClick()" aria-live="polite">
     <span class="alert-ico">⚠️</span>
     <span id="alert-text"></span>
     <span class="alert-cta">Ver acordos →</span>
@@ -305,6 +349,31 @@ td.cell-trunc-sm { max-width: 150px; overflow: hidden; text-overflow: ellipsis; 
       <span class="kpi-ico" aria-hidden="true">⚫</span>
       <div class="kpi-label">Expirados</div>
     </div>
+    <div class="kpi" id="kpi-total" style="cursor:default">
+      <div class="kpi-num" id="kpi-total-num">–</div>
+      <span class="kpi-ico" aria-hidden="true">📋</span>
+      <div class="kpi-label">Total ACTs</div>
+    </div>
+    <div class="kpi" id="kpi-analise" role="button" tabindex="0" aria-label="Filtrar Em Análise" onclick="filterByStatus('Em Análise')">
+      <div class="kpi-num blue" id="kpi-analise-num">–</div>
+      <span class="kpi-ico" aria-hidden="true">🔵</span>
+      <div class="kpi-label">Em Análise</div>
+    </div>
+    <div class="kpi" id="kpi-aguardando" role="button" tabindex="0" aria-label="Filtrar Aguardando Assinatura" onclick="filterByStatus('Aguardando Assinatura')">
+      <div class="kpi-num" style="color:#7b1fa2" id="kpi-aguardando-num">–</div>
+      <span class="kpi-ico" aria-hidden="true">🟣</span>
+      <div class="kpi-label">Aguardando Assin.</div>
+    </div>
+    <div class="kpi" id="kpi-suspenso" role="button" tabindex="0" aria-label="Filtrar Suspensos" onclick="filterByStatus('Suspenso')">
+      <div class="kpi-num yellow" id="kpi-suspenso-num">–</div>
+      <span class="kpi-ico" aria-hidden="true">🟠</span>
+      <div class="kpi-label">Suspensos</div>
+    </div>
+    <div class="kpi" id="kpi-encerrado" role="button" tabindex="0" aria-label="Filtrar Encerrados" onclick="filterByStatus('Encerrado')">
+      <div class="kpi-num" id="kpi-encerrado-num">–</div>
+      <span class="kpi-ico" aria-hidden="true">🔘</span>
+      <div class="kpi-label">Encerrados</div>
+    </div>
     <div class="kpi" style="cursor:default">
       <div class="kpi-num blue" id="kpi-parceiros-num">–</div>
       <span class="kpi-ico" aria-hidden="true">🤝</span>
@@ -326,19 +395,26 @@ td.cell-trunc-sm { max-width: 150px; overflow: hidden; text-overflow: ellipsis; 
         <div class="chart-title">Vencimentos por Ano</div>
         <div class="chart-wrap"><canvas id="chart-ano"></canvas></div>
       </div>
+      <div class="chart-card" id="chart-card-vencimentos" style="display:none">
+        <div class="chart-title">Vencimentos — próximos 12 meses</div>
+        <div class="chart-wrap"><canvas id="chart-vencimentos"></canvas></div>
+      </div>
     </div>
   </div>
 
   <div class="toolbar">
+    <label for="search-input" class="visually-hidden">Buscar acordos</label>
     <input type="search" id="search-input" placeholder="🔍 Buscar em qualquer campo…" oninput="onSearchInput()" aria-label="Buscar acordos">
     <select id="filter-col1" onchange="applyFilters()"><option value="">Todos os tipos</option></select>
     <select id="filter-col2" onchange="applyFilters()"><option value="">Todos os status</option></select>
     <select id="filter-col3" onchange="applyFilters()"><option value="">Todas as áreas</option></select>
     <button class="btn btn-outline" onclick="exportCSV()">⬇ CSV</button>
+    <button class="btn btn-outline" onclick="exportXLSX()">⬇ XLSX</button>
+    <button class="btn btn-outline" onclick="copyLink()" title="Copiar link com filtros ativos">🔗 Link</button>
     <button class="btn btn-outline" onclick="printReport()">🖨 PDF</button>
     <button class="btn btn-outline" onclick="clearFilters()">✕ Limpar</button>
     <div class="col-toggle-wrap">
-      <button class="btn btn-outline" id="btn-col-toggle" onclick="toggleColPanel(event)" title="Mostrar/ocultar colunas">⚙ Colunas</button>
+      <button class="btn btn-outline" id="btn-col-toggle" onclick="toggleColPanel(event)" title="Mostrar/ocultar colunas" aria-expanded="false">⚙ Colunas</button>
       <div class="col-toggle-panel" id="col-toggle-panel" hidden></div>
     </div>
   </div>
@@ -353,7 +429,7 @@ td.cell-trunc-sm { max-width: 150px; overflow: hidden; text-overflow: ellipsis; 
   <div class="pagination" id="pagination"></div>
 </main>
 
-<div id="modal-overlay" onclick="onOverlayClick(event)">
+<div id="modal-overlay" onclick="onOverlayClick(event)" role="dialog" aria-modal="true" aria-labelledby="modal-title">
   <div class="modal" id="modal-box">
     <div class="modal-header">
       <h2 id="modal-title">Detalhes</h2>
@@ -390,8 +466,8 @@ let _retryCount = 0;
 let _charts   = {};
 let _printAll = false;
 function _loadHiddenCols() {
-  try { return new Set(JSON.parse(localStorage.getItem('sema_hidden_cols') || '["obs","doe","dou","sei","esfera","link","area"]')); }
-  catch { return new Set(['obs','doe','dou','sei']); }
+  try { return new Set(JSON.parse(localStorage.getItem('sema_hidden_cols') || '[]')); }
+  catch { return new Set(); }
 }
 let _hiddenCols = _loadHiddenCols();
 
@@ -565,8 +641,15 @@ function parseDateFlexible(s) {
 }
 
 function computeStatusClientSide(r) {
+  const MANUAL = new Set(['em análise','aguardando assinatura','suspenso','encerrado','prazo indeterminado']);
   const termRaw = r.termino || '';
-  if (!termRaw) return r;
+  const stNorm  = normalizeStatus(r.status || '');
+  if (!termRaw) {
+    if (!r.status || /^#/.test(r.status))
+      return Object.assign({}, r, { status: 'Prazo Indeterminado', diasRestantes: '' });
+    return r;
+  }
+  if (MANUAL.has(stNorm)) return r;
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const end = parseDateFlexible(termRaw);
   if (!end || isNaN(end.getTime())) return r;
@@ -659,21 +742,23 @@ function renderAlerts() {
   const statusCol = _schema.find(c => c.key === 'status' || c.key === 'situacao');
   if (!statusCol) { bar.hidden = true; return; }
 
-  let urgentes = 0, expirados = 0;
+  let urgentes = 0, expirados = 0, analise = 0, aguardando = 0;
   _records.forEach(r => {
     const statusKey = normalizeStatus(r[statusCol.key]);
-    if (statusKey === 'vence em 30 dias') urgentes++;
-    else if (statusKey === 'expirado')    expirados++;
+    if (statusKey === 'vence em 30 dias')      urgentes++;
+    else if (statusKey === 'expirado')         expirados++;
+    else if (statusKey === 'em análise')       analise++;
+    else if (statusKey === 'aguardando assinatura') aguardando++;
   });
 
-  if (!urgentes && !expirados) { bar.hidden = true; return; }
+  if (!urgentes && !expirados && !analise && !aguardando) { bar.hidden = true; return; }
 
   const partes = [];
   if (urgentes)  partes.push(`<strong>${urgentes}</strong> acordo${urgentes !== 1 ? 's' : ''} vence${urgentes !== 1 ? 'm' : ''} em até 30 dias`);
   if (expirados) partes.push(`<strong>${expirados}</strong> já expirado${expirados !== 1 ? 's' : ''}`);
+  if (analise + aguardando > 0) partes.push(`<strong>${analise + aguardando}</strong> em análise/aguardando`);
   document.getElementById('alert-text').innerHTML = partes.join(' · ');
-  // Prioriza o filtro mais crítico ao clicar
-  bar.dataset.filter = urgentes ? 'Vence em 30 dias' : 'Expirado';
+  bar.dataset.filter = urgentes ? 'Vence em 30 dias' : (expirados ? 'Expirado' : (analise ? 'Em Análise' : 'Aguardando Assinatura'));
   bar.hidden = false;
 }
 
@@ -708,11 +793,16 @@ function renderKPIs() {
     if (instKey) { const v = String(r[instKey]||'').trim(); if (v) parcSet.add(v.toLowerCase()); }
   });
 
-  setText('kpi-vigente-num',  counts['vigente']          || 0);
-  setText('kpi-avencer-num',  counts['a vencer']         || 0);
-  setText('kpi-urgente-num',  counts['vence em 30 dias'] || 0);
-  setText('kpi-expirado-num', counts['expirado']         || 0);
-  setText('kpi-parceiros-num', parcSet.size);
+  setText('kpi-vigente-num',    counts['vigente']               || 0);
+  setText('kpi-avencer-num',    counts['a vencer']              || 0);
+  setText('kpi-urgente-num',    counts['vence em 30 dias']      || 0);
+  setText('kpi-expirado-num',   counts['expirado']              || 0);
+  setText('kpi-total-num',      _records.length);
+  setText('kpi-analise-num',    counts['em análise']            || 0);
+  setText('kpi-aguardando-num', counts['aguardando assinatura'] || 0);
+  setText('kpi-suspenso-num',   counts['suspenso']              || 0);
+  setText('kpi-encerrado-num',  counts['encerrado']             || 0);
+  setText('kpi-parceiros-num',  parcSet.size);
 }
 
 function applyFilters() {
@@ -853,7 +943,7 @@ function renderTable() {
       } else {
         cell = esc(raw);
       }
-      return `<td${tdCls}${tdTitle}>${cell}</td>`;
+      return `<td${tdCls}${tdTitle} data-label="${esc(col.label)}">${cell}</td>`;
     }).join('');
     return `<tr${rowCls} data-row-index="${start + i}">${cells}</tr>`;
   }).join('');
@@ -913,6 +1003,40 @@ function renderCharts() {
 
   if (anoCol)    _buildBarTimeline('chart-ano', 'chart-card-ano', anoCol.key);
   else           document.getElementById('chart-card-ano').style.display = 'none';
+
+  _buildVencimentos('chart-vencimentos', 'chart-card-vencimentos');
+}
+
+function _buildVencimentos(cid, cardId) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const months = {};
+  for (let m = 0; m < 12; m++) {
+    const d = new Date(today.getFullYear(), today.getMonth() + m, 1);
+    months[d.toISOString().slice(0, 7)] = 0;
+  }
+  _records.forEach(r => {
+    const end = parseDateFlexible(r.termino);
+    if (!end) return;
+    const key = end.toISOString().slice(0, 7);
+    if (key in months) months[key]++;
+  });
+  const labels = Object.keys(months).map(k => {
+    const [yr, mo] = k.split('-');
+    return new Date(+yr, +mo - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+  });
+  const data = Object.values(months);
+  document.getElementById(cardId).style.display = data.some(v => v > 0) ? 'block' : 'none';
+  if (!data.some(v => v > 0)) return;
+  _destroyChart(cid);
+  _charts[cid] = new Chart(document.getElementById(cid), {
+    type: 'bar',
+    data: { labels, datasets: [{ data, backgroundColor: '#095C18', borderRadius: 4 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+    },
+  });
 }
 
 function _showChartUnavailable(cards) {
@@ -1034,11 +1158,21 @@ function filterByStatus(st) {
   applyFilters();
 }
 function updateKPIActive() {
-  ['kpi-vigente','kpi-avencer','kpi-urgente','kpi-expirado'].forEach(id =>
-    document.getElementById(id).classList.remove('active'));
-  const map = { 'vigente':'kpi-vigente', 'a vencer':'kpi-avencer', 'vence em 30 dias':'kpi-urgente', 'expirado':'kpi-expirado' };
+  ['kpi-vigente','kpi-avencer','kpi-urgente','kpi-expirado','kpi-analise','kpi-aguardando','kpi-suspenso','kpi-encerrado'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.classList.remove('active');
+  });
+  const map = {
+    'vigente':               'kpi-vigente',
+    'a vencer':              'kpi-avencer',
+    'vence em 30 dias':      'kpi-urgente',
+    'expirado':              'kpi-expirado',
+    'em análise':            'kpi-analise',
+    'aguardando assinatura': 'kpi-aguardando',
+    'suspenso':              'kpi-suspenso',
+    'encerrado':             'kpi-encerrado',
+  };
   const statusKey = normalizeStatus(_kpiFilt);
-  if (statusKey && map[statusKey]) document.getElementById(map[statusKey]).classList.add('active');
+  if (statusKey && map[statusKey]) document.getElementById(map[statusKey])?.classList.add('active');
 }
 function clearFilters() {
   document.getElementById('search-input').value = '';
@@ -1067,6 +1201,26 @@ function exportCSV() {
   });
   a.click(); URL.revokeObjectURL(a.href);
   showToast(`${_filtered.length} registros exportados`);
+}
+
+/* ─── EXPORT XLSX ─────────────────────────────────────────────────────────── */
+function exportXLSX() {
+  if (!_filtered.length) { showToast('Nenhum dado para exportar'); return; }
+  if (typeof XLSX === 'undefined') { showToast('Biblioteca XLSX indisponível'); return; }
+  const rows = _filtered.map(r =>
+    Object.fromEntries(_schema.map(c => [c.label, String(r[c.key] || '')])));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'ACTs SEMA');
+  XLSX.writeFile(wb, `ACT_SEMA_${new Date().toISOString().slice(0,10)}.xlsx`);
+  showToast(`${_filtered.length} registros exportados em XLSX`);
+}
+
+/* ─── COPY LINK ───────────────────────────────────────────────────────────── */
+function copyLink() {
+  navigator.clipboard?.writeText(location.href)
+    .then(() => showToast('🔗 Link copiado!'))
+    .catch(() => { showToast('Copie manualmente: ' + location.href, 6000); });
 }
 
 /* ─── PRINT / PDF ─────────────────────────────────────────────────────────── */
@@ -1121,16 +1275,28 @@ function normalizeStatus(value) {
   if (st.includes('a vencer') || st.includes('vencer')) return 'a vencer';
   if (st.includes('expir') || st.includes('vencido')) return 'expirado';
   if (st.includes('vigente')) return 'vigente';
+  if (st.includes('analise') || st === 'em analise') return 'em an\u00e1lise';
+  if (st.includes('aguardando')) return 'aguardando assinatura';
+  if (st === 'suspenso') return 'suspenso';
+  if (st === 'encerrado') return 'encerrado';
+  if (st.includes('indeterminado') || st.includes('sem prazo') || st === 'prazo indeterminado') return 'prazo indeterminado';
   return st;
 }
 
 function statusBadge(st) {
   const statusKey = normalizeStatus(st);
-  let cls = 'badge-default';
-  if      (statusKey === 'vigente')          cls = 'badge-vigente';
-  else if (statusKey === 'vence em 30 dias') cls = 'badge-urgente';
-  else if (statusKey === 'a vencer')         cls = 'badge-avencer';
-  else if (statusKey === 'expirado')         cls = 'badge-expirado';
+  const badgeMap = {
+    'vigente':               'badge-vigente',
+    'a vencer':              'badge-avencer',
+    'vence em 30 dias':      'badge-urgente',
+    'expirado':              'badge-expirado',
+    'em análise':            'badge-analise',
+    'aguardando assinatura': 'badge-aguardando',
+    'suspenso':              'badge-suspenso',
+    'encerrado':             'badge-encerrado',
+    'prazo indeterminado':   'badge-prazo',
+  };
+  const cls = badgeMap[statusKey] || 'badge-default';
   return `<span class="badge ${cls}">${esc(st)}</span>`;
 }
 
@@ -1181,8 +1347,9 @@ function toggleColPanel(e) {
   const panel = document.getElementById('col-toggle-panel');
   if (!panel) return;
   panel.hidden = !panel.hidden;
+  document.getElementById('btn-col-toggle').setAttribute('aria-expanded', String(!panel.hidden));
   if (!panel.hidden) {
-    const close = () => { panel.hidden = true; document.removeEventListener('click', close); };
+    const close = () => { panel.hidden = true; document.getElementById('btn-col-toggle').setAttribute('aria-expanded', 'false'); document.removeEventListener('click', close); };
     setTimeout(() => document.addEventListener('click', close), 0);
   }
 }

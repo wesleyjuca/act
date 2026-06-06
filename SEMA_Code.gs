@@ -82,7 +82,7 @@ const HEADER_MAP = {
 
 const FORMULA_COLS = {
   status: (row, col) =>
-    `=IF(${col}${row}="";"";IF(TODAY()>${col}${row};"Expirado";IF(${col}${row}-TODAY()<=30;"Vence em 30 dias";IF(${col}${row}-TODAY()<=90;"A vencer";"Vigente"))))`,
+    `=IF(${col}${row}="";"Prazo Indeterminado";IF(TODAY()>${col}${row};"Expirado";IF(${col}${row}-TODAY()<=30;"Vence em 30 dias";IF(${col}${row}-TODAY()<=90;"A vencer";"Vigente"))))`,
 
   diasRestantes: (row, col) =>
     `=IF(${col}${row}="";"";${col}${row}-TODAY())`,
