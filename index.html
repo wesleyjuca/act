@@ -159,7 +159,7 @@ main { max-width: 1400px; margin: 0 auto; padding: 20px 16px; }
 .btn-outline:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
 
 /* TABLE */
-.table-wrap { overflow-x: auto; border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); }
+.table-wrap { overflow-x: auto; border-radius: var(--radius); box-shadow: var(--shadow); }
 table { width: 100%; border-collapse: collapse; background: var(--bg2); font-size: .855rem; }
 thead th {
   background: var(--accent); color: #fff; padding: 11px 14px; text-align: left;
@@ -172,15 +172,13 @@ thead th[aria-sort] .sort-arrow { opacity: 1; }
 tbody tr { border-bottom: 1px solid var(--border); transition: background .12s; }
 tbody tr:nth-child(even) { background: var(--row-alt); }
 tbody tr:hover { background: var(--accent-light); cursor: pointer; }
-@keyframes urgentPulse {
-  0%,100% { box-shadow: inset 3px 0 0 var(--red); }
-  50%      { box-shadow: inset 3px 0 0 var(--red), inset 0 0 0 1000px rgba(192,57,43,.05); }
-}
-tbody tr.row-urgent { animation: urgentPulse 2.5s ease-in-out infinite; }
-tbody tr.row-expirado { box-shadow: inset 3px 0 0 var(--text2); }
-tbody td { padding: 11px 14px; vertical-align: middle; }
+tbody tr.row-urgent   { background: rgba(192,57,43,.06); }
+tbody tr.row-urgent:hover { background: rgba(192,57,43,.10) !important; }
+tbody tr.row-expirado { opacity: .72; }
+tbody tr.row-expirado:hover { opacity: 1; }
+tbody td { padding: 10px 12px; vertical-align: middle; }
 td.num-cell { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-td.num-id   { font-weight: 600; font-family: ui-monospace, monospace; white-space: nowrap; color: var(--text); }
+td.num-id   { font-weight: 600; font-family: ui-monospace, monospace; white-space: nowrap; color: var(--text); text-align: center; }
 td.dias-cell { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
 .cell-link { color: var(--accent2); font-weight: 500; }
 .badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: .74rem; font-weight: 600; white-space: nowrap; }
@@ -227,18 +225,72 @@ td.dias-cell { text-align: right; font-variant-numeric: tabular-nums; font-weigh
 
 /* MODAL */
 #modal-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 300;
+  position: fixed; inset: 0; background: rgba(0,0,0,.52); z-index: 300;
   display: none; align-items: center; justify-content: center; padding: 16px;
+  backdrop-filter: blur(2px);
 }
 #modal-overlay.open { display: flex; }
-.modal { background: var(--bg2); border-radius: var(--radius); max-width: 700px; width: 100%; max-height: 85vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,.3); }
-.modal-header { padding: 20px 24px 0; display: flex; justify-content: space-between; align-items: flex-start; }
-.modal-header h2 { font-size: 1.1rem; font-weight: 600; }
-.modal-body { padding: 16px 24px 24px; }
-.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+@keyframes modalIn { from { transform: translateY(22px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.modal {
+  background: var(--bg2); border-radius: 14px; max-width: 680px; width: 100%;
+  max-height: 88vh; overflow-y: auto; box-shadow: 0 12px 48px rgba(0,0,0,.32);
+  animation: modalIn .18s ease;
+}
+.modal-header {
+  padding: 20px 20px 16px; display: flex; justify-content: space-between;
+  align-items: flex-start; gap: 12px; border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: var(--bg2); z-index: 1;
+}
+.modal-title-block { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1; min-width: 0; }
+.modal-badge-tipo {
+  background: var(--accent-light); color: var(--accent); border-radius: 4px;
+  font-size: .7rem; font-weight: 700; padding: 2px 8px; text-transform: uppercase;
+  letter-spacing: .06em; white-space: nowrap; flex-shrink: 0;
+}
+.modal-title { font-size: 1rem; font-weight: 700; line-height: 1.3; }
+.modal-close-btn { background: var(--border); color: var(--text2); border: none; border-radius: 6px; width: 32px; height: 32px; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background .15s; }
+.modal-close-btn:hover { background: var(--red-light); color: var(--red); }
+.modal-share {
+  display: flex; gap: 6px; align-items: center; padding: 10px 20px;
+  border-bottom: 1px solid var(--border); background: var(--row-alt); flex-wrap: wrap;
+}
+.modal-share button {
+  padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--bg2); color: var(--text); font-size: .78rem; cursor: pointer;
+  font-weight: 500; display: inline-flex; align-items: center; gap: 5px;
+  transition: background .15s, border-color .15s;
+}
+.modal-share button:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+.modal-share button:disabled { opacity: .4; cursor: default; }
+.modal-nav { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.modal-nav-info { font-size: .75rem; color: var(--text2); padding: 0 4px; white-space: nowrap; }
+.modal-body { padding: 16px 20px 24px; }
+.modal-section { margin-bottom: 20px; }
+.modal-section:last-child { margin-bottom: 0; }
+.modal-section-title {
+  font-size: .67rem; font-weight: 700; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--text2); margin-bottom: 10px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 6px;
+}
+.modal-section-title::before {
+  content: ''; display: inline-block; width: 3px; height: 11px;
+  background: var(--accent); border-radius: 2px; flex-shrink: 0;
+}
+.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 @media (max-width: 500px) { .field-grid { grid-template-columns: 1fr; } }
-.field-item label { font-size: .75rem; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .04em; display: block; margin-bottom: 2px; }
-.field-item .val { font-size: .9rem; word-break: break-word; }
+.field-item {
+  background: var(--row-alt); border-radius: 8px; padding: 10px 12px;
+  border: 1px solid var(--border);
+}
+.field-item.span-full { grid-column: 1 / -1; }
+.field-item label { font-size: .68rem; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .05em; display: block; margin-bottom: 4px; }
+.field-item .val { font-size: .88rem; word-break: break-word; line-height: 1.4; }
+.modal-link-btn {
+  display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px;
+  background: var(--accent-light); color: var(--accent); border-radius: 5px;
+  font-size: .82rem; font-weight: 600; text-decoration: none;
+}
+.modal-link-btn:hover { background: var(--accent); color: #fff; text-decoration: none; }
 
 /* TOAST */
 #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #222; color: #fff; padding: 10px 20px; border-radius: 20px; font-size: .88rem; z-index: 999; opacity: 0; transition: opacity .3s; pointer-events: none; white-space: nowrap; }
@@ -256,7 +308,8 @@ td.dias-cell { text-align: right; font-variant-numeric: tabular-nums; font-weigh
   thead tr { position: absolute; top: -9999px; left: -9999px; }
   tbody tr { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 12px; box-shadow: var(--shadow); overflow: hidden; }
   tbody tr:nth-child(even) { background: var(--bg2); }
-  tbody td { display: flex; justify-content: space-between; align-items: flex-start; padding: 9px 12px; border-bottom: 1px solid var(--border); gap: 8px; background: inherit; }
+  tbody td { display: flex; justify-content: space-between; align-items: flex-start; padding: 9px 12px; border-bottom: 1px solid var(--border); gap: 8px; background: inherit; white-space: normal; word-break: break-word; }
+  tbody td.cell-trunc, tbody td.cell-trunc-sm { max-width: none; overflow: visible; text-overflow: clip; white-space: normal; }
   tbody td:last-child { border-bottom: none; }
   tbody td[data-label]::before { content: attr(data-label); font-size: .7rem; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .05em; flex-shrink: 0; min-width: 100px; padding-top: 1px; }
   td.num-cell, td.dias-cell { text-align: left; }
@@ -281,8 +334,8 @@ td.dias-cell { text-align: right; font-variant-numeric: tabular-nums; font-weigh
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
 
 /* CELL TRUNCATION */
-td.cell-trunc    { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-td.cell-trunc-sm { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+td.cell-trunc    { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+td.cell-trunc-sm { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* DIAS RESTANTES PILL */
 .dias-pill           { display:inline-block; padding:3px 10px; border-radius:12px; font-size:.74rem; font-weight:700; letter-spacing:.02em; }
@@ -329,6 +382,12 @@ td.cell-trunc-sm { max-width: 150px; overflow: hidden; text-overflow: ellipsis; 
   .badge { border: 1px solid #999 !important; background: #fff !important; color: #000 !important; }
   .dias-pill { background: #fff !important; color: #000 !important; border: 1px solid #999 !important; }
   .cell-link { color: #000; }
+  /* Modal print */
+  #modal-overlay { position: static !important; display: block !important; background: none !important; padding: 0 !important; }
+  .modal { box-shadow: none !important; max-height: none !important; animation: none !important; border-radius: 0 !important; }
+  .modal-share, .modal-close-btn, .modal-nav { display: none !important; }
+  .modal-header { position: static !important; border-bottom: 2px solid #095C18 !important; }
+  .field-item { background: #f9f9f9 !important; border: 1px solid #ccc !important; }
 }
 </style>
 </head>
@@ -390,8 +449,9 @@ td.cell-trunc-sm { max-width: 150px; overflow: hidden; text-overflow: ellipsis; 
       <span class="summary-label">Instituições</span>
     </div>
     <div class="summary-div"></div>
-    <div class="summary-item summary-update">
-      <span id="summary-update-text" style="font-size:.8rem;color:var(--text2)">Carregando…</span>
+    <div class="summary-item">
+      <span class="summary-num" id="kpi-urgente-strip" style="color:var(--red)">–</span>
+      <span class="summary-label">Urgentes (30d)</span>
     </div>
   </div>
 
@@ -415,10 +475,6 @@ td.cell-trunc-sm { max-width: 150px; overflow: hidden; text-overflow: ellipsis; 
         <div class="kpi" id="kpi-urgente" data-color="red" role="button" tabindex="0" aria-label="Filtrar acordos que vencem em 30 dias" onclick="filterByStatus('Vence em 30 dias')">
           <div class="kpi-num" id="kpi-urgente-num">–</div>
           <div class="kpi-label">Urgente (30d)</div>
-        </div>
-        <div class="kpi" id="kpi-prazo" data-color="teal" role="button" tabindex="0" aria-label="Filtrar Prazo Indeterminado" onclick="filterByStatus('Prazo Indeterminado')">
-          <div class="kpi-num" id="kpi-prazo-num">–</div>
-          <div class="kpi-label">Prazo Indet.</div>
         </div>
       </div>
     </div>
@@ -520,12 +576,24 @@ td.cell-trunc-sm { max-width: 150px; overflow: hidden; text-overflow: ellipsis; 
 <div id="modal-overlay" onclick="onOverlayClick(event)" role="dialog" aria-modal="true" aria-labelledby="modal-title">
   <div class="modal" id="modal-box">
     <div class="modal-header">
-      <h2 id="modal-title">Detalhes</h2>
-      <button class="btn-icon" onclick="closeModal()" style="color:var(--text2);background:var(--border)">✕</button>
+      <div class="modal-title-block">
+        <span class="modal-badge-tipo" id="modal-tipo-badge" style="display:none"></span>
+        <h2 class="modal-title" id="modal-title">Detalhes</h2>
+        <span id="modal-status-badge"></span>
+      </div>
+      <button class="modal-close-btn" onclick="closeModal()" title="Fechar (Esc)">✕</button>
     </div>
-    <div class="modal-body">
-      <div class="field-grid" id="modal-fields"></div>
+    <div class="modal-share">
+      <button onclick="_shareWhatsApp()" title="Compartilhar no WhatsApp">📱 WhatsApp</button>
+      <button onclick="_shareCopyLink()" title="Copiar link direto para este registro">🔗 Copiar Link</button>
+      <button onclick="_shareModalPrint()" title="Imprimir / salvar como PDF">🖨 Imprimir</button>
+      <div class="modal-nav">
+        <button onclick="_modalPrev()" id="modal-prev" class="btn-icon" title="Registro anterior (←)" style="width:28px;height:28px;font-size:.9rem">‹</button>
+        <span class="modal-nav-info" id="modal-nav-info"></span>
+        <button onclick="_modalNext()" id="modal-next" class="btn-icon" title="Próximo registro (→)" style="width:28px;height:28px;font-size:.9rem">›</button>
+      </div>
     </div>
+    <div class="modal-body" id="modal-body"></div>
   </div>
 </div>
 
@@ -556,6 +624,7 @@ let _loading  = true;
 let _retryCount = 0;
 let _charts   = {};
 let _printAll = false;
+let _curModalIdx = -1;
 function _loadHiddenCols() {
   try { return new Set(JSON.parse(localStorage.getItem('sema_hidden_cols') || '[]')); }
   catch { return new Set(); }
@@ -708,15 +777,16 @@ async function syncAll() {
     buildFilterDefs();
     renderAll();
     setStatus('ok');
-    if (_records.length) {
-      document.title = `SEMA/AC — ACT (${_records.length} acordos)`;
-    } else {
-      document.title = 'SEMA/AC — ACT';
-    }
-    const now = new Date().toLocaleTimeString('pt-BR');
-    document.getElementById('last-update').textContent = 'Atualizado: ' + now;
-    const su = document.getElementById('summary-update-text');
-    if (su) su.textContent = 'Atualizado: ' + now;
+    document.title = _records.length ? `SEMA/AC — ACT (${_records.length} acordos)` : 'SEMA/AC — ACT';
+    document.getElementById('last-update').textContent = 'Atualizado: ' + new Date().toLocaleTimeString('pt-BR');
+    // Deep-link: abrir modal se ?detail= na URL
+    try {
+      const p = new URLSearchParams(location.search);
+      if (p.has('detail')) {
+        const di = parseInt(p.get('detail'), 10);
+        if (!isNaN(di) && di >= 0 && di < _filtered.length) openModal(di);
+      }
+    } catch {}
   } finally {
     loadingBar(100);
     setTimeout(() => loadingBar(0), 400);
@@ -901,9 +971,9 @@ function renderKPIs() {
   setText('kpi-aguardando-num', counts['aguardando assinatura'] || 0);
   setText('kpi-suspenso-num',   counts['suspenso']              || 0);
   setText('kpi-encerrado-num',  counts['encerrado']             || 0);
-  setText('kpi-prazo-num',      counts['prazo indeterminado']   || 0);
   setText('kpi-total-num',      _records.length);
   setText('kpi-parceiros-num',  parcSet.size);
+  setText('kpi-urgente-strip',  counts['vence em 30 dias']      || 0);
 }
 
 /* ─── FILTROS ─────────────────────────────────────────────────────────────── */
@@ -1234,34 +1304,151 @@ function _buildBarTimeline(cid, cardId, key) {
 }
 
 /* ─── MODAL ───────────────────────────────────────────────────────────────── */
+const _MODAL_SECTIONS = [
+  { title: 'Identificação',        keys: new Set(['tipo','num','objeto','inst','instituicao','instituição']) },
+  { title: 'Vigência',             keys: new Set(['inicio','termino','diasrestantes','status','situacao','prazoindeterminado']) },
+  { title: 'Publicação & Docs',    keys: new Set(['doe','dou','sei','link','dataassinatura','datapublicacao','data_assinatura','data_publicacao']) },
+  { title: 'Registro',             keys: new Set(['datacadastro','dataatualizacao','data_cadastro','data_atualizacao','responsavel','obs','observacao','observacoes']) },
+];
+const _MODAL_SPAN_FULL = new Set(['objeto','obs','observacao','observacoes']);
+
+function _normKey(k) { return k.replace(/_/g,'').toLowerCase(); }
+
 function openModal(idx) {
   const r = _filtered[idx];
   if (!r) return;
+  _curModalIdx = idx;
+
   const typeKey = findKey(['tipo','type']);
   const numKey  = findKey(['num','numero','número']);
-  const parts   = [typeKey && r[typeKey], numKey && r[numKey]].filter(Boolean);
-  document.getElementById('modal-title').textContent = parts.join(' ') || 'Detalhes';
+  const stKey   = findKey(['status','situacao']);
+  const tipo    = typeKey ? String(r[typeKey]  || '').trim() : '';
+  const num     = numKey  ? String(r[numKey]   || '').trim() : '';
+  const status  = stKey   ? String(r[stKey]    || '').trim() : '';
 
-  const html = _schema.map(col => {
-    const raw = String(r[col.key]||'').trim();
-    if (!raw) return '';
-    const kL = col.key.toLowerCase();
-    let val;
-    if (kL === 'status' || kL === 'situacao') val = statusBadge(raw);
-    else if (raw.startsWith('http')) val = `<a href="${esc(raw)}" target="_blank" rel="noopener">${esc(raw)}</a>`;
-    else if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) val = raw.split('-').reverse().join('/');
-    else val = esc(raw);
-    return `<div class="field-item"><label>${esc(col.label)}</label><div class="val">${val}</div></div>`;
-  }).filter(Boolean).join('');
+  // Header
+  const tipoBadgeEl = document.getElementById('modal-tipo-badge');
+  const titleEl     = document.getElementById('modal-title');
+  const stBadgeEl   = document.getElementById('modal-status-badge');
+  if (tipo) { tipoBadgeEl.textContent = tipo; tipoBadgeEl.style.display = ''; }
+  else       { tipoBadgeEl.style.display = 'none'; }
+  titleEl.textContent = num ? `Nº ${num}` : (tipo || 'Detalhes do Registro');
+  stBadgeEl.innerHTML = status ? statusBadge(status) : '';
 
-  document.getElementById('modal-fields').innerHTML = html || '<p style="color:var(--text2)">Sem dados</p>';
+  // Nav
+  document.getElementById('modal-nav-info').textContent = `${idx + 1} / ${_filtered.length}`;
+  document.getElementById('modal-prev').disabled = idx <= 0;
+  document.getElementById('modal-next').disabled = idx >= _filtered.length - 1;
+
+  // Mapear colunas em seções
+  const bySection = Array.from({ length: _MODAL_SECTIONS.length + 1 }, () => []);
+  _schema.forEach(col => {
+    const raw = String(r[col.key] || '').trim();
+    if (!raw) return;
+    const nk = _normKey(col.key);
+    let si = _MODAL_SECTIONS.findIndex(s => s.keys.has(nk) || s.keys.has(col.key));
+    if (si < 0) si = _MODAL_SECTIONS.length; // "Outros"
+    bySection[si].push({ col, raw, nk });
+  });
+
+  let html = '';
+  _MODAL_SECTIONS.forEach((sec, si) => {
+    const items = bySection[si];
+    if (!items.length) return;
+    html += `<div class="modal-section"><div class="modal-section-title">${esc(sec.title)}</div><div class="field-grid">`;
+    items.forEach(({ col, raw, nk }) => {
+      let val;
+      if (nk === 'status' || nk === 'situacao') {
+        val = statusBadge(raw);
+      } else if (nk === 'prazoindeterminado') {
+        val = raw === 'TRUE' ? '<span class="badge badge-prazo">Sim</span>' : '<span style="color:var(--text2)">Não</span>';
+      } else if (nk === 'diasrestantes') {
+        const n = parseInt(raw, 10);
+        if (!isNaN(n)) {
+          if      (n < 0)   val = `<span class="dias-pill pill-exp">${Math.abs(n)} dias vencido</span>`;
+          else if (n === 0) val = `<span class="dias-pill pill-urg">Vence hoje</span>`;
+          else if (n <= 30) val = `<span class="dias-pill pill-urg">${n} dias restantes</span>`;
+          else if (n <= 90) val = `<span class="dias-pill pill-warn">${n} dias restantes</span>`;
+          else              val = `<span class="dias-pill pill-ok">${n} dias restantes</span>`;
+        } else val = esc(raw);
+      } else if (raw.startsWith('http')) {
+        val = `<a class="modal-link-btn" href="${esc(raw)}" target="_blank" rel="noopener">Abrir →</a>`;
+      } else if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+        val = raw.split('-').reverse().join('/');
+      } else {
+        val = esc(raw);
+      }
+      const span = _MODAL_SPAN_FULL.has(nk) ? ' span-full' : '';
+      html += `<div class="field-item${span}"><label>${esc(col.label)}</label><div class="val">${val}</div></div>`;
+    });
+    html += `</div></div>`;
+  });
+  if (bySection[_MODAL_SECTIONS.length].length) {
+    html += `<div class="modal-section"><div class="modal-section-title">Outros</div><div class="field-grid">`;
+    bySection[_MODAL_SECTIONS.length].forEach(({ col, raw }) => {
+      html += `<div class="field-item"><label>${esc(col.label)}</label><div class="val">${esc(raw)}</div></div>`;
+    });
+    html += `</div></div>`;
+  }
+  document.getElementById('modal-body').innerHTML = html || `<p style="padding:16px;color:var(--text2)">Sem dados</p>`;
   document.getElementById('modal-overlay').classList.add('open');
+
+  // Atualizar URL com detail=idx
+  try {
+    const p = new URLSearchParams(location.search);
+    p.set('detail', idx);
+    history.replaceState(null, '', '?' + p.toString());
+  } catch {}
 }
 
-function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  _curModalIdx = -1;
+  try {
+    const p = new URLSearchParams(location.search);
+    p.delete('detail');
+    const str = p.toString();
+    history.replaceState(null, '', str ? '?' + str : location.pathname);
+  } catch {}
+}
 function onOverlayClick(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+function _modalPrev() { if (_curModalIdx > 0) openModal(_curModalIdx - 1); }
+function _modalNext() { if (_curModalIdx < _filtered.length - 1) openModal(_curModalIdx + 1); }
+
+function _shareWhatsApp() {
+  if (_curModalIdx < 0) return;
+  const r = _filtered[_curModalIdx];
+  if (!r) return;
+  const tipo   = String(r.tipo   || '').trim();
+  const num    = String(r.num    || '').trim();
+  const objeto = String(r.objeto || '').trim();
+  const inst   = String(r.inst   || '').trim();
+  const term   = String(r.termino|| '').trim();
+  const lines  = ['*SEMA/AC — Acordo de Cooperação Técnica*'];
+  if (tipo || num) lines.push(`*${[tipo, num ? 'Nº ' + num : ''].filter(Boolean).join(' ')}*`);
+  if (objeto)  lines.push(objeto.length > 120 ? objeto.slice(0, 120) + '…' : objeto);
+  if (inst)    lines.push('Instituição: ' + inst);
+  if (term)    lines.push('Término: ' + (/^\d{4}-\d{2}-\d{2}$/.test(term) ? term.split('-').reverse().join('/') : term));
+  window.open('https://wa.me/?text=' + encodeURIComponent(lines.join('\n')), '_blank');
+}
+
+function _shareCopyLink() {
+  const url = location.href.split('?')[0] + (_curModalIdx >= 0 ? `?detail=${_curModalIdx}` : '');
+  navigator.clipboard?.writeText(url)
+    .then(() => showToast('🔗 Link copiado!'))
+    .catch(() => showToast('Copie: ' + url, 6000));
+}
+
+function _shareModalPrint() { window.print(); }
+
 document.addEventListener('keydown', e => {
+  const modalOpen = document.getElementById('modal-overlay').classList.contains('open');
+  if (modalOpen) {
+    if (e.key === 'Escape')      { e.preventDefault(); closeModal(); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); _modalNext(); }
+    else if (e.key === 'ArrowLeft')  { e.preventDefault(); _modalPrev(); }
+  }
   if ((e.key === 'Enter' || e.key === ' ') && e.target.classList?.contains('kpi') && e.target.getAttribute('role') === 'button') {
     e.preventDefault(); e.target.click();
   }
@@ -1273,7 +1460,7 @@ function filterByStatus(st) {
   applyFilters();
 }
 function updateKPIActive() {
-  ['kpi-vigente','kpi-avencer','kpi-urgente','kpi-expirado','kpi-analise','kpi-aguardando','kpi-suspenso','kpi-encerrado','kpi-prazo'].forEach(id => {
+  ['kpi-vigente','kpi-avencer','kpi-urgente','kpi-expirado','kpi-analise','kpi-aguardando','kpi-suspenso','kpi-encerrado'].forEach(id => {
     const el = document.getElementById(id); if (el) el.classList.remove('active');
   });
   const map = {
@@ -1285,7 +1472,6 @@ function updateKPIActive() {
     'aguardando assinatura': 'kpi-aguardando',
     'suspenso':              'kpi-suspenso',
     'encerrado':             'kpi-encerrado',
-    'prazo indeterminado':   'kpi-prazo',
   };
   const statusKey = normalizeStatus(_kpiFilt);
   if (statusKey && map[statusKey]) document.getElementById(map[statusKey])?.classList.add('active');
@@ -1440,9 +1626,16 @@ function toggleTheme() {
 }
 
 /* ─── COLUMN TOGGLE ──────────────────────────────────────────────────────── */
+const _AUTO_HIDDEN_COLS = new Set(['prazoindeterminado']);
 function buildColToggle() {
   const panel = document.getElementById('col-toggle-panel');
   if (!panel || !_schema.length) return;
+  // Auto-ocultar colunas na primeira carga (se o usuário não tiver preferência salva)
+  const hasSaved = localStorage.getItem('sema_hidden_cols') !== null;
+  if (!hasSaved) {
+    _schema.forEach(c => { if (_AUTO_HIDDEN_COLS.has(c.key.replace(/_/g,'').toLowerCase())) _hiddenCols.add(c.key); });
+    try { localStorage.setItem('sema_hidden_cols', JSON.stringify([..._hiddenCols])); } catch {}
+  }
   panel.innerHTML = `<div class="ctp-title">Colunas visíveis</div>` +
     _schema.map(c =>
       `<label><input type="checkbox" data-col-key="${esc(c.key)}" ${_hiddenCols.has(c.key) ? '' : 'checked'}> ${esc(c.label)}</label>`
