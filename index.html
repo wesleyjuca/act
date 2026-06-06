@@ -14,11 +14,49 @@
   --red: #c0392b; --red-light: #fce4ec; --yellow: #d4860a; --blue: #1565c0;
   --radius: 10px; --shadow: 0 1px 4px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.04);
   --row-alt: #f7faf8; --header-h: 56px;
+  --header-bg: #095C18;
+  --logo-s-color: #1FAD35; --logo-d-color: #F5C71A;
+  --tbl-head-bg: #1a3a22; --tbl-head-text: #e8f5ec;
+  --tbl-head-border: #095C18; --tbl-head-hover: #2a5032;
 }
-[data-theme="dark"] {
+/* Tema: Noturno (escuro) */
+[data-theme="escuro"] {
   --bg: #0c0e14; --bg2: #161922; --border: #252a38; --text: #e4e9f4;
   --text2: #7a8aaa; --accent: #1aad3a; --accent2: #23d44e; --accent-light: #0a1f10;
   --red-light: #2d0a0a; --row-alt: #1a1d28;
+  --header-bg: #0a1f10;
+  --tbl-head-bg: #0f1a13; --tbl-head-text: #a8d8b0;
+  --tbl-head-border: #1aad3a; --tbl-head-hover: #172b1e;
+}
+/* Tema: Azul Institucional */
+[data-theme="azul"] {
+  --bg: #f0f4f8; --bg2: #fff; --border: #d0dde8; --text: #0d1b2a;
+  --text2: #4a6080; --accent: #1565c0; --accent2: #1976d2; --accent-light: #e3f2fd;
+  --red-light: #fce4ec; --row-alt: #f5f8fc;
+  --header-bg: #0d47a1;
+  --logo-s-color: #fff;
+  --tbl-head-bg: #0d47a1; --tbl-head-text: #e3f2fd;
+  --tbl-head-border: #1565c0; --tbl-head-hover: #1a56b0;
+}
+/* Tema: Carvão */
+[data-theme="carvao"] {
+  --bg: #212529; --bg2: #2c3036; --border: #404850; --text: #dee2e6;
+  --text2: #8a9ab5; --accent: #90caf9; --accent2: #bbdefb; --accent-light: #1a2535;
+  --red-light: #2d1515; --row-alt: #272c32;
+  --header-bg: #1a1d21;
+  --logo-s-color: #90caf9;
+  --tbl-head-bg: #1a1d21; --tbl-head-text: #90caf9;
+  --tbl-head-border: #404850; --tbl-head-hover: #22262b;
+}
+/* Tema: Alto Contraste */
+[data-theme="alto-contraste"] {
+  --bg: #fff; --bg2: #fff; --border: #000; --text: #000;
+  --text2: #333; --accent: #000; --accent2: #222; --accent-light: #f0f0f0;
+  --red: #c0392b; --red-light: #fce4ec; --row-alt: #f5f5f5;
+  --header-bg: #000;
+  --logo-s-color: #fff; --logo-d-color: #ff0;
+  --tbl-head-bg: #000; --tbl-head-text: #fff;
+  --tbl-head-border: #000; --tbl-head-hover: #222;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
@@ -27,17 +65,40 @@ a:hover { text-decoration: underline; }
 
 /* HEADER */
 header {
-  background: var(--accent); color: #fff; padding: 0 24px;
-  display: flex; align-items: center; gap: 16px; height: 56px;
+  background: var(--header-bg); color: #fff; padding: 0 24px;
+  display: flex; align-items: center; gap: 12px; height: 56px;
   position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 12px rgba(0,0,0,.28);
 }
 header h1 { font-size: 1rem; font-weight: 600; flex: 1; }
 header h1 small { font-weight: 400; opacity: .75; font-size: .8rem; display: block; }
 .sema-logo { display:flex; align-items:center; flex:1; gap:0; }
-.sl-s { font-size:22px; font-weight:900; color:#1FAD35; letter-spacing:-1px; }
-.sl-d { width:2px; height:28px; background:#F5C71A; margin:0 10px; flex-shrink:0; }
+.sl-s { font-size:22px; font-weight:900; color:var(--logo-s-color); letter-spacing:-1px; }
+.sl-d { width:2px; height:28px; background:var(--logo-d-color); margin:0 10px; flex-shrink:0; }
 .sl-f { display:flex; flex-direction:column; }
 .sl-f span { font-size:7.5px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; line-height:1.75; color:rgba(255,255,255,.78); display:block; }
+/* THEME PICKER */
+.theme-picker-wrap { position: relative; }
+.theme-picker {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 400;
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: 0 6px 28px rgba(0,0,0,.22); padding: 14px 16px; min-width: 210px;
+  color: var(--text);
+}
+.tp-label { font-size: .69rem; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px; }
+.tp-swatches { display: flex; gap: 10px; flex-wrap: wrap; }
+.tp-swatch {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 3px solid transparent; cursor: pointer;
+  transition: transform .15s, border-color .15s, box-shadow .15s;
+  outline: none; box-shadow: 0 1px 4px rgba(0,0,0,.2);
+}
+.tp-swatch:hover { transform: scale(1.18); box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+.tp-swatch.active { border-color: var(--text); transform: scale(1.1); }
+.tp-names { display: flex; flex-direction: column; gap: 2px; margin-top: 10px; }
+.tp-name-item { display: flex; align-items: center; gap: 8px; font-size: .78rem; padding: 5px 8px; border-radius: 6px; cursor: pointer; color: var(--text); transition: background .12s; }
+.tp-name-item:hover { background: var(--accent-light); }
+.tp-name-item.active { background: var(--accent-light); font-weight: 600; color: var(--accent); }
+.tp-name-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(0,0,0,.15); }
 .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #4caf50; box-shadow: 0 0 0 2px rgba(76,175,80,.3); transition: background .4s; }
 .status-dot.syncing { background: #ffc107; }
 .status-dot.error   { background: #f44336; }
@@ -162,12 +223,15 @@ main { max-width: 1400px; margin: 0 auto; padding: 20px 16px; }
 .table-wrap { overflow-x: auto; border-radius: var(--radius); box-shadow: var(--shadow); }
 table { width: 100%; border-collapse: collapse; background: var(--bg2); font-size: .855rem; }
 thead th {
-  background: var(--accent); color: #fff; padding: 11px 14px; text-align: left;
-  white-space: nowrap; font-weight: 600; font-size: .78rem; text-transform: uppercase;
-  letter-spacing: .04em; position: sticky; top: var(--header-h); cursor: pointer; user-select: none;
+  background: var(--tbl-head-bg); color: var(--tbl-head-text);
+  padding: 10px 12px; text-align: left;
+  white-space: nowrap; font-weight: 600; font-size: .76rem; text-transform: uppercase;
+  letter-spacing: .05em; position: sticky; top: var(--header-h);
+  cursor: pointer; user-select: none;
+  border-bottom: 2px solid var(--tbl-head-border); z-index: 10;
 }
-thead th:hover { background: var(--accent2); }
-thead th .sort-arrow { opacity: .55; font-size: .8em; margin-left: 3px; }
+thead th:hover { background: var(--tbl-head-hover); }
+thead th .sort-arrow { opacity: .45; font-size: .75em; margin-left: 4px; }
 thead th[aria-sort] .sort-arrow { opacity: 1; }
 tbody tr { border-bottom: 1px solid var(--border); transition: background .12s; }
 tbody tr:nth-child(even) { background: var(--row-alt); }
@@ -191,16 +255,18 @@ td.dias-cell { text-align: right; font-variant-numeric: tabular-nums; font-weigh
 .badge-aguardando{ background: #f3e5f5; color: #7b1fa2; }
 .badge-suspenso  { background: #fff8e1; color: #ef6c00; }
 .badge-encerrado { background: #eceff1; color: #455a64; border: 1px solid #cfd8dc; }
-.badge-prazo     { background: #e0f7fa; color: #00695c; }
-[data-theme="dark"] .badge-vigente   { background: #143a1f; color: #5fd97e; }
-[data-theme="dark"] .badge-avencer   { background: #3a2a0c; color: #f0b84a; }
-[data-theme="dark"] .badge-urgente   { background: #3a1218; color: #ff7a8a; }
-[data-theme="dark"] .badge-expirado  { background: #262a36; color: #9aa6bd; border-color: #39405220; }
-[data-theme="dark"] .badge-analise   { background: #0d2744; color: #64b5f6; }
-[data-theme="dark"] .badge-aguardando{ background: #2d1040; color: #ce93d8; }
-[data-theme="dark"] .badge-suspenso  { background: #3a2700; color: #ffb74d; }
-[data-theme="dark"] .badge-encerrado { background: #1c232e; color: #90a4ae; border-color: #37474f; }
-[data-theme="dark"] .badge-prazo     { background: #00282a; color: #4dd0e1; }
+.badge-prazo      { background: #e0f7fa; color: #00695c; }
+.badge-indefinido { background: #f5f5f5; color: #757575; border: 1px solid #e0e0e0; }
+[data-theme="escuro"] .badge-vigente,   [data-theme="carvao"] .badge-vigente   { background: #143a1f; color: #5fd97e; }
+[data-theme="escuro"] .badge-avencer,   [data-theme="carvao"] .badge-avencer   { background: #3a2a0c; color: #f0b84a; }
+[data-theme="escuro"] .badge-urgente,   [data-theme="carvao"] .badge-urgente   { background: #3a1218; color: #ff7a8a; }
+[data-theme="escuro"] .badge-expirado,  [data-theme="carvao"] .badge-expirado  { background: #262a36; color: #9aa6bd; border-color: #39405220; }
+[data-theme="escuro"] .badge-analise,   [data-theme="carvao"] .badge-analise   { background: #0d2744; color: #64b5f6; }
+[data-theme="escuro"] .badge-aguardando,[data-theme="carvao"] .badge-aguardando{ background: #2d1040; color: #ce93d8; }
+[data-theme="escuro"] .badge-suspenso,  [data-theme="carvao"] .badge-suspenso  { background: #3a2700; color: #ffb74d; }
+[data-theme="escuro"] .badge-encerrado, [data-theme="carvao"] .badge-encerrado { background: #1c232e; color: #90a4ae; border-color: #37474f; }
+[data-theme="escuro"] .badge-prazo,     [data-theme="carvao"] .badge-prazo     { background: #00282a; color: #4dd0e1; }
+[data-theme="escuro"] .badge-indefinido,[data-theme="carvao"] .badge-indefinido { background: #1e2230; color: #8a95aa; border-color: #2e3445; }
 .empty-state { text-align: center; padding: 60px 20px; color: var(--text2); }
 
 /* ALERTS */
@@ -343,10 +409,10 @@ td.cell-trunc-sm { max-width: 160px; overflow: hidden; text-overflow: ellipsis; 
 .dias-pill.pill-warn { background:#fff3e0; color:#a0580a; }
 .dias-pill.pill-urg  { background:#fce4ec; color:#b71c1c; }
 .dias-pill.pill-exp  { background:#f0f0f0; color:#666; border:1px solid #e0e0e0; }
-[data-theme="dark"] .dias-pill.pill-ok   { background:#143a1f; color:#5fd97e; }
-[data-theme="dark"] .dias-pill.pill-warn { background:#3a2a0c; color:#f0b84a; }
-[data-theme="dark"] .dias-pill.pill-urg  { background:#3a1218; color:#ff7a8a; }
-[data-theme="dark"] .dias-pill.pill-exp  { background:#262a36; color:#9aa6bd; border-color:#404858; }
+[data-theme="escuro"] .dias-pill.pill-ok,  [data-theme="carvao"] .dias-pill.pill-ok  { background:#143a1f; color:#5fd97e; }
+[data-theme="escuro"] .dias-pill.pill-warn,[data-theme="carvao"] .dias-pill.pill-warn { background:#3a2a0c; color:#f0b84a; }
+[data-theme="escuro"] .dias-pill.pill-urg, [data-theme="carvao"] .dias-pill.pill-urg  { background:#3a1218; color:#ff7a8a; }
+[data-theme="escuro"] .dias-pill.pill-exp, [data-theme="carvao"] .dias-pill.pill-exp  { background:#262a36; color:#9aa6bd; border-color:#404858; }
 
 /* COLUMN TOGGLE PANEL */
 .col-toggle-wrap { position:relative; }
@@ -404,7 +470,19 @@ td.cell-trunc-sm { max-width: 160px; overflow: hidden; text-overflow: ellipsis; 
   </div>
   <span id="last-update"></span>
   <button class="btn-icon" id="btn-refresh" title="Atualizar dados" onclick="manualRefresh()">🔄</button>
-  <button class="btn-icon" id="btn-theme" title="Alternar tema" onclick="toggleTheme()">🌙</button>
+  <div class="theme-picker-wrap">
+    <button class="btn-icon" id="btn-theme-picker" title="Escolher tema de cores" onclick="toggleThemePicker(event)">🎨</button>
+    <div class="theme-picker" id="theme-picker" hidden>
+      <div class="tp-label">Tema de cores</div>
+      <div class="tp-names" id="tp-names">
+        <div class="tp-name-item" data-theme="verde"          onclick="applyTheme('verde')">         <span class="tp-name-dot" style="background:#095C18"></span> Verde SEMA</div>
+        <div class="tp-name-item" data-theme="azul"           onclick="applyTheme('azul')">          <span class="tp-name-dot" style="background:#1565c0"></span> Azul Institucional</div>
+        <div class="tp-name-item" data-theme="escuro"         onclick="applyTheme('escuro')">        <span class="tp-name-dot" style="background:#1aad3a;border-color:#0c0e14;box-shadow:inset 0 0 0 6px #0c0e14"></span> Noturno</div>
+        <div class="tp-name-item" data-theme="carvao"         onclick="applyTheme('carvao')">        <span class="tp-name-dot" style="background:#2c3036;border-color:#404850"></span> Carvão</div>
+        <div class="tp-name-item" data-theme="alto-contraste" onclick="applyTheme('alto-contraste')"><span class="tp-name-dot" style="background:#000"></span> Alto Contraste</div>
+      </div>
+    </div>
+  </div>
 </header>
 
 <div id="error-banner" class="error-banner" hidden>
@@ -475,6 +553,10 @@ td.cell-trunc-sm { max-width: 160px; overflow: hidden; text-overflow: ellipsis; 
         <div class="kpi" id="kpi-urgente" data-color="red" role="button" tabindex="0" aria-label="Filtrar acordos que vencem em 30 dias" onclick="filterByStatus('Vence em 30 dias')">
           <div class="kpi-num" id="kpi-urgente-num">–</div>
           <div class="kpi-label">Urgente (30d)</div>
+        </div>
+        <div class="kpi" id="kpi-indefinido" data-color="gray" role="button" tabindex="0" aria-label="Filtrar Indefinidos" onclick="filterByStatus('Indefinido')">
+          <div class="kpi-num" id="kpi-indefinido-num">–</div>
+          <div class="kpi-label">Indefinidos</div>
         </div>
       </div>
     </div>
@@ -550,6 +632,7 @@ td.cell-trunc-sm { max-width: 160px; overflow: hidden; text-overflow: ellipsis; 
     <div class="toolbar-row">
       <select id="filter-col1" onchange="applyFilters()"><option value="">Todos os tipos</option></select>
       <select id="filter-col2" onchange="applyFilters()"><option value="">Todos os status</option></select>
+      <span id="filter-count" style="font-size:.8rem;color:var(--text2);white-space:nowrap"></span>
       <div class="toolbar-sep"></div>
       <button class="btn btn-outline" onclick="exportCSV()">⬇ CSV</button>
       <button class="btn btn-outline" onclick="exportXLSX()">⬇ XLSX</button>
@@ -808,8 +891,11 @@ function computeStatusClientSide(r) {
   const termRaw = r.termino || '';
   const stNorm  = normalizeStatus(r.status || '');
   if (!termRaw) {
-    if (!r.status || /^#/.test(r.status))
-      return Object.assign({}, r, { status: 'Prazo Indeterminado', diasRestantes: '' });
+    if (!r.status || /^#/.test(r.status)) {
+      const pi = String(r.prazoindeterminado || r.prazo_indeterminado || '').trim().toUpperCase();
+      const status = pi === 'TRUE' ? 'Prazo Indeterminado' : 'Indefinido';
+      return Object.assign({}, r, { status, diasRestantes: '' });
+    }
     return r;
   }
   if (MANUAL.has(stNorm)) return r;
@@ -966,6 +1052,7 @@ function renderKPIs() {
   setText('kpi-vigente-num',    counts['vigente']               || 0);
   setText('kpi-avencer-num',    counts['a vencer']              || 0);
   setText('kpi-urgente-num',    counts['vence em 30 dias']      || 0);
+  setText('kpi-indefinido-num', counts['indefinido']            || 0);
   setText('kpi-expirado-num',   counts['expirado']              || 0);
   setText('kpi-analise-num',    counts['em análise']            || 0);
   setText('kpi-aguardando-num', counts['aguardando assinatura'] || 0);
@@ -1003,6 +1090,10 @@ function applyFilters() {
   renderPagination();
   updateKPIActive();
   syncUrlState();
+  // Contador de filtro
+  const q2 = document.getElementById('search-input').value.trim();
+  const hasFilter = q2 || _kpiFilt || _filterDefs.some(({ id }) => { const el = document.getElementById(id); return el && el.value; });
+  setText('filter-count', hasFilter && _records.length ? `${_filtered.length} de ${_records.length}` : '');
 }
 
 /* ─── SORTING ─────────────────────────────────────────────────────────────── */
@@ -1460,13 +1551,14 @@ function filterByStatus(st) {
   applyFilters();
 }
 function updateKPIActive() {
-  ['kpi-vigente','kpi-avencer','kpi-urgente','kpi-expirado','kpi-analise','kpi-aguardando','kpi-suspenso','kpi-encerrado'].forEach(id => {
+  ['kpi-vigente','kpi-avencer','kpi-urgente','kpi-indefinido','kpi-expirado','kpi-analise','kpi-aguardando','kpi-suspenso','kpi-encerrado'].forEach(id => {
     const el = document.getElementById(id); if (el) el.classList.remove('active');
   });
   const map = {
     'vigente':               'kpi-vigente',
     'a vencer':              'kpi-avencer',
     'vence em 30 dias':      'kpi-urgente',
+    'indefinido':            'kpi-indefinido',
     'expirado':              'kpi-expirado',
     'em análise':            'kpi-analise',
     'aguardando assinatura': 'kpi-aguardando',
@@ -1573,6 +1665,7 @@ function normalizeStatus(value) {
   if (st === 'suspenso') return 'suspenso';
   if (st === 'encerrado') return 'encerrado';
   if (st.includes('indeterminado') || st.includes('sem prazo') || st === 'prazo indeterminado') return 'prazo indeterminado';
+  if (st === 'indefinido') return 'indefinido';
   return st;
 }
 
@@ -1588,6 +1681,7 @@ function statusBadge(st) {
     'suspenso':              'badge-suspenso',
     'encerrado':             'badge-encerrado',
     'prazo indeterminado':   'badge-prazo',
+    'indefinido':            'badge-indefinido',
   };
   const cls = badgeMap[statusKey] || 'badge-default';
   return `<span class="badge ${cls}">${esc(st)}</span>`;
@@ -1612,17 +1706,33 @@ function showToast(msg, dur=3000) {
   t.textContent = msg; t.style.opacity = '1';
   clearTimeout(_toastT); _toastT = setTimeout(() => { t.style.opacity = '0'; }, dur);
 }
-function loadTheme() {
-  const s = localStorage.getItem('sema_theme') || 'light';
-  document.documentElement.setAttribute('data-theme', s);
-  document.getElementById('btn-theme').textContent = s==='dark' ? '☀️' : '🌙';
+const THEME_NAMES = { verde: 'Verde SEMA', azul: 'Azul Institucional', escuro: 'Noturno', carvao: 'Carvão', 'alto-contraste': 'Alto Contraste' };
+
+function applyTheme(name) {
+  if (!THEME_NAMES[name]) name = 'verde';
+  document.documentElement.setAttribute('data-theme', name);
+  localStorage.setItem('sema_theme', name);
+  document.querySelectorAll('#tp-names .tp-name-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.theme === name);
+  });
 }
-function toggleTheme() {
-  const cur  = document.documentElement.getAttribute('data-theme') || 'light';
-  const next = cur === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  localStorage.setItem('sema_theme', next);
-  document.getElementById('btn-theme').textContent = next==='dark' ? '☀️' : '🌙';
+
+function loadTheme() {
+  let t = localStorage.getItem('sema_theme') || 'verde';
+  // Migrar valores antigos
+  if (t === 'dark' || t === 'light') t = t === 'dark' ? 'escuro' : 'verde';
+  applyTheme(t);
+}
+
+function toggleThemePicker(e) {
+  e && e.stopPropagation();
+  const p = document.getElementById('theme-picker');
+  if (!p) return;
+  p.hidden = !p.hidden;
+  if (!p.hidden) {
+    const close = () => { p.hidden = true; document.removeEventListener('click', close); };
+    setTimeout(() => document.addEventListener('click', close), 0);
+  }
 }
 
 /* ─── COLUMN TOGGLE ──────────────────────────────────────────────────────── */
