@@ -90,7 +90,7 @@ main { max-width: 1400px; margin: 0 auto; padding: 24px 16px; }
 
 /* TABLE */
 .table-wrap { overflow-x: auto; border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); }
-table { width: 100%; border-collapse: collapse; background: var(--bg2); font-size: .88rem; }
+table { width: 100%; border-collapse: collapse; background: var(--bg2); font-size: .855rem; }
 thead th {
   background: var(--accent); color: #fff; padding: 12px 14px; text-align: left;
   white-space: nowrap; font-weight: 600; font-size: .8rem; text-transform: uppercase;
@@ -108,8 +108,9 @@ tbody tr:hover { background: var(--accent-light); cursor: pointer; }
 }
 tbody tr.row-urgent { animation: urgentPulse 2.5s ease-in-out infinite; }
 tbody tr.row-expirado { box-shadow: inset 3px 0 0 var(--text2); }
-tbody td { padding: 11px 14px; vertical-align: middle; }
+tbody td { padding: 12px 14px; vertical-align: middle; }
 td.num-cell { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.num-id   { font-weight: 600; font-family: ui-monospace, monospace; white-space: nowrap; color: var(--text); }
 td.dias-cell { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
 td.dias-urgent { color: var(--red); }
 td.dias-warn   { color: var(--yellow); }
@@ -384,7 +385,7 @@ let _retryCount = 0;
 let _charts   = {};
 let _printAll = false;
 function _loadHiddenCols() {
-  try { return new Set(JSON.parse(localStorage.getItem('sema_hidden_cols') || '["obs","doe","dou","sei"]')); }
+  try { return new Set(JSON.parse(localStorage.getItem('sema_hidden_cols') || '["obs","doe","dou","sei","esfera","link","area"]')); }
   catch { return new Set(['obs','doe','dou','sei']); }
 }
 let _hiddenCols = _loadHiddenCols();
@@ -770,9 +771,9 @@ function renderTable() {
         const n = parseInt(raw, 10);
         tdCls = ' class="dias-cell"';
         if (raw === '' || isNaN(n)) {
-          cell = '<span class="cell-empty">—</span>';
+          cell = '';
         } else if (n < 0) {
-          cell = `<span class="dias-pill pill-exp">Expirado</span>`;
+          cell = `<span class="dias-pill pill-exp">${Math.abs(n)}d</span>`;
         } else if (n === 0) {
           cell = `<span class="dias-pill pill-urg">Hoje</span>`;
         } else if (n <= 30) {
@@ -790,16 +791,16 @@ function renderTable() {
         cell = raw.split('-').reverse().join('/'); tdCls = ' class="num-cell"';
 
       } else if (numKeys.has(kL)) {
-        cell = esc(raw) || '<span class="cell-empty">—</span>'; tdCls = ' class="num-cell"';
+        cell = esc(raw); tdCls = kL === 'num' ? ' class="num-id"' : ' class="num-cell"';
 
-      } else if (truncKeys.has(kL) && raw.length > 55) {
+      } else if (truncKeys.has(kL) && raw.length > 90) {
         cell = esc(raw); tdCls = ' class="cell-trunc"'; tdTitle = ` title="${esc(raw)}"`;
 
       } else if (truncSmKeys.has(kL) && raw.length > 32) {
         cell = esc(raw); tdCls = ' class="cell-trunc-sm"'; tdTitle = ` title="${esc(raw)}"`;
 
       } else {
-        cell = esc(raw) || '<span class="cell-empty">—</span>';
+        cell = esc(raw);
       }
       return `<td${tdCls}${tdTitle}>${cell}</td>`;
     }).join('');
