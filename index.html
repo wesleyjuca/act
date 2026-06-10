@@ -225,7 +225,7 @@ table { width: 100%; border-collapse: collapse; background: var(--bg2); font-siz
 thead th {
   background: var(--tbl-head-bg); color: var(--tbl-head-text);
   padding: 10px 12px; text-align: left;
-  white-space: nowrap; font-weight: 600; font-size: .76rem; text-transform: uppercase;
+  white-space: nowrap; min-width: 72px; font-weight: 600; font-size: .76rem; text-transform: uppercase;
   letter-spacing: .05em; position: sticky; top: 0;
   cursor: pointer; user-select: none;
   border-bottom: 2px solid var(--tbl-head-border); z-index: 10;
@@ -432,34 +432,87 @@ thead th[draggable="true"]:active { cursor: grabbing; }
 thead th.col-dragging { opacity: .45; }
 thead th.col-drag-over { background: var(--tbl-head-hover); box-shadow: inset 3px 0 0 var(--tbl-head-text); }
 
+/* TABLET */
+@media (min-width: 641px) and (max-width: 1023px) {
+  table { font-size: .78rem; }
+  thead th { padding: 8px 8px; font-size: .7rem; white-space: normal; word-break: break-word; min-width: 60px; }
+  tbody td { padding: 7px 8px; }
+  .table-wrap { max-height: calc(100vh - var(--header-h) - 30px); }
+}
+
 /* PRINT / PDF */
 #print-header { display: none; }
 @media print {
-  @page { margin: 14mm; size: landscape; }
-  body { background: #fff; color: #000; }
-  header, #loading-bar, #error-banner, #toast, .toolbar, .charts-section,
-  .pagination, #modal-overlay, .alert-bar, .kpi-section, .summary-strip,
-  .section-header { display: none !important; }
-  main { max-width: none; padding: 0; }
-  #print-header { display: block; margin-bottom: 12px; border-bottom: 2px solid #095C18; padding-bottom: 8px; }
-  #print-header h1 { font-size: 16px; color: #095C18; }
-  #print-header .meta { font-size: 11px; color: #444; margin-top: 4px; }
-  .table-wrap { overflow: visible; box-shadow: none; border: none; border-radius: 0; }
-  table { font-size: 10px; }
+  @page { margin: 10mm; size: landscape; }
+  body { background: #fff !important; color: #000 !important; }
+
+  /* ── IMPRESSÃO DA TABELA (padrão — modal fechado ou não é print do modal) ── */
+  body:not(.printing-modal) header,
+  body:not(.printing-modal) #loading-bar,
+  body:not(.printing-modal) #error-banner,
+  body:not(.printing-modal) #toast,
+  body:not(.printing-modal) .toolbar,
+  body:not(.printing-modal) .charts-section,
+  body:not(.printing-modal) .pagination,
+  body:not(.printing-modal) .alert-bar,
+  body:not(.printing-modal) .kpi-section,
+  body:not(.printing-modal) .summary-strip,
+  body:not(.printing-modal) .section-header { display: none !important; }
+  body:not(.printing-modal) main { max-width: none; padding: 0; }
+  body:not(.printing-modal) #print-header { display: block; margin-bottom: 10px; border-bottom: 2px solid #095C18; padding-bottom: 6px; }
+  body:not(.printing-modal) #print-header h1 { font-size: 14px; color: #095C18; }
+  body:not(.printing-modal) #print-header .meta { font-size: 10px; color: #444; margin-top: 3px; }
+  /* Modal sempre oculto no print da tabela */
+  body:not(.printing-modal) #modal-overlay { display: none !important; }
+
+  /* ── IMPRESSÃO DO MODAL (ACT aberto) ── */
+  body.printing-modal main,
+  body.printing-modal header,
+  body.printing-modal #loading-bar,
+  body.printing-modal #error-banner,
+  body.printing-modal #toast,
+  body.printing-modal .toolbar,
+  body.printing-modal .charts-section,
+  body.printing-modal .pagination,
+  body.printing-modal .alert-bar,
+  body.printing-modal .kpi-section,
+  body.printing-modal .summary-strip,
+  body.printing-modal .section-header { display: none !important; }
+  body.printing-modal #modal-overlay:not(.open) { display: none !important; }
+  body.printing-modal #modal-overlay.open {
+    position: static !important; display: block !important;
+    background: none !important; padding: 0 !important;
+    align-items: flex-start !important; justify-content: flex-start !important;
+  }
+  body.printing-modal .modal {
+    box-shadow: none !important; max-height: none !important;
+    animation: none !important; border-radius: 0 !important;
+    max-width: 100% !important; width: 100% !important;
+  }
+  body.printing-modal .modal-share,
+  body.printing-modal .modal-close-btn,
+  body.printing-modal .modal-nav { display: none !important; }
+  body.printing-modal .modal-header { position: static !important; border-bottom: 2px solid #095C18 !important; }
+  body.printing-modal .field-item { background: #f9f9f9 !important; border: 1px solid #ccc !important; }
+
+  /* ── TABELA — layout compacto para caber em A4 landscape ── */
+  .table-wrap { overflow: visible !important; max-height: none !important; height: auto !important; box-shadow: none !important; border: none !important; border-radius: 0 !important; }
   thead { display: table-header-group; }
-  thead th { position: static; background: #095C18 !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 6px 8px; }
+  table { font-size: 8px !important; table-layout: auto !important; width: 100% !important; border-collapse: collapse !important; }
+  thead th {
+    position: static !important; padding: 4px 5px !important;
+    white-space: normal !important; word-break: break-word !important; min-width: 0 !important;
+    background: #095C18 !important; color: #fff !important;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    font-size: 7.5px !important; border-bottom: 1px solid #095C18 !important;
+  }
   tbody tr { border-bottom: 1px solid #ccc; page-break-inside: avoid; }
   tbody tr:nth-child(even) { background: #f2f2f2 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  tbody td { padding: 5px 8px; }
-  .badge { border: 1px solid #999 !important; background: #fff !important; color: #000 !important; }
-  .dias-pill { background: #fff !important; color: #000 !important; border: 1px solid #999 !important; }
-  .cell-link { color: #000; }
-  /* Modal print */
-  #modal-overlay { position: static !important; display: block !important; background: none !important; padding: 0 !important; }
-  .modal { box-shadow: none !important; max-height: none !important; animation: none !important; border-radius: 0 !important; }
-  .modal-share, .modal-close-btn, .modal-nav { display: none !important; }
-  .modal-header { position: static !important; border-bottom: 2px solid #095C18 !important; }
-  .field-item { background: #f9f9f9 !important; border: 1px solid #ccc !important; }
+  tbody td { padding: 3px 5px !important; white-space: normal !important; word-break: break-word !important; }
+  .cell-trunc, .cell-trunc-sm { max-width: none !important; overflow: visible !important; text-overflow: clip !important; white-space: normal !important; }
+  .badge { border: 1px solid #999 !important; background: #fff !important; color: #000 !important; font-size: 7px !important; padding: 1px 4px !important; }
+  .dias-pill { background: #fff !important; color: #000 !important; border: 1px solid #999 !important; font-size: 7px !important; }
+  .cell-link { color: #000 !important; text-decoration: none !important; }
 }
 </style>
 </head>
@@ -1587,7 +1640,16 @@ function _shareCopyLink() {
     .catch(() => showToast('Copie: ' + url, 6000));
 }
 
-function _shareModalPrint() { window.print(); }
+function _shareModalPrint() {
+  document.body.classList.add('printing-modal');
+  const restore = () => {
+    document.body.classList.remove('printing-modal');
+    window.removeEventListener('afterprint', restore);
+  };
+  window.addEventListener('afterprint', restore);
+  window.print();
+  setTimeout(() => { if (document.body.classList.contains('printing-modal')) restore(); }, 1500);
+}
 
 document.addEventListener('keydown', e => {
   const modalOpen = document.getElementById('modal-overlay').classList.contains('open');
@@ -1674,6 +1736,8 @@ function copyLink() {
 /* ─── PRINT / PDF ─────────────────────────────────────────────────────────── */
 function printReport() {
   if (!_filtered.length) { showToast('Nenhum dado para imprimir'); return; }
+  const overlay = document.getElementById('modal-overlay');
+  if (overlay && overlay.classList.contains('open')) closeModal();
   const filtros = [];
   const q = document.getElementById('search-input').value.trim();
   if (q) filtros.push(`busca: "${q}"`);
