@@ -605,6 +605,10 @@ thead th.col-drag-over { background: var(--tbl-head-hover); box-shadow: inset 3p
           <div class="kpi-num" id="kpi-indefinido-num">–</div>
           <div class="kpi-label">Indefinidos</div>
         </div>
+        <div class="kpi" id="kpi-prazo" data-color="teal" role="button" tabindex="0" aria-label="Filtrar Prazo Indeterminado" onclick="filterByStatus('Prazo Indeterminado')">
+          <div class="kpi-num" id="kpi-prazo-num">–</div>
+          <div class="kpi-label">Prazo Indet.</div>
+        </div>
       </div>
     </div>
     <!-- Grupo: Em Processo -->
@@ -680,6 +684,7 @@ thead th.col-drag-over { background: var(--tbl-head-hover); box-shadow: inset 3p
       <select id="filter-col1" onchange="applyFilters()"><option value="">Todos os tipos</option></select>
       <select id="filter-col2" onchange="applyFilters()"><option value="">Todos os status</option></select>
       <span id="filter-count" style="font-size:.8rem;color:var(--text2);white-space:nowrap"></span>
+      <button id="kpi-btn-fav" class="btn btn-outline" onclick="filterFavorites()" title="Ver apenas favoritos">⭐ Favoritos</button>
       <div class="toolbar-sep"></div>
       <button class="btn btn-outline" onclick="exportCSV()">⬇ CSV</button>
       <button class="btn btn-outline" onclick="exportXLSX()">⬇ XLSX</button>
@@ -714,6 +719,7 @@ thead th.col-drag-over { background: var(--tbl-head-hover); box-shadow: inset 3p
       <button class="modal-close-btn" onclick="closeModal()" title="Fechar (Esc)">✕</button>
     </div>
     <div class="modal-share">
+      <button id="modal-btn-fav" onclick="toggleFavorite(_filtered[_curModalIdx]?._favKey)" title="Adicionar/remover dos favoritos">☆ Favoritar</button>
       <button onclick="_shareWhatsApp()" title="Compartilhar no WhatsApp">📱 WhatsApp</button>
       <button onclick="_shareCopyLink()" title="Copiar link direto para este registro">🔗 Copiar Link</button>
       <button onclick="_shareModalPrint()" title="Imprimir / salvar como PDF">🖨 Imprimir</button>
@@ -745,7 +751,7 @@ let GAS_URL = 'https://script.google.com/macros/s/SEU_SCRIPT_ID/exec';
 const POLL_MS    = 60_000;
 const CACHE_KEY  = 'sema_data_v2';
 const CACHE_TTL  = 5 * 60 * 1000;
-const RETRY_DELAYS = [5000, 15000, 30000, 60000];
+const RETRY_DELAYS = [20000, 30000, 60000, 120000];
 const CHART_COLORS = ['#1FAD35','#F5C71A','#E05B3A','#3B82F6','#8B5CF6','#EC4899','#14B8A6','#F97316'];
 
 // Colunas âncora — registro válido somente se ao menos uma tiver conteúdo
@@ -777,6 +783,11 @@ function _loadColOrder() {
 }
 let _colOrder = _loadColOrder();
 let _dragColKey = null;
+let _lastSyncTime = null;
+let _favorites = (function() {
+  try { return new Set(JSON.parse(localStorage.getItem('sema_favorites') || '[]')); }
+  catch { return new Set(); }
+})();
 
 /* ─── INICIALIZAÇÃO ───────────────────────────────────────────────────────── */
 function init() {
@@ -953,11 +964,18 @@ async function syncAll() {
     else if (Array.isArray(schemaRes.publicColumns))
       _schema = schemaRes.publicColumns.map(k => ({ key: k, label: k }));
 
+    const prevLen = _records.length;
     if (Array.isArray(listRes.records)) {
       // Defense-in-depth: filtrar linhas fantasma mesmo que o GAS já tenha filtrado
+      const SEARCH_KEYS = ['tipo','num','objeto','inst','status','termino','inicio','sei','doe','dou','obs'];
       _records = listRes.records
         .filter(r => ANCHOR_KEYS.some(k => r[k] && String(r[k]).trim()))
-        .map(computeStatusClientSide);
+        .map(r => {
+          const base = computeStatusClientSide(r);
+          base._searchStr = SEARCH_KEYS.map(k => String(base[k] || '')).join(' ').toLowerCase();
+          base._favKey = String(base.tipo||'') + '|' + String(base.num||'') + '|' + String(base.objeto||'').slice(0,30);
+          return base;
+        });
     }
 
     _loading = false;
@@ -965,8 +983,13 @@ async function syncAll() {
     buildFilterDefs();
     renderAll();
     setStatus('ok');
-    document.title = _records.length ? `SEMA/AC — ACT (${_records.length} acordos)` : 'SEMA/AC — ACT';
-    document.getElementById('last-update').textContent = 'Atualizado: ' + new Date().toLocaleTimeString('pt-BR');
+    _lastSyncTime = Date.now();
+    updateTimestamp();
+    if (prevLen > 0 && _records.length !== prevLen) {
+      showToast(`✓ Dados atualizados — ${_records.length} registros`);
+    } else if (prevLen > 0) {
+      showToast('✓ Dados verificados', 2000);
+    }
     // Deep-link: abrir modal se ?detail= na URL
     try {
       const p = new URLSearchParams(location.search);
@@ -1158,6 +1181,7 @@ function renderKPIs() {
   setText('kpi-avencer-num',    counts['a vencer']              || 0);
   setText('kpi-urgente-num',    counts['vence em 30 dias']      || 0);
   setText('kpi-indefinido-num', counts['indefinido']            || 0);
+  setText('kpi-prazo-num',      counts['prazo indeterminado']   || 0);
   setText('kpi-expirado-num',   counts['expirado']              || 0);
   setText('kpi-analise-num',    counts['em análise']            || 0);
   setText('kpi-aguardando-num', counts['aguardando assinatura'] || 0);
@@ -1166,6 +1190,11 @@ function renderKPIs() {
   setText('kpi-total-num',      _records.length);
   setText('kpi-parceiros-num',  parcSet.size);
   setText('kpi-urgente-strip',  counts['vence em 30 dias']      || 0);
+
+  const urgentes = counts['vence em 30 dias'] || 0;
+  document.title = urgentes
+    ? `⚠️ ${urgentes} urgentes — SEMA/AC ACT`
+    : (_records.length ? `SEMA/AC — ACT (${_records.length} acordos)` : 'SEMA/AC — ACT');
 }
 
 /* ─── FILTROS ─────────────────────────────────────────────────────────────── */
@@ -1178,13 +1207,19 @@ function applyFilters() {
       const sel = document.getElementById(id);
       if (sel && sel.value && String(r[key]||'').trim() !== sel.value) return false;
     }
-    if (_kpiFilt) {
+    if (_kpiFilt === '__favorites__') {
+      if (!_favorites.has(r._favKey)) return false;
+    } else if (_kpiFilt) {
       const statusCol = _schema.find(c => c.key === 'status' || c.key === 'situacao');
       if (!statusCol) return false;
       if (normalizeStatus(r[statusCol.key]) !== normalizeStatus(_kpiFilt)) return false;
     }
     if (q) {
-      if (!Object.values(r).join(' ').toLowerCase().includes(q)) return false;
+      if (r._searchStr) {
+        if (!r._searchStr.includes(q)) return false;
+      } else {
+        if (!Object.values(r).join(' ').toLowerCase().includes(q)) return false;
+      }
     }
     return true;
   });
@@ -1256,13 +1291,17 @@ function renderTable() {
 
   if (!rows.length) {
     const isEmpty = _records.length === 0;
-    const ico = isEmpty ? '📋' : '📭';
+    const isFav = _kpiFilt === '__favorites__';
+    const ico = isEmpty ? '📋' : (isFav ? '⭐' : '📭');
     const msg = isEmpty
       ? 'Não existem ACTs cadastrados.'
-      : 'Nenhum registro encontrado para os filtros aplicados.';
+      : (isFav ? 'Nenhum favorito marcado ainda. Abra um registro e clique em ⭐.' : 'Nenhum registro encontrado para os filtros aplicados.');
+    const action = (!isEmpty)
+      ? `<button onclick="clearFilters()" class="btn btn-outline" style="margin-top:12px">✕ Limpar filtros</button>`
+      : '';
     tbody.innerHTML = `<tr><td colspan="${visSchema.length}" class="empty-state">
       <div style="font-size:2rem;margin-bottom:8px">${ico}</div>
-      <div>${msg}</div>
+      <div>${msg}</div>${action}
     </td></tr>`;
     return;
   }
@@ -1488,7 +1527,7 @@ function _buildBarH(cid, cardId, key) {
 
 function _buildBarTimeline(cid, cardId, key) {
   const byYear = {};
-  _filtered.forEach(r => {
+  _records.forEach(r => {
     const v = String(r[key]||''), yr = v.match(/^(\d{4})/)?.[1];
     if (yr && yr >= '2015') byYear[yr] = (byYear[yr]||0) + 1;
   });
@@ -1592,6 +1631,7 @@ function openModal(idx) {
   }
   document.getElementById('modal-body').innerHTML = html || `<p style="padding:16px;color:var(--text2)">Sem dados</p>`;
   document.getElementById('modal-overlay').classList.add('open');
+  _updateModalFavBtn();
 
   // Atualizar URL com detail=idx
   try {
@@ -1634,7 +1674,11 @@ function _shareWhatsApp() {
 }
 
 function _shareCopyLink() {
-  const url = location.href.split('?')[0] + (_curModalIdx >= 0 ? `?detail=${_curModalIdx}` : '');
+  const p = new URLSearchParams(location.search);
+  p.delete('detail');
+  if (_curModalIdx >= 0) p.set('detail', _curModalIdx);
+  const str = p.toString();
+  const url = location.href.split('?')[0] + (str ? '?' + str : '');
   navigator.clipboard?.writeText(url)
     .then(() => showToast('🔗 Link copiado!'))
     .catch(() => showToast('Copie: ' + url, 6000));
@@ -1658,6 +1702,10 @@ document.addEventListener('keydown', e => {
     else if (e.key === 'ArrowRight') { e.preventDefault(); _modalNext(); }
     else if (e.key === 'ArrowLeft')  { e.preventDefault(); _modalPrev(); }
   }
+  if (!modalOpen && e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+    e.preventDefault();
+    document.getElementById('search-input').focus();
+  }
   if ((e.key === 'Enter' || e.key === ' ') && e.target.classList?.contains('kpi') && e.target.getAttribute('role') === 'button') {
     e.preventDefault(); e.target.click();
   }
@@ -1669,14 +1717,19 @@ function filterByStatus(st) {
   applyFilters();
 }
 function updateKPIActive() {
-  ['kpi-vigente','kpi-avencer','kpi-urgente','kpi-indefinido','kpi-expirado','kpi-analise','kpi-aguardando','kpi-suspenso','kpi-encerrado'].forEach(id => {
+  ['kpi-vigente','kpi-avencer','kpi-urgente','kpi-indefinido','kpi-prazo','kpi-expirado','kpi-analise','kpi-aguardando','kpi-suspenso','kpi-encerrado','kpi-btn-fav'].forEach(id => {
     const el = document.getElementById(id); if (el) el.classList.remove('active');
   });
+  if (_kpiFilt === '__favorites__') {
+    document.getElementById('kpi-btn-fav')?.classList.add('active');
+    return;
+  }
   const map = {
     'vigente':               'kpi-vigente',
     'a vencer':              'kpi-avencer',
     'vence em 30 dias':      'kpi-urgente',
     'indefinido':            'kpi-indefinido',
+    'prazo indeterminado':   'kpi-prazo',
     'expirado':              'kpi-expirado',
     'em análise':            'kpi-analise',
     'aguardando assinatura': 'kpi-aguardando',
@@ -1703,8 +1756,9 @@ function csvEscape(value) {
 function exportCSV() {
   if (!_filtered.length) { showToast('Nenhum dado para exportar'); return; }
   const sep = ';';
-  const header = _schema.map(c => csvEscape(c.label)).join(sep);
-  const rows   = _filtered.map(r => _schema.map(c => csvEscape(r[c.key])).join(sep));
+  const visSchema = _schema.filter(c => !_hiddenCols.has(c.key));
+  const header = visSchema.map(c => csvEscape(c.label)).join(sep);
+  const rows   = _filtered.map(r => visSchema.map(c => csvEscape(r[c.key])).join(sep));
   const blob = new Blob(['﻿' + [header,...rows].join('\r\n')], { type: 'text/csv;charset=utf-8' });
   const a = Object.assign(document.createElement('a'), {
     href: URL.createObjectURL(blob),
@@ -1718,7 +1772,8 @@ function exportCSV() {
 function exportXLSX() {
   if (!_filtered.length) { showToast('Nenhum dado para exportar'); return; }
   if (typeof XLSX === 'undefined') { showToast('Biblioteca XLSX indisponível'); return; }
-  const rows = _filtered.map(r => Object.fromEntries(_schema.map(c => [c.label, String(r[c.key] || '')])));
+  const visSchema = _schema.filter(c => !_hiddenCols.has(c.key));
+  const rows = _filtered.map(r => Object.fromEntries(visSchema.map(c => [c.label, String(r[c.key] || '')])));
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'ACTs SEMA');
@@ -1838,8 +1893,10 @@ function applyTheme(name) {
 }
 
 function loadTheme() {
-  let t = localStorage.getItem('sema_theme') || 'verde';
-  // Migrar valores antigos
+  let t = localStorage.getItem('sema_theme');
+  if (!t) {
+    t = window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'escuro' : 'verde';
+  }
   if (t === 'dark' || t === 'light') t = t === 'dark' ? 'escuro' : 'verde';
   applyTheme(t);
 }
@@ -1932,6 +1989,43 @@ function readUrlState() {
     if (p.has('status')) _kpiFilt = p.get('status');
     if (p.has('sort'))   { _sortCol = p.get('sort'); _sortAsc = p.get('asc') !== '0'; }
   } catch {}
+}
+
+/* ─── TIMESTAMP ──────────────────────────────────────────────────────────── */
+function updateTimestamp() {
+  const el = document.getElementById('last-update');
+  if (!el || !_lastSyncTime) return;
+  const mins = Math.round((Date.now() - _lastSyncTime) / 60000);
+  el.textContent = mins < 1 ? 'Atualizado: agora' : `Atualizado: ${mins}min atrás`;
+  el.style.color = mins > 5 ? 'rgba(255,200,100,.9)' : 'rgba(255,255,255,.8)';
+}
+setInterval(updateTimestamp, 30000);
+
+/* ─── FAVORITOS ──────────────────────────────────────────────────────────── */
+function _saveFavorites() {
+  try { localStorage.setItem('sema_favorites', JSON.stringify([..._favorites])); } catch {}
+}
+function toggleFavorite(favKey) {
+  if (_favorites.has(favKey)) {
+    _favorites.delete(favKey);
+    showToast('⭐ Removido dos favoritos');
+  } else {
+    _favorites.add(favKey);
+    showToast('⭐ Adicionado aos favoritos');
+  }
+  _saveFavorites();
+  _updateModalFavBtn();
+  if (_kpiFilt === '__favorites__') applyFilters();
+}
+function filterFavorites() {
+  _kpiFilt = _kpiFilt === '__favorites__' ? '' : '__favorites__';
+  applyFilters();
+}
+function _updateModalFavBtn() {
+  if (_curModalIdx < 0 || !_filtered[_curModalIdx]) return;
+  const r = _filtered[_curModalIdx];
+  const btn = document.getElementById('modal-btn-fav');
+  if (btn) btn.textContent = _favorites.has(r._favKey) ? '★ Favorito' : '☆ Favoritar';
 }
 
 /* ─── START ───────────────────────────────────────────────────────────────── */
