@@ -131,34 +131,35 @@ main { max-width: 1400px; margin: 0 auto; padding: 22px 20px; }
 
 /* SECTION HEADER */
 .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; margin-top: 6px; }
-.section-title { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text2); }
+.section-title { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text2); }
 
 /* SUMMARY STRIP */
 .summary-strip {
   display: flex; align-items: stretch;
   background: var(--bg2); border: 1px solid var(--border);
-  border-radius: var(--radius-lg); padding: 0;
+  border-radius: var(--radius); padding: 0;
   margin-bottom: 22px; box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
 .summary-item {
   display: flex; flex-direction: column; align-items: center;
-  justify-content: center; flex: 1; padding: 20px 16px;
+  justify-content: center; flex: 1; padding: 18px 16px;
 }
-.summary-num { font-size: 2.4rem; font-weight: 800; color: var(--accent); line-height: 1; letter-spacing: -.02em; }
-.summary-label { font-size: .7rem; color: var(--text2); text-transform: uppercase; letter-spacing: .08em; margin-top: 6px; font-weight: 500; }
+.summary-num { font-size: 2rem; font-weight: 800; color: var(--accent); line-height: 1; letter-spacing: -.02em; }
+.summary-label { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .07em; margin-top: 4px; font-weight: 600; }
 .summary-div { width: 1px; background: var(--border); align-self: stretch; }
 .summary-update { font-size: .8rem; color: var(--text2); flex: 2; }
 
 /* KPI SECTION — 3 grupos */
 .kpi-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 16px; margin-bottom: 28px; }
-.kpi-group { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; box-shadow: var(--shadow-sm); }
+.kpi-group { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 0; box-shadow: var(--shadow-sm); overflow: hidden; }
 .kpi-group-label {
-  font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em;
-  color: var(--text2); padding-bottom: 12px; margin-bottom: 12px;
-  border-bottom: 1px solid var(--border);
+  background: var(--tbl-head-bg); color: var(--tbl-head-text);
+  font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .07em;
+  padding: 10px 14px;
+  border-bottom: 2px solid var(--tbl-head-border);
 }
-.kpi-group-cards { display: flex; flex-wrap: wrap; gap: 8px; }
+.kpi-group-cards { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px; }
 
 /* KPI CARD */
 .kpi {
@@ -168,7 +169,7 @@ main { max-width: 1400px; margin: 0 auto; padding: 22px 20px; }
   transition: var(--transition), transform .12s ease, box-shadow .12s ease;
   background: var(--bg);
 }
-.kpi:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+.kpi:hover { transform: none; box-shadow: none; background: var(--accent-light); border-left-color: var(--accent); }
 .kpi[data-color="green"]  { border-left-color: #16a34a; }
 .kpi[data-color="yellow"] { border-left-color: #d97706; }
 .kpi[data-color="red"]    { border-left-color: #dc2626; }
@@ -202,12 +203,14 @@ main { max-width: 1400px; margin: 0 auto; padding: 22px 20px; }
 #chart-card-ano         { grid-column: 1 / -1; }
 .chart-card {
   background: var(--bg2); border: 1px solid var(--border);
-  border-radius: var(--radius-lg); padding: 20px 22px; box-shadow: var(--shadow-sm);
+  border-radius: var(--radius); padding: 20px 22px; box-shadow: var(--shadow-sm);
 }
 .chart-title {
-  font-size: .75rem; font-weight: 700; color: var(--text);
-  text-transform: none; letter-spacing: 0;
-  margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+  font-size: .72rem; font-weight: 700; color: var(--text2);
+  text-transform: uppercase; letter-spacing: .07em;
+  padding-bottom: 12px; margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
 }
 .chart-title::before {
   content: ''; display: inline-block; width: 3px; height: 14px;
@@ -223,16 +226,21 @@ main { max-width: 1400px; margin: 0 auto; padding: 22px 20px; }
 }
 
 /* TOOLBAR — 2 linhas */
-.toolbar { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+.toolbar {
+  display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-sm);
+  padding: 12px 14px;
+}
 .toolbar-search { width: 100%; }
 .toolbar-search input[type="search"] {
   width: 100%; padding: 11px 18px; border: 1.5px solid var(--border);
-  border-radius: var(--radius); background: var(--bg2); color: var(--text);
+  border-radius: var(--radius-sm); background: var(--bg); color: var(--text);
   font-size: .92rem; outline: none; transition: border-color .2s, box-shadow .2s;
-  font-family: var(--font-sans); box-shadow: var(--shadow-xs);
+  font-family: var(--font-sans); box-shadow: none;
 }
 .toolbar-search input[type="search"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(9,92,24,.1); }
-.toolbar-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.toolbar-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; border-top: 1px solid var(--border); padding-top: 8px; }
 .toolbar-row select {
   padding: 7px 10px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
   background: var(--bg2); color: var(--text); font-size: .84rem; cursor: pointer;
@@ -709,7 +717,7 @@ thead th.col-drag-over { background: var(--tbl-head-hover); box-shadow: inset 3p
   <div class="toolbar">
     <div class="toolbar-search">
       <label for="search-input" class="visually-hidden">Buscar acordos</label>
-      <input type="search" id="search-input" placeholder="🔍 Buscar em qualquer campo…" oninput="onSearchInput()" aria-label="Buscar acordos">
+      <input type="search" id="search-input" placeholder="Buscar em qualquer campo…" oninput="onSearchInput()" aria-label="Buscar acordos">
     </div>
     <div class="toolbar-row">
       <select id="filter-col1" onchange="applyFilters()"><option value="">Todos os tipos</option></select>
