@@ -399,6 +399,8 @@ td.dias-cell { text-align: right; font-variant-numeric: tabular-nums; font-weigh
 
 /* TOAST */
 #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #0f172a; color: #f8fafc; padding: 10px 20px; border-radius: 24px; font-size: .84rem; font-weight: 500; z-index: 999; opacity: 0; transition: opacity .25s; pointer-events: none; white-space: nowrap; box-shadow: var(--shadow-lg); border: 1px solid rgba(255,255,255,.08); }
+#toast.toast-error   { background: #991b1b; border-color: rgba(255,255,255,.12); }
+#toast.toast-success { background: #166534; border-color: rgba(255,255,255,.12); }
 
 /* PAGINATION */
 .pagination { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 16px 0; font-size: .84rem; color: var(--text2); }
@@ -437,6 +439,12 @@ td.dias-cell { text-align: right; font-variant-numeric: tabular-nums; font-weigh
 
 /* ACCESSIBILITY */
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+/* Skip link — visível apenas ao receber foco via teclado */
+.skip-link { position: absolute; left: 8px; top: -52px; z-index: 1000; background: var(--accent); color: #fff; padding: 9px 16px; border-radius: var(--radius-sm); font-size: .85rem; font-weight: 600; box-shadow: var(--shadow-md); transition: top .15s ease; }
+.skip-link:focus { top: 8px; outline: none; }
+/* Foco visível consistente para navegação por teclado (não afeta clique do mouse) */
+a:focus-visible, button:focus-visible, select:focus-visible, [role="button"]:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-sm); }
+.kpi:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* CELL TRUNCATION */
 td.cell-trunc    { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -556,6 +564,7 @@ thead th.col-drag-over { background: var(--tbl-head-hover); box-shadow: inset 3p
 </style>
 </head>
 <body>
+<a href="#main-content" class="skip-link">Pular para o conteúdo</a>
 
 <div id="loading-bar"></div>
 
@@ -579,7 +588,7 @@ thead th.col-drag-over { background: var(--tbl-head-hover); box-shadow: inset 3p
   <details id="setup-guide" style="width:100%;margin-top:.5rem" hidden>
     <summary style="cursor:pointer;font-weight:600;font-size:.85rem">⚙️ Guia de configuração do Google Apps Script</summary>
     <ol style="font-size:.82rem;margin:.5rem 0 0 1.2rem;line-height:1.8">
-      <li>Abra o <a href="https://script.google.com" target="_blank" style="color:inherit">Apps Script Editor</a> e cole o conteúdo de <code>SEMA_Code.gs</code></li>
+      <li>Abra o <a href="https://script.google.com" target="_blank" rel="noopener noreferrer" style="color:inherit">Apps Script Editor</a> e cole o conteúdo de <code>SEMA_Code.gs</code></li>
       <li>Execute a função <code>criarPlanilhaModelo()</code> — cria a aba <code>ACT - PAINEL PUBLICO</code></li>
       <li>Implante como Aplicativo da Web com acesso <strong>"Qualquer pessoa"</strong></li>
       <li>Cole a URL do Web App (<code>/exec</code>) em <code>js/config.js</code> → <code>appsScriptUrl</code></li>
@@ -589,7 +598,7 @@ thead th.col-drag-over { background: var(--tbl-head-hover); box-shadow: inset 3p
 
 <div id="toast"></div>
 
-<main>
+<main id="main-content">
   <div id="print-header">
     <h1>SEMA/AC — Acordos de Cooperação Técnica</h1>
     <div class="meta" id="print-meta"></div>
@@ -621,7 +630,7 @@ thead th.col-drag-over { background: var(--tbl-head-hover); box-shadow: inset 3p
 
   <!-- KPI SECTION -->
   <div class="section-header">
-    <span class="section-title">Indicadores</span>
+    <h2 class="section-title">Indicadores</h2>
   </div>
   <div class="kpi-section" id="kpi-section" style="display:none">
     <!-- Grupo: Ativos -->
@@ -687,7 +696,7 @@ thead th.col-drag-over { background: var(--tbl-head-hover); box-shadow: inset 3p
   <!-- CHARTS -->
   <div class="charts-section" id="charts-section" style="display:none">
     <div class="section-header">
-      <span class="section-title">Análise Visual</span>
+      <h2 class="section-title">Análise Visual</h2>
     </div>
     <div class="charts-grid">
       <div class="chart-card" id="chart-card-vencimentos" style="display:none">
@@ -812,20 +821,26 @@ let _charts   = {};
 let _printAll = false;
 let _curModalIdx = -1;
 function _loadHiddenCols() {
-  try { return new Set(JSON.parse(localStorage.getItem('sema_hidden_cols') || '[]')); }
-  catch { return new Set(); }
+  try {
+    const v = JSON.parse(localStorage.getItem('sema_hidden_cols') || '[]');
+    return new Set(Array.isArray(v) ? v.filter(x => typeof x === 'string') : []);
+  } catch { return new Set(); }
 }
 let _hiddenCols = _loadHiddenCols();
 function _loadColOrder() {
-  try { return JSON.parse(localStorage.getItem('sema_col_order') || 'null') || null; }
-  catch { return null; }
+  try {
+    const v = JSON.parse(localStorage.getItem('sema_col_order') || 'null');
+    return Array.isArray(v) ? v.filter(x => typeof x === 'string') : null;
+  } catch { return null; }
 }
 let _colOrder = _loadColOrder();
 let _dragColKey = null;
 let _lastSyncTime = null;
 let _favorites = (function() {
-  try { return new Set(JSON.parse(localStorage.getItem('sema_favorites') || '[]')); }
-  catch { return new Set(); }
+  try {
+    const v = JSON.parse(localStorage.getItem('sema_favorites') || '[]');
+    return new Set(Array.isArray(v) ? v.filter(x => typeof x === 'string') : []);
+  } catch { return new Set(); }
 })();
 
 /* ─── INICIALIZAÇÃO ───────────────────────────────────────────────────────── */
@@ -1719,8 +1734,8 @@ function _shareCopyLink() {
   const str = p.toString();
   const url = location.href.split('?')[0] + (str ? '?' + str : '');
   navigator.clipboard?.writeText(url)
-    .then(() => showToast('🔗 Link copiado!'))
-    .catch(() => showToast('Copie: ' + url, 6000));
+    .then(() => showToast('🔗 Link copiado!', 3000, 'success'))
+    .catch(() => showToast('Copie: ' + url, 6000, 'error'));
 }
 
 function _shareModalPrint() {
@@ -1793,7 +1808,7 @@ function csvEscape(value) {
 }
 
 function exportCSV() {
-  if (!_filtered.length) { showToast('Nenhum dado para exportar'); return; }
+  if (!_filtered.length) { showToast('Nenhum dado para exportar', 3000, 'error'); return; }
   const sep = ';';
   const visSchema = _schema.filter(c => !_hiddenCols.has(c.key));
   const header = visSchema.map(c => csvEscape(c.label)).join(sep);
@@ -1804,32 +1819,32 @@ function exportCSV() {
     download: `TCT_SEMA_${new Date().toISOString().slice(0,10)}.csv`,
   });
   a.click(); URL.revokeObjectURL(a.href);
-  showToast(`${_filtered.length} registros exportados`);
+  showToast(`${_filtered.length} registros exportados`, 3000, 'success');
 }
 
 /* ─── EXPORT XLSX ─────────────────────────────────────────────────────────── */
 function exportXLSX() {
-  if (!_filtered.length) { showToast('Nenhum dado para exportar'); return; }
-  if (typeof XLSX === 'undefined') { showToast('Biblioteca XLSX indisponível'); return; }
+  if (!_filtered.length) { showToast('Nenhum dado para exportar', 3000, 'error'); return; }
+  if (typeof XLSX === 'undefined') { showToast('Biblioteca XLSX indisponível', 3000, 'error'); return; }
   const visSchema = _schema.filter(c => !_hiddenCols.has(c.key));
   const rows = _filtered.map(r => Object.fromEntries(visSchema.map(c => [c.label, String(r[c.key] || '')])));
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'ACTs SEMA');
   XLSX.writeFile(wb, `ACT_SEMA_${new Date().toISOString().slice(0,10)}.xlsx`);
-  showToast(`${_filtered.length} registros exportados em XLSX`);
+  showToast(`${_filtered.length} registros exportados em XLSX`, 3000, 'success');
 }
 
 /* ─── COPY LINK ───────────────────────────────────────────────────────────── */
 function copyLink() {
   navigator.clipboard?.writeText(location.href)
-    .then(() => showToast('🔗 Link copiado!'))
-    .catch(() => { showToast('Copie manualmente: ' + location.href, 6000); });
+    .then(() => showToast('🔗 Link copiado!', 3000, 'success'))
+    .catch(() => { showToast('Copie manualmente: ' + location.href, 6000, 'error'); });
 }
 
 /* ─── PRINT / PDF ─────────────────────────────────────────────────────────── */
 function printReport() {
-  if (!_filtered.length) { showToast('Nenhum dado para imprimir'); return; }
+  if (!_filtered.length) { showToast('Nenhum dado para imprimir', 3000, 'error'); return; }
   const overlay = document.getElementById('modal-overlay');
   if (overlay && overlay.classList.contains('open')) closeModal();
   const filtros = [];
@@ -1915,9 +1930,12 @@ function loadingBar(pct) {
   b.style.opacity = pct > 0 && pct < 100 ? '1' : '0';
 }
 let _toastT;
-function showToast(msg, dur=3000) {
+function showToast(msg, dur=3000, type='') {
   const t = document.getElementById('toast');
   t.textContent = msg; t.style.opacity = '1';
+  t.classList.remove('toast-error', 'toast-success');
+  if (type === 'error')   t.classList.add('toast-error');
+  if (type === 'success') t.classList.add('toast-success');
   clearTimeout(_toastT); _toastT = setTimeout(() => { t.style.opacity = '0'; }, dur);
 }
 const THEME_NAMES = { verde: 'Verde SEMA', azul: 'Azul Institucional', escuro: 'Noturno', carvao: 'Carvão', 'alto-contraste': 'Alto Contraste' };
