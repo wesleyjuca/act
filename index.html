@@ -28,6 +28,11 @@
   --logo-s-color: #22c55e; --logo-d-color: #fbbf24;
   --tbl-head-bg: #0f2d18; --tbl-head-text: #dcfce7;
   --tbl-head-border: #166534; --tbl-head-hover: #1a3d21;
+  /* Cores semânticas de status — fonte única (badges, KPIs e gráficos) */
+  --st-vigente: #16a34a;   --st-avencer: #d97706;   --st-urgente: #dc2626;
+  --st-expirado: #991b1b;  --st-analise: #2563eb;   --st-aguardando: #7c3aed;
+  --st-suspenso: #ea580c;  --st-encerrado: #64748b; --st-prazo: #0d9488;
+  --st-indefinido: #94a3b8;
 }
 /* Tema: Noturno (escuro) */
 [data-theme="escuro"] {
@@ -38,6 +43,10 @@
   --logo-s-color: #4ade80;
   --tbl-head-bg: #0d1a10; --tbl-head-text: #bbf7d0;
   --tbl-head-border: #166534; --tbl-head-hover: #14291a;
+  --st-vigente: #4ade80;   --st-avencer: #fbbf24;   --st-urgente: #f87171;
+  --st-expirado: #fca5a5;  --st-analise: #93c5fd;   --st-aguardando: #c4b5fd;
+  --st-suspenso: #fdba74;  --st-encerrado: #94a3b8; --st-prazo: #2dd4bf;
+  --st-indefinido: #94a3b8;
 }
 /* Tema: Azul Institucional */
 [data-theme="azul"] {
@@ -58,6 +67,10 @@
   --logo-s-color: #93c5fd;
   --tbl-head-bg: #141720; --tbl-head-text: #bfdbfe;
   --tbl-head-border: #2d3748; --tbl-head-hover: #1a1f2e;
+  --st-vigente: #4ade80;   --st-avencer: #fbbf24;   --st-urgente: #f87171;
+  --st-expirado: #fca5a5;  --st-analise: #93c5fd;   --st-aguardando: #c4b5fd;
+  --st-suspenso: #fdba74;  --st-encerrado: #94a3b8; --st-prazo: #2dd4bf;
+  --st-indefinido: #94a3b8;
 }
 /* Tema: Alto Contraste */
 [data-theme="alto-contraste"] {
@@ -169,25 +182,21 @@ main { max-width: 1400px; margin: 0 auto; padding: 22px 20px; }
   transition: var(--transition), transform .12s ease, box-shadow .12s ease;
   background: var(--bg);
 }
-.kpi:hover { transform: none; box-shadow: none; background: var(--accent-light); border-left-color: var(--accent); }
-.kpi[data-color="green"]  { border-left-color: #16a34a; }
-.kpi[data-color="yellow"] { border-left-color: #d97706; }
-.kpi[data-color="red"]    { border-left-color: #dc2626; }
-.kpi[data-color="teal"]   { border-left-color: #0d9488; }
-.kpi[data-color="blue"]   { border-left-color: #2563eb; }
-.kpi[data-color="purple"] { border-left-color: #7c3aed; }
-.kpi[data-color="orange"] { border-left-color: #ea580c; }
-.kpi[data-color="gray"]   { border-left-color: #94a3b8; }
+.kpi:hover { transform: none; box-shadow: none; background: var(--accent-light); }
+/* Cor semântica de cada KPI — mesma fonte única de status */
+.kpi[data-color="green"]    { --kpi-c: var(--st-vigente); }
+.kpi[data-color="yellow"]   { --kpi-c: var(--st-avencer); }
+.kpi[data-color="red"]      { --kpi-c: var(--st-urgente); }
+.kpi[data-color="expirado"] { --kpi-c: var(--st-expirado); }
+.kpi[data-color="teal"]     { --kpi-c: var(--st-prazo); }
+.kpi[data-color="blue"]     { --kpi-c: var(--st-analise); }
+.kpi[data-color="purple"]   { --kpi-c: var(--st-aguardando); }
+.kpi[data-color="orange"]   { --kpi-c: var(--st-suspenso); }
+.kpi[data-color="gray"]     { --kpi-c: var(--st-indefinido); }
+.kpi[data-color="slate"]    { --kpi-c: var(--st-encerrado); }
+.kpi[data-color] { border-left-color: var(--kpi-c, var(--border)); }
 /* Active state: mantém a cor semântica de cada card */
-.kpi.active                          { box-shadow: var(--shadow-sm); }
-.kpi[data-color="green"].active      { background: #f0fdf4; border-left-color: #16a34a; }
-.kpi[data-color="yellow"].active     { background: #fffbeb; border-left-color: #d97706; }
-.kpi[data-color="red"].active        { background: #fef2f2; border-left-color: #dc2626; }
-.kpi[data-color="teal"].active       { background: #f0fdfa; border-left-color: #0d9488; }
-.kpi[data-color="blue"].active       { background: #eff6ff; border-left-color: #2563eb; }
-.kpi[data-color="purple"].active     { background: #faf5ff; border-left-color: #7c3aed; }
-.kpi[data-color="orange"].active     { background: #fff7ed; border-left-color: #ea580c; }
-.kpi[data-color="gray"].active       { background: #f8fafc; border-left-color: #94a3b8; }
+.kpi.active { box-shadow: var(--shadow-sm); border-left-color: var(--kpi-c, var(--accent)); background: color-mix(in srgb, var(--kpi-c, var(--accent)) 10%, var(--bg2)); }
 .kpi-num { font-size: 1.8rem; font-weight: 800; line-height: 1.1; color: var(--text); letter-spacing: -.02em; }
 .kpi-label { font-size: .71rem; color: var(--text2); margin-top: 3px; line-height: 1.3; font-weight: 500; }
 
@@ -283,27 +292,17 @@ td.dias-cell { text-align: right; font-variant-numeric: tabular-nums; font-weigh
 /* BADGES */
 .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px 3px 8px; border-radius: 20px; font-size: .75rem; font-weight: 600; white-space: nowrap; }
 .badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: .75; flex-shrink: 0; }
-.badge-vigente   { background: #dcfce7; color: #15803d; }
-.badge-avencer   { background: #fef3c7; color: #92400e; }
-.badge-urgente   { background: #fee2e2; color: #b91c1c; }
-.badge-expirado  { background: #fef2f2; color: #dc2626; }
+.badge-vigente   { background: color-mix(in srgb, var(--st-vigente) 15%, var(--bg2));    color: var(--st-vigente); }
+.badge-avencer   { background: color-mix(in srgb, var(--st-avencer) 15%, var(--bg2));    color: var(--st-avencer); }
+.badge-urgente   { background: color-mix(in srgb, var(--st-urgente) 15%, var(--bg2));    color: var(--st-urgente); }
+.badge-expirado  { background: color-mix(in srgb, var(--st-expirado) 15%, var(--bg2));   color: var(--st-expirado); }
 .badge-default   { background: var(--accent-light); color: var(--accent); }
-.badge-analise   { background: #dbeafe; color: #1d4ed8; }
-.badge-aguardando{ background: #f3e8ff; color: #6d28d9; }
-.badge-suspenso  { background: #ffedd5; color: #c2410c; }
-.badge-encerrado { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
-.badge-prazo     { background: #ccfbf1; color: #0f766e; }
-.badge-indefinido{ background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; }
-[data-theme="escuro"] .badge-vigente,   [data-theme="carvao"] .badge-vigente   { background: #14532d; color: #4ade80; }
-[data-theme="escuro"] .badge-avencer,   [data-theme="carvao"] .badge-avencer   { background: #451a03; color: #fbbf24; }
-[data-theme="escuro"] .badge-urgente,   [data-theme="carvao"] .badge-urgente   { background: #450a0a; color: #f87171; }
-[data-theme="escuro"] .badge-expirado,  [data-theme="carvao"] .badge-expirado  { background: #450a0a; color: #fca5a5; }
-[data-theme="escuro"] .badge-analise,   [data-theme="carvao"] .badge-analise   { background: #1e3a8a; color: #93c5fd; }
-[data-theme="escuro"] .badge-aguardando,[data-theme="carvao"] .badge-aguardando{ background: #2e1065; color: #c4b5fd; }
-[data-theme="escuro"] .badge-suspenso,  [data-theme="carvao"] .badge-suspenso  { background: #431407; color: #fdba74; }
-[data-theme="escuro"] .badge-encerrado, [data-theme="carvao"] .badge-encerrado { background: #1e293b; color: #94a3b8; border-color: #334155; }
-[data-theme="escuro"] .badge-prazo,     [data-theme="carvao"] .badge-prazo     { background: #042f2e; color: #2dd4bf; }
-[data-theme="escuro"] .badge-indefinido,[data-theme="carvao"] .badge-indefinido{ background: #1e293b; color: #94a3b8; border-color: #334155; }
+.badge-analise   { background: color-mix(in srgb, var(--st-analise) 15%, var(--bg2));    color: var(--st-analise); }
+.badge-aguardando{ background: color-mix(in srgb, var(--st-aguardando) 15%, var(--bg2)); color: var(--st-aguardando); }
+.badge-suspenso  { background: color-mix(in srgb, var(--st-suspenso) 15%, var(--bg2));   color: var(--st-suspenso); }
+.badge-encerrado { background: color-mix(in srgb, var(--st-encerrado) 15%, var(--bg2));  color: var(--st-encerrado); border: 1px solid var(--border); }
+.badge-prazo     { background: color-mix(in srgb, var(--st-prazo) 15%, var(--bg2));      color: var(--st-prazo); }
+.badge-indefinido{ background: color-mix(in srgb, var(--st-indefinido) 15%, var(--bg2)); color: var(--st-indefinido); border: 1px solid var(--border); }
 .empty-state { text-align: center; padding: 64px 20px; color: var(--text2); }
 
 /* ALERTS */
@@ -399,6 +398,8 @@ td.dias-cell { text-align: right; font-variant-numeric: tabular-nums; font-weigh
 
 /* TOAST */
 #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #0f172a; color: #f8fafc; padding: 10px 20px; border-radius: 24px; font-size: .84rem; font-weight: 500; z-index: 999; opacity: 0; transition: opacity .25s; pointer-events: none; white-space: nowrap; box-shadow: var(--shadow-lg); border: 1px solid rgba(255,255,255,.08); }
+#toast.toast-error   { background: #991b1b; border-color: rgba(255,255,255,.12); }
+#toast.toast-success { background: #166534; border-color: rgba(255,255,255,.12); }
 
 /* PAGINATION */
 .pagination { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 16px 0; font-size: .84rem; color: var(--text2); }
@@ -437,6 +438,12 @@ td.dias-cell { text-align: right; font-variant-numeric: tabular-nums; font-weigh
 
 /* ACCESSIBILITY */
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+/* Skip link — visível apenas ao receber foco via teclado */
+.skip-link { position: absolute; left: 8px; top: -52px; z-index: 1000; background: var(--accent); color: #fff; padding: 9px 16px; border-radius: var(--radius-sm); font-size: .85rem; font-weight: 600; box-shadow: var(--shadow-md); transition: top .15s ease; }
+.skip-link:focus { top: 8px; outline: none; }
+/* Foco visível consistente para navegação por teclado (não afeta clique do mouse) */
+a:focus-visible, button:focus-visible, select:focus-visible, [role="button"]:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-sm); }
+.kpi:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* CELL TRUNCATION */
 td.cell-trunc    { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -556,6 +563,7 @@ thead th.col-drag-over { background: var(--tbl-head-hover); box-shadow: inset 3p
 </style>
 </head>
 <body>
+<a href="#main-content" class="skip-link">Pular para o conteúdo</a>
 
 <div id="loading-bar"></div>
 
@@ -579,7 +587,7 @@ thead th.col-drag-over { background: var(--tbl-head-hover); box-shadow: inset 3p
   <details id="setup-guide" style="width:100%;margin-top:.5rem" hidden>
     <summary style="cursor:pointer;font-weight:600;font-size:.85rem">⚙️ Guia de configuração do Google Apps Script</summary>
     <ol style="font-size:.82rem;margin:.5rem 0 0 1.2rem;line-height:1.8">
-      <li>Abra o <a href="https://script.google.com" target="_blank" style="color:inherit">Apps Script Editor</a> e cole o conteúdo de <code>SEMA_Code.gs</code></li>
+      <li>Abra o <a href="https://script.google.com" target="_blank" rel="noopener noreferrer" style="color:inherit">Apps Script Editor</a> e cole o conteúdo de <code>SEMA_Code.gs</code></li>
       <li>Execute a função <code>criarPlanilhaModelo()</code> — cria a aba <code>ACT - PAINEL PUBLICO</code></li>
       <li>Implante como Aplicativo da Web com acesso <strong>"Qualquer pessoa"</strong></li>
       <li>Cole a URL do Web App (<code>/exec</code>) em <code>js/config.js</code> → <code>appsScriptUrl</code></li>
@@ -589,7 +597,7 @@ thead th.col-drag-over { background: var(--tbl-head-hover); box-shadow: inset 3p
 
 <div id="toast"></div>
 
-<main>
+<main id="main-content">
   <div id="print-header">
     <h1>SEMA/AC — Acordos de Cooperação Técnica</h1>
     <div class="meta" id="print-meta"></div>
@@ -621,7 +629,7 @@ thead th.col-drag-over { background: var(--tbl-head-hover); box-shadow: inset 3p
 
   <!-- KPI SECTION -->
   <div class="section-header">
-    <span class="section-title">Indicadores</span>
+    <h2 class="section-title">Indicadores</h2>
   </div>
   <div class="kpi-section" id="kpi-section" style="display:none">
     <!-- Grupo: Ativos -->
@@ -672,11 +680,11 @@ thead th.col-drag-over { background: var(--tbl-head-hover); box-shadow: inset 3p
     <div class="kpi-group">
       <div class="kpi-group-label">Finalizados</div>
       <div class="kpi-group-cards">
-        <div class="kpi" id="kpi-expirado" data-color="red" role="button" tabindex="0" aria-label="Filtrar acordos expirados" onclick="filterByStatus('Expirado')">
+        <div class="kpi" id="kpi-expirado" data-color="expirado" role="button" tabindex="0" aria-label="Filtrar acordos expirados" onclick="filterByStatus('Expirado')">
           <div class="kpi-num" id="kpi-expirado-num">–</div>
           <div class="kpi-label">Expirados</div>
         </div>
-        <div class="kpi" id="kpi-encerrado" data-color="gray" role="button" tabindex="0" aria-label="Filtrar Encerrados" onclick="filterByStatus('Encerrado')">
+        <div class="kpi" id="kpi-encerrado" data-color="slate" role="button" tabindex="0" aria-label="Filtrar Encerrados" onclick="filterByStatus('Encerrado')">
           <div class="kpi-num" id="kpi-encerrado-num">–</div>
           <div class="kpi-label">Encerrados</div>
         </div>
@@ -687,7 +695,7 @@ thead th.col-drag-over { background: var(--tbl-head-hover); box-shadow: inset 3p
   <!-- CHARTS -->
   <div class="charts-section" id="charts-section" style="display:none">
     <div class="section-header">
-      <span class="section-title">Análise Visual</span>
+      <h2 class="section-title">Análise Visual</h2>
     </div>
     <div class="charts-grid">
       <div class="chart-card" id="chart-card-vencimentos" style="display:none">
@@ -791,7 +799,21 @@ const POLL_MS    = 60_000;
 const CACHE_KEY  = 'sema_data_v2';
 const CACHE_TTL  = 5 * 60 * 1000;
 const RETRY_DELAYS = [20000, 30000, 60000, 120000];
-const CHART_COLORS = ['#1FAD35','#F5C71A','#E05B3A','#3B82F6','#8B5CF6','#EC4899','#14B8A6','#F97316'];
+
+/* Ponte cor semântica: lê a variável CSS do status atual → gráficos seguem o tema */
+const _ST_VAR = {
+  'vigente':'--st-vigente', 'a vencer':'--st-avencer', 'vence em 30 dias':'--st-urgente',
+  'expirado':'--st-expirado', 'em análise':'--st-analise', 'aguardando assinatura':'--st-aguardando',
+  'suspenso':'--st-suspenso', 'encerrado':'--st-encerrado', 'prazo indeterminado':'--st-prazo',
+  'indefinido':'--st-indefinido',
+};
+function cssVar(name, fallback) {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
+function statusColor(norm) {
+  return cssVar(_ST_VAR[norm] || '--text2', '#94a3b8');
+}
 
 // Colunas âncora — registro válido somente se ao menos uma tiver conteúdo
 const ANCHOR_KEYS = ['tipo','num','objeto','inst','termino','inicio','link','sei','doe','dou'];
@@ -812,20 +834,26 @@ let _charts   = {};
 let _printAll = false;
 let _curModalIdx = -1;
 function _loadHiddenCols() {
-  try { return new Set(JSON.parse(localStorage.getItem('sema_hidden_cols') || '[]')); }
-  catch { return new Set(); }
+  try {
+    const v = JSON.parse(localStorage.getItem('sema_hidden_cols') || '[]');
+    return new Set(Array.isArray(v) ? v.filter(x => typeof x === 'string') : []);
+  } catch { return new Set(); }
 }
 let _hiddenCols = _loadHiddenCols();
 function _loadColOrder() {
-  try { return JSON.parse(localStorage.getItem('sema_col_order') || 'null') || null; }
-  catch { return null; }
+  try {
+    const v = JSON.parse(localStorage.getItem('sema_col_order') || 'null');
+    return Array.isArray(v) ? v.filter(x => typeof x === 'string') : null;
+  } catch { return null; }
 }
 let _colOrder = _loadColOrder();
 let _dragColKey = null;
 let _lastSyncTime = null;
 let _favorites = (function() {
-  try { return new Set(JSON.parse(localStorage.getItem('sema_favorites') || '[]')); }
-  catch { return new Set(); }
+  try {
+    const v = JSON.parse(localStorage.getItem('sema_favorites') || '[]');
+    return new Set(Array.isArray(v) ? v.filter(x => typeof x === 'string') : []);
+  } catch { return new Set(); }
 })();
 
 /* ─── INICIALIZAÇÃO ───────────────────────────────────────────────────────── */
@@ -1454,6 +1482,7 @@ function renderCharts() {
   }
 
   _clearChartFallbacks();
+  _applyChartTheme();
 
   _buildVencimentos('chart-vencimentos', 'chart-card-vencimentos');
 
@@ -1468,6 +1497,14 @@ function renderCharts() {
 
   if (anoCol)    _buildBarTimeline('chart-ano', 'chart-card-ano', anoCol.key);
   else           document.getElementById('chart-card-ano').style.display = 'none';
+}
+
+/* Aplica cores de texto/grade do tema atual ao Chart.js (legibilidade em temas escuros) */
+function _applyChartTheme() {
+  if (typeof Chart === 'undefined') return;
+  Chart.defaults.color = cssVar('--text2', '#64748b');
+  Chart.defaults.borderColor = cssVar('--border', '#e2e8f0');
+  Chart.defaults.font.family = cssVar('--font-sans', 'sans-serif') || 'sans-serif';
 }
 
 function _buildVencimentos(cid, cardId) {
@@ -1488,12 +1525,17 @@ function _buildVencimentos(cid, cardId) {
     return new Date(+yr, +mo - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
   });
   const data = Object.values(months);
+  // Cor por urgência (mesma semântica de status): 1º mês vermelho, ~90d âmbar, demais verde
+  const colors = data.map((_, i) =>
+    i === 0 ? statusColor('vence em 30 dias')
+    : i <= 2 ? statusColor('a vencer')
+    : statusColor('vigente'));
   document.getElementById(cardId).style.display = data.some(v => v > 0) ? 'block' : 'none';
   if (!data.some(v => v > 0)) return;
   _destroyChart(cid);
   _charts[cid] = new Chart(document.getElementById(cid), {
     type: 'bar',
-    data: { labels, datasets: [{ data, backgroundColor: '#095C18', borderRadius: 5 }] },
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderRadius: 5 }] },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
@@ -1538,16 +1580,46 @@ function _destroyChart(id) {
   if (_charts[id]) { _charts[id].destroy(); delete _charts[id]; }
 }
 
+/* Plugin: total no centro do donut (situacional mais claro) */
+const _donutCenterTotal = {
+  id: 'donutCenterTotal',
+  afterDraw(chart) {
+    if (chart.config.type !== 'doughnut') return;
+    const total = chart.data.datasets[0].data.reduce((a, b) => a + (+b || 0), 0);
+    const { ctx, chartArea: { left, right, top, bottom } } = chart;
+    const cx = (left + right) / 2, cy = (top + bottom) / 2;
+    ctx.save();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = cssVar('--text', '#0f172a');
+    ctx.font = '800 26px ' + (cssVar('--font-sans', 'sans-serif') || 'sans-serif');
+    ctx.fillText(String(total), cx, cy - 6);
+    ctx.fillStyle = cssVar('--text2', '#64748b');
+    ctx.font = '600 11px ' + (cssVar('--font-sans', 'sans-serif') || 'sans-serif');
+    ctx.fillText('total', cx, cy + 14);
+    ctx.restore();
+  },
+};
+
 function _buildDonut(cid, cardId, key) {
   const counts = _countBy(key);
   const labels = Object.keys(counts), data = Object.values(counts);
+  // Cor semântica por status — casa com badges e KPIs (cor segue a entidade, não a posição)
+  const colors = labels.map(l => statusColor(normalizeStatus(l)));
+  const total = data.reduce((a, b) => a + b, 0);
   document.getElementById(cardId).style.display = labels.length ? 'block' : 'none';
   if (!labels.length) return;
   _destroyChart(cid);
   _charts[cid] = new Chart(document.getElementById(cid), {
     type: 'doughnut',
-    data: { labels, datasets: [{ data, backgroundColor: CHART_COLORS.slice(0, labels.length), borderWidth: 2, borderColor: 'transparent' }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } } },
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: cssVar('--bg2', '#fff') }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '64%',
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+        tooltip: { callbacks: { label: c => `${c.label}: ${c.parsed} (${total ? Math.round(c.parsed / total * 100) : 0}%)` } },
+      },
+    },
+    plugins: [_donutCenterTotal],
   });
 }
 
@@ -1559,7 +1631,7 @@ function _buildBarH(cid, cardId, key) {
   _destroyChart(cid);
   _charts[cid] = new Chart(document.getElementById(cid), {
     type: 'bar',
-    data: { labels, datasets: [{ data, backgroundColor: '#1FAD35', borderRadius: 4 }] },
+    data: { labels, datasets: [{ data, backgroundColor: cssVar('--accent', '#095C18'), borderRadius: 4 }] },
     options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } } },
   });
 }
@@ -1576,7 +1648,7 @@ function _buildBarTimeline(cid, cardId, key) {
   _destroyChart(cid);
   _charts[cid] = new Chart(document.getElementById(cid), {
     type: 'bar',
-    data: { labels, datasets: [{ data, backgroundColor: '#F5C71A', borderRadius: 4 }] },
+    data: { labels, datasets: [{ data, backgroundColor: cssVar('--accent', '#095C18'), borderRadius: 4 }] },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } },
   });
 }
@@ -1719,8 +1791,8 @@ function _shareCopyLink() {
   const str = p.toString();
   const url = location.href.split('?')[0] + (str ? '?' + str : '');
   navigator.clipboard?.writeText(url)
-    .then(() => showToast('🔗 Link copiado!'))
-    .catch(() => showToast('Copie: ' + url, 6000));
+    .then(() => showToast('🔗 Link copiado!', 3000, 'success'))
+    .catch(() => showToast('Copie: ' + url, 6000, 'error'));
 }
 
 function _shareModalPrint() {
@@ -1793,7 +1865,7 @@ function csvEscape(value) {
 }
 
 function exportCSV() {
-  if (!_filtered.length) { showToast('Nenhum dado para exportar'); return; }
+  if (!_filtered.length) { showToast('Nenhum dado para exportar', 3000, 'error'); return; }
   const sep = ';';
   const visSchema = _schema.filter(c => !_hiddenCols.has(c.key));
   const header = visSchema.map(c => csvEscape(c.label)).join(sep);
@@ -1804,32 +1876,32 @@ function exportCSV() {
     download: `TCT_SEMA_${new Date().toISOString().slice(0,10)}.csv`,
   });
   a.click(); URL.revokeObjectURL(a.href);
-  showToast(`${_filtered.length} registros exportados`);
+  showToast(`${_filtered.length} registros exportados`, 3000, 'success');
 }
 
 /* ─── EXPORT XLSX ─────────────────────────────────────────────────────────── */
 function exportXLSX() {
-  if (!_filtered.length) { showToast('Nenhum dado para exportar'); return; }
-  if (typeof XLSX === 'undefined') { showToast('Biblioteca XLSX indisponível'); return; }
+  if (!_filtered.length) { showToast('Nenhum dado para exportar', 3000, 'error'); return; }
+  if (typeof XLSX === 'undefined') { showToast('Biblioteca XLSX indisponível', 3000, 'error'); return; }
   const visSchema = _schema.filter(c => !_hiddenCols.has(c.key));
   const rows = _filtered.map(r => Object.fromEntries(visSchema.map(c => [c.label, String(r[c.key] || '')])));
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'ACTs SEMA');
   XLSX.writeFile(wb, `ACT_SEMA_${new Date().toISOString().slice(0,10)}.xlsx`);
-  showToast(`${_filtered.length} registros exportados em XLSX`);
+  showToast(`${_filtered.length} registros exportados em XLSX`, 3000, 'success');
 }
 
 /* ─── COPY LINK ───────────────────────────────────────────────────────────── */
 function copyLink() {
   navigator.clipboard?.writeText(location.href)
-    .then(() => showToast('🔗 Link copiado!'))
-    .catch(() => { showToast('Copie manualmente: ' + location.href, 6000); });
+    .then(() => showToast('🔗 Link copiado!', 3000, 'success'))
+    .catch(() => { showToast('Copie manualmente: ' + location.href, 6000, 'error'); });
 }
 
 /* ─── PRINT / PDF ─────────────────────────────────────────────────────────── */
 function printReport() {
-  if (!_filtered.length) { showToast('Nenhum dado para imprimir'); return; }
+  if (!_filtered.length) { showToast('Nenhum dado para imprimir', 3000, 'error'); return; }
   const overlay = document.getElementById('modal-overlay');
   if (overlay && overlay.classList.contains('open')) closeModal();
   const filtros = [];
@@ -1915,9 +1987,12 @@ function loadingBar(pct) {
   b.style.opacity = pct > 0 && pct < 100 ? '1' : '0';
 }
 let _toastT;
-function showToast(msg, dur=3000) {
+function showToast(msg, dur=3000, type='') {
   const t = document.getElementById('toast');
   t.textContent = msg; t.style.opacity = '1';
+  t.classList.remove('toast-error', 'toast-success');
+  if (type === 'error')   t.classList.add('toast-error');
+  if (type === 'success') t.classList.add('toast-success');
   clearTimeout(_toastT); _toastT = setTimeout(() => { t.style.opacity = '0'; }, dur);
 }
 const THEME_NAMES = { verde: 'Verde SEMA', azul: 'Azul Institucional', escuro: 'Noturno', carvao: 'Carvão', 'alto-contraste': 'Alto Contraste' };
@@ -1929,6 +2004,8 @@ function applyTheme(name) {
   document.querySelectorAll('#tp-names .tp-name-item').forEach(el => {
     el.classList.toggle('active', el.dataset.theme === name);
   });
+  // Recolore os gráficos para o novo tema (cores e texto seguem as vars CSS)
+  if (typeof Chart !== 'undefined' && _records.length) renderCharts();
 }
 
 function loadTheme() {
