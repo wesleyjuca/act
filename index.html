@@ -28,6 +28,11 @@
   --logo-s-color: #22c55e; --logo-d-color: #fbbf24;
   --tbl-head-bg: #0f2d18; --tbl-head-text: #dcfce7;
   --tbl-head-border: #166534; --tbl-head-hover: #1a3d21;
+  /* Cores semânticas de status — fonte única (badges, KPIs e gráficos) */
+  --st-vigente: #16a34a;   --st-avencer: #d97706;   --st-urgente: #dc2626;
+  --st-expirado: #991b1b;  --st-analise: #2563eb;   --st-aguardando: #7c3aed;
+  --st-suspenso: #ea580c;  --st-encerrado: #64748b; --st-prazo: #0d9488;
+  --st-indefinido: #94a3b8;
 }
 /* Tema: Noturno (escuro) */
 [data-theme="escuro"] {
@@ -38,6 +43,10 @@
   --logo-s-color: #4ade80;
   --tbl-head-bg: #0d1a10; --tbl-head-text: #bbf7d0;
   --tbl-head-border: #166534; --tbl-head-hover: #14291a;
+  --st-vigente: #4ade80;   --st-avencer: #fbbf24;   --st-urgente: #f87171;
+  --st-expirado: #fca5a5;  --st-analise: #93c5fd;   --st-aguardando: #c4b5fd;
+  --st-suspenso: #fdba74;  --st-encerrado: #94a3b8; --st-prazo: #2dd4bf;
+  --st-indefinido: #94a3b8;
 }
 /* Tema: Azul Institucional */
 [data-theme="azul"] {
@@ -58,6 +67,10 @@
   --logo-s-color: #93c5fd;
   --tbl-head-bg: #141720; --tbl-head-text: #bfdbfe;
   --tbl-head-border: #2d3748; --tbl-head-hover: #1a1f2e;
+  --st-vigente: #4ade80;   --st-avencer: #fbbf24;   --st-urgente: #f87171;
+  --st-expirado: #fca5a5;  --st-analise: #93c5fd;   --st-aguardando: #c4b5fd;
+  --st-suspenso: #fdba74;  --st-encerrado: #94a3b8; --st-prazo: #2dd4bf;
+  --st-indefinido: #94a3b8;
 }
 /* Tema: Alto Contraste */
 [data-theme="alto-contraste"] {
@@ -169,25 +182,21 @@ main { max-width: 1400px; margin: 0 auto; padding: 22px 20px; }
   transition: var(--transition), transform .12s ease, box-shadow .12s ease;
   background: var(--bg);
 }
-.kpi:hover { transform: none; box-shadow: none; background: var(--accent-light); border-left-color: var(--accent); }
-.kpi[data-color="green"]  { border-left-color: #16a34a; }
-.kpi[data-color="yellow"] { border-left-color: #d97706; }
-.kpi[data-color="red"]    { border-left-color: #dc2626; }
-.kpi[data-color="teal"]   { border-left-color: #0d9488; }
-.kpi[data-color="blue"]   { border-left-color: #2563eb; }
-.kpi[data-color="purple"] { border-left-color: #7c3aed; }
-.kpi[data-color="orange"] { border-left-color: #ea580c; }
-.kpi[data-color="gray"]   { border-left-color: #94a3b8; }
+.kpi:hover { transform: none; box-shadow: none; background: var(--accent-light); }
+/* Cor semântica de cada KPI — mesma fonte única de status */
+.kpi[data-color="green"]    { --kpi-c: var(--st-vigente); }
+.kpi[data-color="yellow"]   { --kpi-c: var(--st-avencer); }
+.kpi[data-color="red"]      { --kpi-c: var(--st-urgente); }
+.kpi[data-color="expirado"] { --kpi-c: var(--st-expirado); }
+.kpi[data-color="teal"]     { --kpi-c: var(--st-prazo); }
+.kpi[data-color="blue"]     { --kpi-c: var(--st-analise); }
+.kpi[data-color="purple"]   { --kpi-c: var(--st-aguardando); }
+.kpi[data-color="orange"]   { --kpi-c: var(--st-suspenso); }
+.kpi[data-color="gray"]     { --kpi-c: var(--st-indefinido); }
+.kpi[data-color="slate"]    { --kpi-c: var(--st-encerrado); }
+.kpi[data-color] { border-left-color: var(--kpi-c, var(--border)); }
 /* Active state: mantém a cor semântica de cada card */
-.kpi.active                          { box-shadow: var(--shadow-sm); }
-.kpi[data-color="green"].active      { background: #f0fdf4; border-left-color: #16a34a; }
-.kpi[data-color="yellow"].active     { background: #fffbeb; border-left-color: #d97706; }
-.kpi[data-color="red"].active        { background: #fef2f2; border-left-color: #dc2626; }
-.kpi[data-color="teal"].active       { background: #f0fdfa; border-left-color: #0d9488; }
-.kpi[data-color="blue"].active       { background: #eff6ff; border-left-color: #2563eb; }
-.kpi[data-color="purple"].active     { background: #faf5ff; border-left-color: #7c3aed; }
-.kpi[data-color="orange"].active     { background: #fff7ed; border-left-color: #ea580c; }
-.kpi[data-color="gray"].active       { background: #f8fafc; border-left-color: #94a3b8; }
+.kpi.active { box-shadow: var(--shadow-sm); border-left-color: var(--kpi-c, var(--accent)); background: color-mix(in srgb, var(--kpi-c, var(--accent)) 10%, var(--bg2)); }
 .kpi-num { font-size: 1.8rem; font-weight: 800; line-height: 1.1; color: var(--text); letter-spacing: -.02em; }
 .kpi-label { font-size: .71rem; color: var(--text2); margin-top: 3px; line-height: 1.3; font-weight: 500; }
 
@@ -283,27 +292,17 @@ td.dias-cell { text-align: right; font-variant-numeric: tabular-nums; font-weigh
 /* BADGES */
 .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px 3px 8px; border-radius: 20px; font-size: .75rem; font-weight: 600; white-space: nowrap; }
 .badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: .75; flex-shrink: 0; }
-.badge-vigente   { background: #dcfce7; color: #15803d; }
-.badge-avencer   { background: #fef3c7; color: #92400e; }
-.badge-urgente   { background: #fee2e2; color: #b91c1c; }
-.badge-expirado  { background: #fef2f2; color: #dc2626; }
+.badge-vigente   { background: color-mix(in srgb, var(--st-vigente) 15%, var(--bg2));    color: var(--st-vigente); }
+.badge-avencer   { background: color-mix(in srgb, var(--st-avencer) 15%, var(--bg2));    color: var(--st-avencer); }
+.badge-urgente   { background: color-mix(in srgb, var(--st-urgente) 15%, var(--bg2));    color: var(--st-urgente); }
+.badge-expirado  { background: color-mix(in srgb, var(--st-expirado) 15%, var(--bg2));   color: var(--st-expirado); }
 .badge-default   { background: var(--accent-light); color: var(--accent); }
-.badge-analise   { background: #dbeafe; color: #1d4ed8; }
-.badge-aguardando{ background: #f3e8ff; color: #6d28d9; }
-.badge-suspenso  { background: #ffedd5; color: #c2410c; }
-.badge-encerrado { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
-.badge-prazo     { background: #ccfbf1; color: #0f766e; }
-.badge-indefinido{ background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; }
-[data-theme="escuro"] .badge-vigente,   [data-theme="carvao"] .badge-vigente   { background: #14532d; color: #4ade80; }
-[data-theme="escuro"] .badge-avencer,   [data-theme="carvao"] .badge-avencer   { background: #451a03; color: #fbbf24; }
-[data-theme="escuro"] .badge-urgente,   [data-theme="carvao"] .badge-urgente   { background: #450a0a; color: #f87171; }
-[data-theme="escuro"] .badge-expirado,  [data-theme="carvao"] .badge-expirado  { background: #450a0a; color: #fca5a5; }
-[data-theme="escuro"] .badge-analise,   [data-theme="carvao"] .badge-analise   { background: #1e3a8a; color: #93c5fd; }
-[data-theme="escuro"] .badge-aguardando,[data-theme="carvao"] .badge-aguardando{ background: #2e1065; color: #c4b5fd; }
-[data-theme="escuro"] .badge-suspenso,  [data-theme="carvao"] .badge-suspenso  { background: #431407; color: #fdba74; }
-[data-theme="escuro"] .badge-encerrado, [data-theme="carvao"] .badge-encerrado { background: #1e293b; color: #94a3b8; border-color: #334155; }
-[data-theme="escuro"] .badge-prazo,     [data-theme="carvao"] .badge-prazo     { background: #042f2e; color: #2dd4bf; }
-[data-theme="escuro"] .badge-indefinido,[data-theme="carvao"] .badge-indefinido{ background: #1e293b; color: #94a3b8; border-color: #334155; }
+.badge-analise   { background: color-mix(in srgb, var(--st-analise) 15%, var(--bg2));    color: var(--st-analise); }
+.badge-aguardando{ background: color-mix(in srgb, var(--st-aguardando) 15%, var(--bg2)); color: var(--st-aguardando); }
+.badge-suspenso  { background: color-mix(in srgb, var(--st-suspenso) 15%, var(--bg2));   color: var(--st-suspenso); }
+.badge-encerrado { background: color-mix(in srgb, var(--st-encerrado) 15%, var(--bg2));  color: var(--st-encerrado); border: 1px solid var(--border); }
+.badge-prazo     { background: color-mix(in srgb, var(--st-prazo) 15%, var(--bg2));      color: var(--st-prazo); }
+.badge-indefinido{ background: color-mix(in srgb, var(--st-indefinido) 15%, var(--bg2)); color: var(--st-indefinido); border: 1px solid var(--border); }
 .empty-state { text-align: center; padding: 64px 20px; color: var(--text2); }
 
 /* ALERTS */
@@ -681,11 +680,11 @@ thead th.col-drag-over { background: var(--tbl-head-hover); box-shadow: inset 3p
     <div class="kpi-group">
       <div class="kpi-group-label">Finalizados</div>
       <div class="kpi-group-cards">
-        <div class="kpi" id="kpi-expirado" data-color="red" role="button" tabindex="0" aria-label="Filtrar acordos expirados" onclick="filterByStatus('Expirado')">
+        <div class="kpi" id="kpi-expirado" data-color="expirado" role="button" tabindex="0" aria-label="Filtrar acordos expirados" onclick="filterByStatus('Expirado')">
           <div class="kpi-num" id="kpi-expirado-num">–</div>
           <div class="kpi-label">Expirados</div>
         </div>
-        <div class="kpi" id="kpi-encerrado" data-color="gray" role="button" tabindex="0" aria-label="Filtrar Encerrados" onclick="filterByStatus('Encerrado')">
+        <div class="kpi" id="kpi-encerrado" data-color="slate" role="button" tabindex="0" aria-label="Filtrar Encerrados" onclick="filterByStatus('Encerrado')">
           <div class="kpi-num" id="kpi-encerrado-num">–</div>
           <div class="kpi-label">Encerrados</div>
         </div>
@@ -800,7 +799,21 @@ const POLL_MS    = 60_000;
 const CACHE_KEY  = 'sema_data_v2';
 const CACHE_TTL  = 5 * 60 * 1000;
 const RETRY_DELAYS = [20000, 30000, 60000, 120000];
-const CHART_COLORS = ['#1FAD35','#F5C71A','#E05B3A','#3B82F6','#8B5CF6','#EC4899','#14B8A6','#F97316'];
+
+/* Ponte cor semântica: lê a variável CSS do status atual → gráficos seguem o tema */
+const _ST_VAR = {
+  'vigente':'--st-vigente', 'a vencer':'--st-avencer', 'vence em 30 dias':'--st-urgente',
+  'expirado':'--st-expirado', 'em análise':'--st-analise', 'aguardando assinatura':'--st-aguardando',
+  'suspenso':'--st-suspenso', 'encerrado':'--st-encerrado', 'prazo indeterminado':'--st-prazo',
+  'indefinido':'--st-indefinido',
+};
+function cssVar(name, fallback) {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
+function statusColor(norm) {
+  return cssVar(_ST_VAR[norm] || '--text2', '#94a3b8');
+}
 
 // Colunas âncora — registro válido somente se ao menos uma tiver conteúdo
 const ANCHOR_KEYS = ['tipo','num','objeto','inst','termino','inicio','link','sei','doe','dou'];
@@ -1469,6 +1482,7 @@ function renderCharts() {
   }
 
   _clearChartFallbacks();
+  _applyChartTheme();
 
   _buildVencimentos('chart-vencimentos', 'chart-card-vencimentos');
 
@@ -1483,6 +1497,14 @@ function renderCharts() {
 
   if (anoCol)    _buildBarTimeline('chart-ano', 'chart-card-ano', anoCol.key);
   else           document.getElementById('chart-card-ano').style.display = 'none';
+}
+
+/* Aplica cores de texto/grade do tema atual ao Chart.js (legibilidade em temas escuros) */
+function _applyChartTheme() {
+  if (typeof Chart === 'undefined') return;
+  Chart.defaults.color = cssVar('--text2', '#64748b');
+  Chart.defaults.borderColor = cssVar('--border', '#e2e8f0');
+  Chart.defaults.font.family = cssVar('--font-sans', 'sans-serif') || 'sans-serif';
 }
 
 function _buildVencimentos(cid, cardId) {
@@ -1503,12 +1525,17 @@ function _buildVencimentos(cid, cardId) {
     return new Date(+yr, +mo - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
   });
   const data = Object.values(months);
+  // Cor por urgência (mesma semântica de status): 1º mês vermelho, ~90d âmbar, demais verde
+  const colors = data.map((_, i) =>
+    i === 0 ? statusColor('vence em 30 dias')
+    : i <= 2 ? statusColor('a vencer')
+    : statusColor('vigente'));
   document.getElementById(cardId).style.display = data.some(v => v > 0) ? 'block' : 'none';
   if (!data.some(v => v > 0)) return;
   _destroyChart(cid);
   _charts[cid] = new Chart(document.getElementById(cid), {
     type: 'bar',
-    data: { labels, datasets: [{ data, backgroundColor: '#095C18', borderRadius: 5 }] },
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderRadius: 5 }] },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
@@ -1553,16 +1580,46 @@ function _destroyChart(id) {
   if (_charts[id]) { _charts[id].destroy(); delete _charts[id]; }
 }
 
+/* Plugin: total no centro do donut (situacional mais claro) */
+const _donutCenterTotal = {
+  id: 'donutCenterTotal',
+  afterDraw(chart) {
+    if (chart.config.type !== 'doughnut') return;
+    const total = chart.data.datasets[0].data.reduce((a, b) => a + (+b || 0), 0);
+    const { ctx, chartArea: { left, right, top, bottom } } = chart;
+    const cx = (left + right) / 2, cy = (top + bottom) / 2;
+    ctx.save();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = cssVar('--text', '#0f172a');
+    ctx.font = '800 26px ' + (cssVar('--font-sans', 'sans-serif') || 'sans-serif');
+    ctx.fillText(String(total), cx, cy - 6);
+    ctx.fillStyle = cssVar('--text2', '#64748b');
+    ctx.font = '600 11px ' + (cssVar('--font-sans', 'sans-serif') || 'sans-serif');
+    ctx.fillText('total', cx, cy + 14);
+    ctx.restore();
+  },
+};
+
 function _buildDonut(cid, cardId, key) {
   const counts = _countBy(key);
   const labels = Object.keys(counts), data = Object.values(counts);
+  // Cor semântica por status — casa com badges e KPIs (cor segue a entidade, não a posição)
+  const colors = labels.map(l => statusColor(normalizeStatus(l)));
+  const total = data.reduce((a, b) => a + b, 0);
   document.getElementById(cardId).style.display = labels.length ? 'block' : 'none';
   if (!labels.length) return;
   _destroyChart(cid);
   _charts[cid] = new Chart(document.getElementById(cid), {
     type: 'doughnut',
-    data: { labels, datasets: [{ data, backgroundColor: CHART_COLORS.slice(0, labels.length), borderWidth: 2, borderColor: 'transparent' }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } } },
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: cssVar('--bg2', '#fff') }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '64%',
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+        tooltip: { callbacks: { label: c => `${c.label}: ${c.parsed} (${total ? Math.round(c.parsed / total * 100) : 0}%)` } },
+      },
+    },
+    plugins: [_donutCenterTotal],
   });
 }
 
@@ -1574,7 +1631,7 @@ function _buildBarH(cid, cardId, key) {
   _destroyChart(cid);
   _charts[cid] = new Chart(document.getElementById(cid), {
     type: 'bar',
-    data: { labels, datasets: [{ data, backgroundColor: '#1FAD35', borderRadius: 4 }] },
+    data: { labels, datasets: [{ data, backgroundColor: cssVar('--accent', '#095C18'), borderRadius: 4 }] },
     options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } } },
   });
 }
@@ -1591,7 +1648,7 @@ function _buildBarTimeline(cid, cardId, key) {
   _destroyChart(cid);
   _charts[cid] = new Chart(document.getElementById(cid), {
     type: 'bar',
-    data: { labels, datasets: [{ data, backgroundColor: '#F5C71A', borderRadius: 4 }] },
+    data: { labels, datasets: [{ data, backgroundColor: cssVar('--accent', '#095C18'), borderRadius: 4 }] },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } },
   });
 }
@@ -1947,6 +2004,8 @@ function applyTheme(name) {
   document.querySelectorAll('#tp-names .tp-name-item').forEach(el => {
     el.classList.toggle('active', el.dataset.theme === name);
   });
+  // Recolore os gráficos para o novo tema (cores e texto seguem as vars CSS)
+  if (typeof Chart !== 'undefined' && _records.length) renderCharts();
 }
 
 function loadTheme() {
