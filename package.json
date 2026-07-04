@@ -1,0 +1,13 @@
+{
+  "name": "sema-act-painel",
+  "version": "9.0.0",
+  "private": true,
+  "type": "commonjs",
+  "description": "Painel público de Acordos de Cooperação Técnica — SEMA/AC",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.9"
+  }
+}
