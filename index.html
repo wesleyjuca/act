@@ -3,10 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://script.google.com https://script.googleusercontent.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
 <title>SEMA/AC — Termos de Cooperação Técnica</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" integrity="sha512-SIMGYRUjwY8+gKg7nn9EItdD8LCADSDfJNutF9TPrvEo86sQmFMh6MyralfIyhADlajSxqc7G0gs7+MwWF/ogQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="js/config.js"></script>
+<script src="js/util.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1072,45 +1074,7 @@ async function syncAll() {
 }
 
 /* ─── STATUS CLIENT-SIDE ─────────────────────────────────────────────────── */
-function parseDateFlexible(s) {
-  if (!s) return null;
-  const br = String(s).match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-  if (br) return new Date(+br[3], +br[2] - 1, +br[1]);
-  const iso = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (iso) return new Date(+iso[1], +iso[2] - 1, +iso[3]);
-  return null;
-}
-
-function computeStatusClientSide(r) {
-  const MANUAL = new Set(['em análise','aguardando assinatura','suspenso','encerrado','prazo indeterminado']);
-  const termRaw = r.termino || '';
-  const stNorm  = normalizeStatus(r.status || '');
-  if (!termRaw) {
-    if (!r.status || /^#/.test(r.status)) {
-      const pi = String(r.prazoindeterminado || r.prazo_indeterminado || '').trim().toUpperCase();
-      const status = pi === 'TRUE' ? 'Prazo Indeterminado' : 'Indefinido';
-      return Object.assign({}, r, { status, diasRestantes: '' });
-    }
-    return r;
-  }
-  if (MANUAL.has(stNorm)) return r;
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const end = parseDateFlexible(termRaw);
-  if (!end || isNaN(end.getTime())) return r;
-  const dias = Math.round((end - today) / 86400000);
-  const rec = Object.assign({}, r);
-  const dR = rec.diasRestantes;
-  const badDias   = !dR || /^#/.test(dR) || /^\d{4}-\d{2}-\d{2}/.test(dR) || isNaN(parseInt(dR, 10));
-  const badStatus = !rec.status || /^#/.test(rec.status);
-  if (badDias)   rec.diasRestantes = String(dias);
-  if (badStatus) {
-    if (dias < 0)        rec.status = 'Expirado';
-    else if (dias <= 30) rec.status = 'Vence em 30 dias';
-    else if (dias <= 90) rec.status = 'A vencer';
-    else                 rec.status = 'Vigente';
-  }
-  return rec;
-}
+/* parseDateFlexible / computeStatusClientSide → js/util.js */
 
 /* ─── API ─────────────────────────────────────────────────────────────────── */
 function gasJsonp(action) {
@@ -1632,7 +1596,11 @@ function _buildBarH(cid, cardId, key) {
   _charts[cid] = new Chart(document.getElementById(cid), {
     type: 'bar',
     data: { labels, datasets: [{ data, backgroundColor: cssVar('--accent', '#095C18'), borderRadius: 4 }] },
-    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } } },
+    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+      scales: {
+        x: { beginAtZero: true, ticks: { stepSize: 1 } },
+        y: { ticks: { callback: function(v) { const l = String(this.getLabelForValue(v)); return l.length > 24 ? l.slice(0, 22) + '…' : l; } } },
+      } },
   });
 }
 
@@ -1860,9 +1828,7 @@ function clearFilters() {
 }
 
 /* ─── EXPORT CSV ──────────────────────────────────────────────────────────── */
-function csvEscape(value) {
-  return `"${String(value || '').replace(/"/g, '""')}"`;
-}
+/* csvEscape / sanitizeCell → js/util.js */
 
 function exportCSV() {
   if (!_filtered.length) { showToast('Nenhum dado para exportar', 3000, 'error'); return; }
@@ -1884,7 +1850,7 @@ function exportXLSX() {
   if (!_filtered.length) { showToast('Nenhum dado para exportar', 3000, 'error'); return; }
   if (typeof XLSX === 'undefined') { showToast('Biblioteca XLSX indisponível', 3000, 'error'); return; }
   const visSchema = _schema.filter(c => !_hiddenCols.has(c.key));
-  const rows = _filtered.map(r => Object.fromEntries(visSchema.map(c => [c.label, String(r[c.key] || '')])));
+  const rows = _filtered.map(r => Object.fromEntries(visSchema.map(c => [c.label, sanitizeCell(r[c.key])])));
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'ACTs SEMA');
@@ -1937,23 +1903,7 @@ function findKey(candidates) {
   return null;
 }
 
-function normalizeStatus(value) {
-  const st = String(value || '')
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .toLowerCase().trim().replace(/\s+/g, ' ');
-  if (!st) return '';
-  if (st.includes('vence em 30') || st.includes('30 dias')) return 'vence em 30 dias';
-  if (st.includes('a vencer') || st.includes('vencer')) return 'a vencer';
-  if (st.includes('expir') || st.includes('vencido')) return 'expirado';
-  if (st.includes('vigente')) return 'vigente';
-  if (st.includes('analise') || st === 'em analise') return 'em análise';
-  if (st.includes('aguardando')) return 'aguardando assinatura';
-  if (st === 'suspenso') return 'suspenso';
-  if (st === 'encerrado') return 'encerrado';
-  if (st.includes('indeterminado') || st.includes('sem prazo') || st === 'prazo indeterminado') return 'prazo indeterminado';
-  if (st === 'indefinido') return 'indefinido';
-  return st;
-}
+/* normalizeStatus → js/util.js */
 
 function statusBadge(st) {
   const statusKey = normalizeStatus(st);
@@ -1973,9 +1923,7 @@ function statusBadge(st) {
   return `<span class="badge ${cls}">${esc(st)}</span>`;
 }
 
-function esc(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+/* esc → js/util.js */
 function setText(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; }
 function setStatus(s) {
   const d = document.getElementById('status-dot');
