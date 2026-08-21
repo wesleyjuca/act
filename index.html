@@ -3,10 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://script.google.com https://script.googleusercontent.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
+<!-- frame-ancestors NÃO é aplicável via <meta> (só como header HTTP, indisponível no GitHub Pages);
+     removido daqui para não passar falsa sensação de proteção. Anti-clickjacking real via frame-buster abaixo. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://script.google.com https://script.googleusercontent.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'">
 <title>SEMA/AC — Termos de Cooperação Técnica</title>
+<script>/* anti-clickjacking (frame-buster) — substitui frame-ancestors, inaplicável em hosting estático */
+if (self !== top) { try { top.location = self.location; } catch (e) { document.documentElement.style.display = 'none'; } }</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" integrity="sha512-SIMGYRUjwY8+gKg7nn9EItdD8LCADSDfJNutF9TPrvEo86sQmFMh6MyralfIyhADlajSxqc7G0gs7+MwWF/ogQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="js/config.js"></script>
 <script src="js/util.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -802,6 +805,9 @@ const CACHE_KEY  = 'sema_data_v2';
 const CACHE_TTL  = 5 * 60 * 1000;
 const RETRY_DELAYS = [20000, 30000, 60000, 120000];
 
+let _syncing   = false;   // trava anti-sobreposição (sync lento + tick do intervalo)
+let _pollTimer = null;    // handle do setInterval de polling
+
 /* Ponte cor semântica: lê a variável CSS do status atual → gráficos seguem o tema */
 const _ST_VAR = {
   'vigente':'--st-vigente', 'a vencer':'--st-avencer', 'vence em 30 dias':'--st-urgente',
@@ -885,8 +891,24 @@ function init() {
   }
 
   syncWithRetry().then(() => {
-    setInterval(syncWithRetry, POLL_MS);
+    _startPolling();
   });
+
+  // Polling consciente de visibilidade: não consome cota do GAS com a aba em 2º plano;
+  // ao voltar o foco, ressincroniza na hora.
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { _stopPolling(); }
+    else { syncWithRetry(); _startPolling(); }
+  });
+}
+
+function _startPolling() {
+  if (_pollTimer) return;
+  _pollTimer = setInterval(() => { if (!document.hidden) syncWithRetry(); }, POLL_MS);
+}
+
+function _stopPolling() {
+  if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
 }
 
 function setupDelegatedListeners() {
@@ -976,6 +998,8 @@ function setupDelegatedListeners() {
 
 /* ─── SYNC COM RETRY ──────────────────────────────────────────────────────── */
 async function syncWithRetry() {
+  if (_syncing) return;              // evita syncs concorrentes (tick + retorno de foco)
+  _syncing = true;
   try {
     await syncAll();
     _retryCount = 0;
@@ -1008,6 +1032,8 @@ async function syncWithRetry() {
     if (_retryCount < RETRY_DELAYS.length) {
       setTimeout(syncWithRetry, RETRY_DELAYS[_retryCount++]);
     }
+  } finally {
+    _syncing = false;
   }
 }
 
@@ -1138,8 +1164,7 @@ function buildFilterDefs() {
 function renderAll() {
   renderKPIs();
   renderAlerts();
-  applyFilters();
-  renderCharts();
+  applyFilters();   // já dispara renderCharts() com o conjunto filtrado
 }
 
 /* ─── ALERTAS ─────────────────────────────────────────────────────────────── */
@@ -1265,6 +1290,7 @@ function applyFilters() {
   const q2 = document.getElementById('search-input').value.trim();
   const hasFilter = q2 || _kpiFilt || _filterDefs.some(({ id }) => { const el = document.getElementById(id); return el && el.value; });
   setText('filter-count', hasFilter && _records.length ? `${_filtered.length} de ${_records.length}` : '');
+  renderCharts();   // gráficos refletem o conjunto filtrado (coerência com a tabela/KPIs)
 }
 
 /* ─── SORTING ─────────────────────────────────────────────────────────────── */
@@ -1277,11 +1303,23 @@ function sortBy(key) {
   renderPagination();
 }
 
+function _isSortBlank(v, type) {
+  if (v == null || String(v).trim() === '') return true;
+  if (type === 'date')   return !parseDateFlexible(v);
+  if (type === 'number') return isNaN(parseFloat(String(v).replace(/\./g, '').replace(',', '.')));
+  return false;
+}
+
 function applySort() {
   if (!_sortCol) return;
+  const type = inferSortType(_sortCol);           // 'date' | 'number' | 'text'
   _filtered.sort((a, b) => {
-    const va = String(a[_sortCol]||''), vb = String(b[_sortCol]||'');
-    const cmp = va.localeCompare(vb, 'pt-BR', { numeric: true, sensitivity: 'base' });
+    const va = a[_sortCol], vb = b[_sortCol];
+    const ba = _isSortBlank(va, type), bb = _isSortBlank(vb, type);
+    if (ba && bb) return 0;                        // vazios/inválidos sempre ao fim,
+    if (ba) return 1;                              // independente da direção
+    if (bb) return -1;
+    const cmp = compareValues(va, vb, type);
     return _sortAsc ? cmp : -cmp;
   });
 }
@@ -1478,7 +1516,7 @@ function _buildVencimentos(cid, cardId) {
     const d = new Date(today.getFullYear(), today.getMonth() + m, 1);
     months[d.toISOString().slice(0, 7)] = 0;
   }
-  _records.forEach(r => {
+  _filtered.forEach(r => {
     const end = parseDateFlexible(r.termino);
     if (!end) return;
     const key = end.toISOString().slice(0, 7);
@@ -1606,7 +1644,7 @@ function _buildBarH(cid, cardId, key) {
 
 function _buildBarTimeline(cid, cardId, key) {
   const byYear = {};
-  _records.forEach(r => {
+  _filtered.forEach(r => {
     const v = String(r[key]||''), yr = v.match(/^(\d{4})/)?.[1];
     if (yr && yr >= '2015') byYear[yr] = (byYear[yr]||0) + 1;
   });
@@ -1848,14 +1886,23 @@ function exportCSV() {
 /* ─── EXPORT XLSX ─────────────────────────────────────────────────────────── */
 function exportXLSX() {
   if (!_filtered.length) { showToast('Nenhum dado para exportar', 3000, 'error'); return; }
-  if (typeof XLSX === 'undefined') { showToast('Biblioteca XLSX indisponível', 3000, 'error'); return; }
   const visSchema = _schema.filter(c => !_hiddenCols.has(c.key));
-  const rows = _filtered.map(r => Object.fromEntries(visSchema.map(c => [c.label, sanitizeCell(r[c.key])])));
-  const ws = XLSX.utils.json_to_sheet(rows);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'ACTs SEMA');
-  XLSX.writeFile(wb, `ACT_SEMA_${new Date().toISOString().slice(0,10)}.xlsx`);
-  showToast(`${_filtered.length} registros exportados em XLSX`, 3000, 'success');
+  const headers = visSchema.map(c => c.label);
+  const rows    = _filtered.map(r => visSchema.map(c => r[c.key]));   // buildXlsx aplica anti-injeção
+  try {
+    const bytes = buildXlsx(headers, rows, 'ACTs SEMA');              // gerador nativo (sem CDN)
+    const blob  = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(blob),
+      download: `ACT_SEMA_${new Date().toISOString().slice(0,10)}.xlsx`,
+    });
+    a.click(); URL.revokeObjectURL(a.href);
+    showToast(`${_filtered.length} registros exportados em XLSX`, 3000, 'success');
+  } catch (e) {
+    console.error('[SEMA] XLSX nativo falhou, caindo para CSV:', e);
+    showToast('Falha no XLSX — exportando CSV', 3000, 'error');
+    exportCSV();
+  }
 }
 
 /* ─── COPY LINK ───────────────────────────────────────────────────────────── */
