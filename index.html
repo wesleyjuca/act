@@ -7,6 +7,8 @@
      removido daqui para não passar falsa sensação de proteção. Anti-clickjacking real via frame-buster abaixo. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://script.google.com https://script.googleusercontent.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'">
 <title>SEMA/AC — Termos de Cooperação Técnica</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#095C18">
 <script>/* anti-clickjacking (frame-buster) — substitui frame-ancestors, inaplicável em hosting estático */
 if (self !== top) { try { top.location = self.location; } catch (e) { document.documentElement.style.display = 'none'; } }</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" integrity="sha512-SIMGYRUjwY8+gKg7nn9EItdD8LCADSDfJNutF9TPrvEo86sQmFMh6MyralfIyhADlajSxqc7G0gs7+MwWF/ogQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -2141,6 +2143,17 @@ function _updateModalFavBtn() {
 
 /* ─── START ───────────────────────────────────────────────────────────────── */
 init();
+
+/* ─── PWA: registro defensivo do Service Worker (progressive enhancement) ───
+   Se falhar ou não for suportado, o painel continua funcionando normalmente —
+   isso nunca deve bloquear/atrasar o carregamento dos dados. */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => {
+      console.warn('[SEMA] Service Worker não registrado (não crítico):', err.message);
+    });
+  });
+}
 </script>
 </body>
 </html>

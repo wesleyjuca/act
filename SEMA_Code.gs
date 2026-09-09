@@ -6,6 +6,9 @@
  * Os dados são editados diretamente na planilha; Status e Dias Restantes
  * são calculados por fórmula automática na aba.
  *
+ * VERSÃO 9.2 — versão de backend centralizada (BACKEND_VERSION), mensagens de
+ *              erro ao cliente não vazam mais detalhes internos, e o histórico
+ *              de edições (ACT_HISTORICO) passa a registrar o usuário responsável.
  * VERSÃO 8.0 — 19 colunas (sem Esfera/Área), correção de linhas fantasma,
  *              menu personalizado, backup automático, migração robusta.
  */
@@ -13,6 +16,12 @@
 // ─────────────────────────────────────────────────────────────
 // CONFIG
 // ─────────────────────────────────────────────────────────────
+
+// Versão do CONTRATO DE API do backend (schema + endpoints) — independente da
+// versão do painel (package.json), já que o deploy deste .gs é sempre manual
+// (colar no editor do Apps Script + reimplantar). Bump quando este arquivo
+// mudar de forma relevante para quem consome a API.
+const BACKEND_VERSION = '9.2.0';
 
 const SHEET_DADOS     = 'ACT - PAINEL PUBLICO';
 const SHEET_LOG       = 'SYNC_LOG';
@@ -182,6 +191,23 @@ function getSheet(sheetName) {
   return sheet;
 }
 
+/**
+ * Mensagem de erro segura para devolver ao cliente público.
+ * O detalhe completo já foi logado (logError) antes desta função ser chamada;
+ * aqui só decidimos o que é seguro/útil expor externamente.
+ *
+ * Preserva literalmente a mensagem de "aba não encontrada" (getSheet acima),
+ * pois o front-end (index.html, _setupKeywords) detecta esse texto específico
+ * para mostrar o guia de configuração. Qualquer outro erro — cota excedida,
+ * erro interno do Apps Script, etc. — vira uma mensagem genérica, para não
+ * vazar detalhes internos nem disparar falsamente o guia de setup.
+ */
+function _publicErrorMessage(err) {
+  const msg = String((err && err.message) || '');
+  if (msg.includes('não encontrada')) return msg;
+  return 'Erro interno ao processar a solicitação.';
+}
+
 // ─────────────────────────────────────────────────────────────
 // FORMULA HELPERS
 // ─────────────────────────────────────────────────────────────
@@ -251,7 +277,7 @@ function doGet(e) {
 
   } catch (err) {
     logError('GET', err);
-    const data = { error: err.message };
+    const data = { error: _publicErrorMessage(err) };
     if (hasInvalidJsonpCallback) return jsonResponse({ error: 'Callback JSONP inválido' });
     if (useJsonp) {
       return ContentService.createTextOutput(callback + '(' + JSON.stringify(data) + ')')
@@ -326,7 +352,7 @@ function handlePing() {
 
   const result = {
     ok: !!sheet && missingRequiredColumns.length === 0,
-    version: '8.0',
+    version: BACKEND_VERSION,
     sheet: SHEET_DADOS,
     sheetExists: !!sheet,
     spreadsheetId: ss.getId().replace(/.{30}$/, '…'),
@@ -425,7 +451,7 @@ function handleStatus() {
     ok:      true,
     rows:    Math.max(sheet.getLastRow() - 2, 0),
     updated: new Date().toISOString(),
-    version: '8.0',
+    version: BACKEND_VERSION,
   };
 }
 
@@ -536,7 +562,7 @@ function _garantirAbasAuxiliares(ss) {
     s.appendRow(['Chave', 'Valor', 'Atualizado_em']);
     s.setFrozenRows(1);
     s.getRange(1, 1, 1, 3).setFontWeight('bold').setBackground('#095C18').setFontColor('#FFFFFF');
-    [['versao', '7.0', new Date()], ['totalRegistros', 0, ''], ['ultimaSincronizacao', '', ''],
+    [['versao', BACKEND_VERSION, new Date()], ['totalRegistros', 0, ''], ['ultimaSincronizacao', '', ''],
      ['cacheSegundos', 30, ''], ['abas_ok', '', '']].forEach(row => s.appendRow(row));
   }
 }
@@ -552,7 +578,7 @@ function _atualizarSaude(ss, pingResult, dataRows) {
   const set = (key, val) => {
     if (map[key]) sheet.getRange(map[key], 2, 1, 2).setValues([[val, now]]);
   };
-  set('versao',             '8.0');
+  set('versao',             BACKEND_VERSION);
   set('totalRegistros',     dataRows);
   set('ultimaSincronizacao', now.toISOString());
   set('abas_ok', pingResult.ok ? 'SIM' : 'NÃO — ' + (pingResult.warnings || []).join('; '));
@@ -576,18 +602,27 @@ function onEdit(e) {
     const key     = headerKey(colName);
     // Não registrar colunas de fórmula automática
     if (key === 'status' || key === 'diasRestantes') return;
+    // NOTA: Session.getActiveUser().getEmail() só é confiável dentro do mesmo
+    // domínio Google Workspace, com o editor autenticado diretamente na
+    // planilha. Fora desse contexto (conta pessoal, domínio diferente, ou
+    // política de privacidade do Workspace) retorna '' silenciosamente — daí
+    // o fallback 'desconhecido' abaixo, para nunca gravar uma célula vazia.
+    let usuario = '';
+    try { usuario = Session.getActiveUser().getEmail() || ''; } catch (_) {}
+    if (!usuario) usuario = 'desconhecido';
     _appendHistorico(sheet.getName(), row, colName,
       String(e.oldValue !== undefined ? e.oldValue : ''),
-      String(e.value    !== undefined ? e.value    : ''));
+      String(e.value    !== undefined ? e.value    : ''),
+      usuario);
   } catch (_) {}
 }
 
-function _appendHistorico(aba, row, col, before, after) {
+function _appendHistorico(aba, row, col, before, after, usuario) {
   const ss   = SpreadsheetApp.getActiveSpreadsheet();
   let hist   = ss.getSheetByName(SHEET_HISTORICO);
   if (!hist) { _garantirAbasAuxiliares(ss); hist = ss.getSheetByName(SHEET_HISTORICO); }
   if (!hist) return;
-  hist.appendRow([new Date(), aba, row, col, before, after, '']);
+  hist.appendRow([new Date(), aba, row, col, before, after, usuario || 'desconhecido']);
 }
 
 function instalarTriggers() {
