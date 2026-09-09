@@ -1,0 +1,15 @@
+{
+  "name": "SEMA/AC — Termos de Cooperação Técnica",
+  "short_name": "ACT SEMA/AC",
+  "description": "Painel público de transparência dos Acordos de Cooperação Técnica da SEMA/AC",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f0f2f5",
+  "theme_color": "#095C18",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

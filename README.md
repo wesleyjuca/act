@@ -1,5 +1,8 @@
 # SEMA/AC — Painel de Acordos de Cooperação Técnica
 
+> Este documento deve refletir literalmente os headers gerados por `_criarAba()` em
+> `SEMA_Code.gs`. Ao alterar `HEADER_MAP`/`_criarAba`, atualize este arquivo no mesmo commit.
+
 Painel público de transparência dos Acordos de Cooperação Técnica da **Secretaria de Estado do Meio Ambiente do Acre — SEMA/AC**.
 
 Sistema **somente leitura**: os dados são editados diretamente na planilha Google Sheets e exibidos no painel público em tempo real.
@@ -16,9 +19,11 @@ Sistema **somente leitura**: os dados são editados diretamente na planilha Goog
 | Componente | Arquivo | Função |
 |---|---|---|
 | Painel público | `index.html` | Exibe os dados ao cidadão (tabela, KPIs, gráficos, alertas, PDF) |
+| Utilitários | `js/util.js` | Funções puras testadas (datas, status, ordenação, export XLSX nativo) |
 | Configuração | `js/config.js` | URL do Apps Script e parâmetros do painel |
 | API REST | `SEMA_Code.gs` | Google Apps Script — lê o Sheets e responde via JSONP |
 | CI/CD | `.github/workflows/deploy.yml` | Deploy automático no GitHub Pages |
+| Testes | `.github/workflows/test.yml` | Suíte Vitest (`tests/`) rodada em cada push/PR |
 
 ---
 
@@ -28,7 +33,7 @@ Sistema **somente leitura**: os dados são editados diretamente na planilha Goog
 
 1. Abra a planilha no Google Drive → **Extensões → Apps Script**
 2. Cole o conteúdo de `SEMA_Code.gs` e salve (Ctrl+S)
-3. Execute `criarPlanilhaModelo()` uma vez (▶ Executar) — cria a aba `ACT - PAINEL PUBLICO` com as 15 colunas e fórmulas de Status/Dias Restantes
+3. Execute `criarPlanilhaModelo()` uma vez (▶ Executar) — cria a aba `ACT - PAINEL PUBLICO` com as 19 colunas (ver `modelo_planilha.md`) e fórmulas de Status/Dias_Restantes
 4. **Implantar → Nova implantação**:
    - Tipo: **Aplicativo da Web**
    - Executar como: **Eu**
@@ -52,7 +57,8 @@ O GitHub Actions valida os arquivos e publica no GitHub Pages automaticamente.
 
 ## Como alimentar os dados
 
-Edite diretamente a aba **`ACT - PAINEL PUBLICO`** na planilha, a partir da **linha 4**:
+Edite diretamente a aba **`ACT - PAINEL PUBLICO`** na planilha, a partir da **linha 3**
+(linha 1 = título, linha 2 = cabeçalhos — não há linha de exemplo):
 
 | Col | Cabeçalho | Observação |
 |-----|-----------|------------|
@@ -60,19 +66,25 @@ Edite diretamente a aba **`ACT - PAINEL PUBLICO`** na planilha, a partir da **li
 | B | Número | texto (ex.: `001/2025`) |
 | C | Objeto | descrição |
 | D | Instituição | parceiro |
-| E | Esfera | Federal / Estadual / Municipal / Internacional |
-| F | Início | data `dd/mm/aaaa` |
-| G | Término | data `dd/mm/aaaa` — base das fórmulas |
-| H | Área | área temática |
-| I | Status | **fórmula automática** (não editar) |
-| J | Dias Restantes | **fórmula automática** (não editar) |
-| K | DOE Nº | — |
-| L | DOU Nº | — |
-| M | SEI | — |
-| N | Link | URL |
-| O | Observação | — |
+| E | Início | data `dd/mm/aaaa` |
+| F | Término | data `dd/mm/aaaa` — base das fórmulas |
+| G | Prazo_Indeterminado | checkbox — marque para acordos sem data de término |
+| H | Status | **fórmula automática** (não editar) |
+| I | Dias_Restantes | **fórmula automática** (não editar) |
+| J | DOE | — |
+| K | DOU | — |
+| L | SEI | — |
+| M | Link | URL |
+| N | Observação | — |
+| O | Data_Assinatura | data `dd/mm/aaaa` |
+| P | Data_Publicação | data `dd/mm/aaaa` |
+| Q | Data_Cadastro | data `dd/mm/aaaa` |
+| R | Data_Atualização | data `dd/mm/aaaa` |
+| S | Responsável | — |
 
-As colunas **Status** e **Dias Restantes** se calculam sozinhas a partir da data de **Término**.
+As colunas **Status** e **Dias_Restantes** se calculam sozinhas a partir da data de
+**Término** (ou ficam em branco/manuais quando **Prazo_Indeterminado** está marcado).
+Consulte `modelo_planilha.md` para a referência completa e as fórmulas exatas.
 
 ---
 
