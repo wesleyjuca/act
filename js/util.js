@@ -12,6 +12,12 @@
     return null;
   }
 
+  /* Converte yyyy-mm-dd para dd/mm/yyyy; qualquer outro formato é devolvido inalterado. */
+  function formatDateBR(raw) {
+    const s = String(raw == null ? '' : raw);
+    return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s.split('-').reverse().join('/') : s;
+  }
+
   function normalizeStatus(value) {
     const st = String(value || '')
       .normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -288,7 +294,7 @@
 
   const api = {
     parseDateFlexible, normalizeStatus, computeStatusClientSide, esc, sanitizeCell, csvEscape,
-    compareValues, inferSortType, crc32, zipStore, buildXlsx, nextTabTarget,
+    compareValues, inferSortType, crc32, zipStore, buildXlsx, nextTabTarget, formatDateBR,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (root) Object.assign(root, api);

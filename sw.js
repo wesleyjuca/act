@@ -12,12 +12,15 @@ importScripts('js/sw-helpers.js');
 // Bump esta versão a cada mudança relevante no app-shell (força invalidação do cache
 // antigo). Não há build step que sincronize automaticamente com package.json — é
 // disciplina manual, assim como o BACKEND_VERSION em SEMA_Code.gs.
-const CACHE_VERSION = '9.3.0';
+const CACHE_VERSION = '9.4.0';
 const CACHE_NAME = 'sema-act-shell-v' + CACHE_VERSION;
 const CACHE_PREFIX = 'sema-act-shell-';
 
 self.addEventListener('install', (event) => {
-  self.skipWaiting();
+  // NÃO chama skipWaiting() aqui de propósito: um SW novo instalado fica em "waiting"
+  // até o usuário confirmar a atualização (ver mensagem 'SKIP_WAITING' abaixo e o
+  // registro em index.html) — evita trocar o app-shell debaixo do usuário em silêncio
+  // no meio de uma sessão longa.
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
       // cache.addAll() é atômico: se QUALQUER asset falhar (ex.: CDN externo
@@ -46,6 +49,12 @@ self.addEventListener('activate', (event) => {
       )
     ).then(() => self.clients.claim())
   );
+});
+
+// index.html envia isto só depois do usuário confirmar o aviso de "nova versão
+// disponível" — nunca automaticamente, para não trocar o app-shell sem interação.
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('fetch', (event) => {

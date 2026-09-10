@@ -14,6 +14,7 @@ if (self !== top) { try { top.location = self.location; } catch (e) { document.d
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" integrity="sha512-SIMGYRUjwY8+gKg7nn9EItdD8LCADSDfJNutF9TPrvEo86sQmFMh6MyralfIyhADlajSxqc7G0gs7+MwWF/ogQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="js/config.js"></script>
 <script src="js/util.js"></script>
+<script src="js/sw-helpers.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -387,6 +388,19 @@ td.dias-cell { text-align: right; font-variant-numeric: tabular-nums; font-weigh
   background: var(--accent); border-radius: 2px; flex-shrink: 0;
 }
 .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* ─── ESCALA DE BREAKPOINTS (documental — @media não aceita var(), então os valores
+   ficam soltos por limitação da linguagem; cada um tem um propósito específico):
+     500px  → modal: field-grid vira 1 coluna (campos empilhados)
+     480px  → toolbar: empilha botões, esconde separador (pouco espaço horizontal)
+     640px  → tabela: layout "card" (thead escondido, td vira label+valor), kpis/gráficos 1 col
+     700px  → gráficos: charts-grid força 1 coluna (janela 641-700px onde a tabela ainda
+              não virou card, mas os gráficos já devem empilhar — próximo de 640 de propósito,
+              não é redundante: cobre a faixa que o breakpoint de 640 não cobre)
+     1023px (min 641px) → tablet: reduz fonte/padding da tabela sem virar "card"
+   ──────────────────────────────────────────────────────────────────────────────── */
+
+/* 500px — modal: campos empilham em coluna única */
 @media (max-width: 500px) { .field-grid { grid-template-columns: 1fr; } }
 .field-item {
   background: var(--row-alt); border-radius: 9px; padding: 11px 14px;
@@ -415,6 +429,7 @@ td.dias-cell { text-align: right; font-variant-numeric: tabular-nums; font-weigh
 .pagination button:disabled { opacity: .4; cursor: default; }
 
 /* MOBILE */
+/* 640px — tabela vira layout "card" (thead escondido, cada td exibe label+valor) */
 @media (max-width: 640px) {
   .table-wrap { border: none; box-shadow: none; overflow: visible; }
   table, thead, tbody, th, td, tr { display: block; }
@@ -433,11 +448,14 @@ td.dias-cell { text-align: right; font-variant-numeric: tabular-nums; font-weigh
   .summary-strip { flex-wrap: wrap; }
   .summary-div { display: none; }
 }
+/* 480px — toolbar empilha botões e esconde o separador (pouco espaço horizontal) */
 @media (max-width: 480px) {
   .toolbar-row { flex-direction: column; align-items: stretch; }
   .btn { justify-content: center; }
   .toolbar-sep { display: none; }
 }
+/* 700px — gráficos empilham em 1 coluna; cobre a faixa 641-700px onde a tabela ainda
+   não virou "card" (breakpoint de 640px acima) mas os gráficos já devem empilhar */
 @media (max-width: 700px) {
   .charts-grid { grid-template-columns: 1fr; }
   #chart-card-vencimentos, #chart-card-inst, #chart-card-ano { grid-column: 1; }
@@ -486,6 +504,7 @@ thead th.col-dragging { opacity: .45; }
 thead th.col-drag-over { background: var(--tbl-head-hover); box-shadow: inset 3px 0 0 var(--tbl-head-text); }
 
 /* TABLET */
+/* 641-1023px — reduz fonte/padding da tabela sem virar layout "card" */
 @media (min-width: 641px) and (max-width: 1023px) {
   table { font-size: .78rem; }
   thead th { padding: 8px 8px; font-size: .7rem; white-space: normal; word-break: break-word; min-width: 60px; }
@@ -915,29 +934,40 @@ function _stopPolling() {
   if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
 }
 
-function setupDelegatedListeners() {
-  const tableHead = document.getElementById('table-head-wrap');
-  if (tableHead && !tableHead.dataset.listenerReady) {
-    tableHead.addEventListener('click', e => {
+/* Registra um mapa {evento: handler} em `el` de uma só vez, guardado por
+   dataset.listenerReady (setado só no fim) — evita duplicar listeners quando a função
+   que chama isto roda de novo (ex. após um re-render). Aceita um mapa (não um único
+   evento) porque vários dos blocos abaixo registram múltiplos eventos no mesmo elemento
+   e precisam do guard único cobrindo todos eles, não um guard por evento. */
+function bindOnce(el, handlersMap) {
+  if (!el || el.dataset.listenerReady) return;
+  Object.entries(handlersMap).forEach(([event, handler]) => el.addEventListener(event, handler));
+  el.dataset.listenerReady = '1';
+}
+
+function _bindTableHeadInteractions(tableHead) {
+  if (!tableHead) return;
+  bindOnce(tableHead, {
+    click: e => {
       const th = e.target.closest('th[data-sort-key]');
       if (!th || !tableHead.contains(th)) return;
       sortBy(th.dataset.sortKey);
-    });
-    tableHead.addEventListener('dragstart', e => {
+    },
+    dragstart: e => {
       const th = e.target.closest('th[data-col-key]');
       if (!th) return;
       _dragColKey = th.dataset.colKey;
       e.dataTransfer.effectAllowed = 'move';
       th.classList.add('col-dragging');
-    });
-    tableHead.addEventListener('dragover', e => {
+    },
+    dragover: e => {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
       const th = e.target.closest('th[data-col-key]');
       document.querySelectorAll('thead th.col-drag-over').forEach(el => el.classList.remove('col-drag-over'));
       if (th && th.dataset.colKey !== _dragColKey) th.classList.add('col-drag-over');
-    });
-    tableHead.addEventListener('drop', e => {
+    },
+    drop: e => {
       e.preventDefault();
       const th = e.target.closest('th[data-col-key]');
       if (!th || !_dragColKey || th.dataset.colKey === _dragColKey) return;
@@ -959,45 +989,54 @@ function setupDelegatedListeners() {
       document.querySelectorAll('thead th.col-drag-over, thead th.col-dragging').forEach(el => {
         el.classList.remove('col-drag-over', 'col-dragging');
       });
-    });
-    tableHead.addEventListener('dragend', () => {
+    },
+    dragend: () => {
       document.querySelectorAll('thead th').forEach(el => el.classList.remove('col-dragging', 'col-drag-over'));
       _dragColKey = null;
-    });
-    tableHead.dataset.listenerReady = '1';
-  }
+    },
+  });
+}
 
-  const tableBody = document.getElementById('table-body');
-  if (tableBody && !tableBody.dataset.listenerReady) {
-    tableBody.addEventListener('click', e => {
+function _bindTableRowClicks(tableBody) {
+  if (!tableBody) return;
+  bindOnce(tableBody, {
+    click: e => {
       if (e.target.closest('a, button, input, select, textarea')) return;
       const tr = e.target.closest('tr[data-row-index]');
       if (!tr || !tableBody.contains(tr)) return;
       openModal(Number(tr.dataset.rowIndex));
-    });
-    tableBody.dataset.listenerReady = '1';
-  }
+    },
+  });
+}
 
-  const pagination = document.getElementById('pagination');
-  if (pagination && !pagination.dataset.listenerReady) {
-    pagination.addEventListener('click', e => {
+function _bindPaginationClicks(pagination) {
+  if (!pagination) return;
+  bindOnce(pagination, {
+    click: e => {
       const btn = e.target.closest('button[data-page]');
       if (!btn || !pagination.contains(btn) || btn.disabled) return;
       goPage(Number(btn.dataset.page));
-    });
-    pagination.dataset.listenerReady = '1';
-  }
+    },
+  });
+}
 
-  const colPanel = document.getElementById('col-toggle-panel');
-  if (colPanel && !colPanel.dataset.listenerReady) {
-    colPanel.addEventListener('click', e => e.stopPropagation());
-    colPanel.addEventListener('change', e => {
+function _bindColumnTogglePanel(colPanel) {
+  if (!colPanel) return;
+  bindOnce(colPanel, {
+    click: e => e.stopPropagation(),
+    change: e => {
       const input = e.target.closest('input[type="checkbox"][data-col-key]');
       if (!input || !colPanel.contains(input)) return;
       toggleCol(input.dataset.colKey);
-    });
-    colPanel.dataset.listenerReady = '1';
-  }
+    },
+  });
+}
+
+function setupDelegatedListeners() {
+  _bindTableHeadInteractions(document.getElementById('table-head-wrap'));
+  _bindTableRowClicks(document.getElementById('table-body'));
+  _bindPaginationClicks(document.getElementById('pagination'));
+  _bindColumnTogglePanel(document.getElementById('col-toggle-panel'));
 }
 
 /* ─── SYNC COM RETRY ──────────────────────────────────────────────────────── */
@@ -1420,7 +1459,7 @@ function renderTable() {
         cell = `<a class="cell-link" href="${esc(raw)}" target="_blank" rel="noopener">🔗 Abrir</a>`;
 
       } else if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-        cell = raw.split('-').reverse().join('/'); tdCls = ' class="num-cell"';
+        cell = formatDateBR(raw); tdCls = ' class="num-cell"';
 
       } else if (numKeys.has(kL)) {
         cell = esc(raw); tdCls = kL === 'num' ? ' class="num-id"' : ' class="num-cell"';
@@ -1734,7 +1773,7 @@ function openModal(idx) {
       } else if (raw.startsWith('http')) {
         val = `<a class="modal-link-btn" href="${esc(raw)}" target="_blank" rel="noopener">Abrir →</a>`;
       } else if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-        val = raw.split('-').reverse().join('/');
+        val = formatDateBR(raw);
       } else {
         val = esc(raw);
       }
@@ -1802,7 +1841,7 @@ function _shareWhatsApp() {
   if (tipo || num) lines.push(`*${[tipo, num ? 'Nº ' + num : ''].filter(Boolean).join(' ')}*`);
   if (objeto)  lines.push(objeto.length > 120 ? objeto.slice(0, 120) + '…' : objeto);
   if (inst)    lines.push('Instituição: ' + inst);
-  if (term)    lines.push('Término: ' + (/^\d{4}-\d{2}-\d{2}$/.test(term) ? term.split('-').reverse().join('/') : term));
+  if (term)    lines.push('Término: ' + formatDateBR(term));
   window.open('https://wa.me/?text=' + encodeURIComponent(lines.join('\n')), '_blank');
 }
 
@@ -2194,9 +2233,51 @@ init();
 /* ─── PWA: registro defensivo do Service Worker (progressive enhancement) ───
    Se falhar ou não for suportado, o painel continua funcionando normalmente —
    isso nunca deve bloquear/atrasar o carregamento dos dados. */
+
+/* Aviso de "nova versão disponível": nunca recarrega sozinho — só ao clique do
+   usuário no toast. `_pendingUpdateReg` guarda a registration com um worker em
+   `waiting` enquanto o aviso está visível/clicável. */
+let _pendingUpdateReg = null;
+
+function _promptSwUpdate(registration) {
+  _pendingUpdateReg = registration;
+  const toast = document.getElementById('toast');
+  toast.style.pointerEvents = 'auto';
+  showToast('Nova versão disponível — clique para atualizar', 15000, '');
+  setTimeout(() => {
+    if (_pendingUpdateReg === registration) {
+      _pendingUpdateReg = null;
+      toast.style.pointerEvents = '';
+    }
+  }, 15000);
+}
+
 if ('serviceWorker' in navigator) {
+  bindOnce(document.getElementById('toast'), {
+    click: () => {
+      if (!_pendingUpdateReg || !_pendingUpdateReg.waiting) return;
+      _pendingUpdateReg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      _pendingUpdateReg = null;
+      document.getElementById('toast').style.pointerEvents = '';
+    },
+  });
+  navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
+
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(err => {
+    navigator.serviceWorker.register('sw.js').then(registration => {
+      if (registration.waiting && shouldShowUpdateToast(!!navigator.serviceWorker.controller, registration.waiting.state)) {
+        _promptSwUpdate(registration);
+      }
+      registration.addEventListener('updatefound', () => {
+        const installing = registration.installing;
+        if (!installing) return;
+        installing.addEventListener('statechange', () => {
+          if (shouldShowUpdateToast(!!navigator.serviceWorker.controller, installing.state)) {
+            _promptSwUpdate(registration);
+          }
+        });
+      });
+    }).catch(err => {
       console.warn('[SEMA] Service Worker não registrado (não crítico):', err.message);
     });
   });
