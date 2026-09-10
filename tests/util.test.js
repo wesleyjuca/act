@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import util from '../js/util.js';
 
-const { parseDateFlexible, normalizeStatus, computeStatusClientSide, esc, sanitizeCell, csvEscape } = util;
+const { parseDateFlexible, normalizeStatus, computeStatusClientSide, esc, sanitizeCell, csvEscape, nextTabTarget } = util;
 
 /* helper: data ISO deslocada N dias a partir de hoje */
 function isoInDays(n) {
@@ -101,5 +101,31 @@ describe('sanitizeCell / csvEscape (anti-injeção de fórmula)', () => {
   it('csvEscape envolve em aspas e duplica aspas internas', () => {
     expect(csvEscape('a"b')).toBe('"a""b"');
     expect(csvEscape('=cmd')).toBe(`"'=cmd"`);
+  });
+});
+
+describe('nextTabTarget (focus trap do modal)', () => {
+  const list = ['a', 'b', 'c']; // só o length importa; a função é agnóstica ao conteúdo
+
+  it('Tab avança e faz wrap do último para o primeiro', () => {
+    expect(nextTabTarget(list, 0, false)).toBe(1);
+    expect(nextTabTarget(list, 1, false)).toBe(2);
+    expect(nextTabTarget(list, 2, false)).toBe(0); // wrap
+  });
+
+  it('Shift+Tab volta e faz wrap do primeiro para o último', () => {
+    expect(nextTabTarget(list, 2, true)).toBe(1);
+    expect(nextTabTarget(list, 1, true)).toBe(0);
+    expect(nextTabTarget(list, 0, true)).toBe(2); // wrap
+  });
+
+  it('lista vazia retorna -1 (nada a focar)', () => {
+    expect(nextTabTarget([], 0, false)).toBe(-1);
+    expect(nextTabTarget(null, 0, true)).toBe(-1);
+  });
+
+  it('índice atual desconhecido (-1, ex. foco fora da lista) ainda produz um alvo válido', () => {
+    expect(nextTabTarget(list, -1, false)).toBe(0);
+    expect(nextTabTarget(list, -1, true)).toBe(2);
   });
 });

@@ -275,9 +275,20 @@
     return zipStore(files);
   }
 
+  /* ─── FOCUS TRAP (modal) ─────────────────────────────────────────────────────
+     Decide o índice de destino ao navegar por Tab dentro de um conjunto de
+     elementos focáveis, com wrap-around nas bordas. Pura — a leitura do DOM
+     (querySelectorAll, .focus()) fica no chamador. */
+  function nextTabTarget(focusableEls, currentIndex, shiftKey) {
+    const n = focusableEls ? focusableEls.length : 0;
+    if (!n) return -1;
+    if (shiftKey) return currentIndex <= 0 ? n - 1 : currentIndex - 1;
+    return currentIndex >= n - 1 ? 0 : currentIndex + 1;
+  }
+
   const api = {
     parseDateFlexible, normalizeStatus, computeStatusClientSide, esc, sanitizeCell, csvEscape,
-    compareValues, inferSortType, crc32, zipStore, buildXlsx,
+    compareValues, inferSortType, crc32, zipStore, buildXlsx, nextTabTarget,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (root) Object.assign(root, api);

@@ -12,7 +12,7 @@ importScripts('js/sw-helpers.js');
 // Bump esta versão a cada mudança relevante no app-shell (força invalidação do cache
 // antigo). Não há build step que sincronize automaticamente com package.json — é
 // disciplina manual, assim como o BACKEND_VERSION em SEMA_Code.gs.
-const CACHE_VERSION = '9.2.0';
+const CACHE_VERSION = '9.3.0';
 const CACHE_NAME = 'sema-act-shell-v' + CACHE_VERSION;
 const CACHE_PREFIX = 'sema-act-shell-';
 
