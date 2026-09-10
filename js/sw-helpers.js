@@ -11,6 +11,7 @@
       'index.html',
       'js/config.js',
       'js/util.js',
+      'js/sw-helpers.js',
       'manifest.json',
       'icons/icon-192.png',
       'icons/icon-512.png',
@@ -28,7 +29,17 @@
     return s.includes('script.google.com') || s.includes('script.googleusercontent.com');
   }
 
-  const api = { getAppShellAssets, shouldBypassServiceWorker };
+  /* Decide se o aviso de "nova versão disponível" deve aparecer. `hasController` é
+     `!!navigator.serviceWorker.controller` no momento do evento; `workerState` é o
+     `state` do worker em `registration.installing`/`.waiting` (ex.: 'installed').
+     Só mostra o aviso quando já existe um controller ativo (ou seja, é uma ATUALIZAÇÃO
+     de um SW já em uso) — na primeira instalação (sem controller ainda) não há nada
+     para "atualizar" do ponto de vista do usuário, então não deve avisar. */
+  function shouldShowUpdateToast(hasController, workerState) {
+    return !!hasController && workerState === 'installed';
+  }
+
+  const api = { getAppShellAssets, shouldBypassServiceWorker, shouldShowUpdateToast };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (root) Object.assign(root, api);
 })(typeof self !== 'undefined' ? self : (typeof window !== 'undefined' ? window : this));

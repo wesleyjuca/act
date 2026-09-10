@@ -25,6 +25,22 @@ jobs:
         run: |
           node --check js/config.js && echo "✅ js/config.js syntax OK"
 
+      - name: Validar sintaxe do script inline de index.html
+        run: |
+          node -e "
+            const fs = require('fs');
+            const html = fs.readFileSync('index.html', 'utf8');
+            const re = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g;
+            let m, last = null;
+            while ((m = re.exec(html))) last = m[1];
+            if (!last || last.length < 1000) {
+              console.error('Script inline principal não encontrado ou suspeito demais curto');
+              process.exit(1);
+            }
+            fs.writeFileSync(process.env.RUNNER_TEMP + '/inline-script.js', last);
+          "
+          node --check "$RUNNER_TEMP/inline-script.js" && echo "✅ script inline de index.html: syntax OK"
+
       - name: Validar arquivos HTML e JS
         run: |
           for f in index.html js/config.js; do

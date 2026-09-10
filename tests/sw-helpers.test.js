@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import swHelpers from '../js/sw-helpers.js';
 
-const { getAppShellAssets, shouldBypassServiceWorker } = swHelpers;
+const { getAppShellAssets, shouldBypassServiceWorker, shouldShowUpdateToast } = swHelpers;
 
 describe('getAppShellAssets', () => {
   const assets = getAppShellAssets();
@@ -58,5 +58,22 @@ describe('shouldBypassServiceWorker', () => {
     expect(shouldBypassServiceWorker(null)).toBe(false);
     expect(shouldBypassServiceWorker(undefined)).toBe(false);
     expect(shouldBypassServiceWorker('')).toBe(false);
+  });
+});
+
+describe('shouldShowUpdateToast', () => {
+  it('mostra o aviso quando já há um controller ativo e o novo worker terminou de instalar', () => {
+    expect(shouldShowUpdateToast(true, 'installed')).toBe(true);
+  });
+  it('NÃO mostra na primeira instalação (sem controller ainda)', () => {
+    expect(shouldShowUpdateToast(false, 'installed')).toBe(false);
+  });
+  it('NÃO mostra enquanto o worker ainda não terminou de instalar', () => {
+    expect(shouldShowUpdateToast(true, 'installing')).toBe(false);
+    expect(shouldShowUpdateToast(true, 'activating')).toBe(false);
+  });
+  it('lida com valores ausentes sem lançar', () => {
+    expect(shouldShowUpdateToast(undefined, undefined)).toBe(false);
+    expect(shouldShowUpdateToast(null, null)).toBe(false);
   });
 });

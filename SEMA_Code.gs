@@ -6,6 +6,8 @@
  * Os dados são editados diretamente na planilha; Status e Dias Restantes
  * são calculados por fórmula automática na aba.
  *
+ * VERSÃO 9.3 — circuit breaker de volume agregado (_isThrottled) em doGet, protegendo
+ *              contra picos/loops de cliente com bug ou abuso simples.
  * VERSÃO 9.2 — versão de backend centralizada (BACKEND_VERSION), mensagens de
  *              erro ao cliente não vazam mais detalhes internos, e o histórico
  *              de edições (ACT_HISTORICO) passa a registrar o usuário responsável.
@@ -21,12 +23,22 @@
 // versão do painel (package.json), já que o deploy deste .gs é sempre manual
 // (colar no editor do Apps Script + reimplantar). Bump quando este arquivo
 // mudar de forma relevante para quem consome a API.
-const BACKEND_VERSION = '9.2.0';
+const BACKEND_VERSION = '9.3.0';
 
 const SHEET_DADOS     = 'ACT - PAINEL PUBLICO';
 const SHEET_LOG       = 'SYNC_LOG';
 const SHEET_HISTORICO = 'ACT_HISTORICO';
 const SHEET_SAUDE     = 'SAUDE_SISTEMA';
+
+// Circuit breaker de volume agregado — NÃO é rate limit por IP/usuário (a plataforma
+// Apps Script Web App não expõe IP do cliente de forma confiável em `e`). Protege
+// contra picos/loops de cliente com bug ou abuso simples, contando requisições
+// globais numa janela curta via CacheService (mesmo padrão de handleList/list_public).
+// Nota: cache.put reaplica o TTL a cada hit (sliding window), não é um contador
+// atômico — aceitável para um circuit breaker best-effort, não para limite exato.
+const THROTTLE_WINDOW_KEY     = 'req_throttle_window';
+const THROTTLE_WINDOW_SECONDS = 5;   // janela curta; painel sincroniza a cada 60s/cliente
+const THROTTLE_MAX_REQUESTS   = 30;  // folga generosa para não afetar uso legítimo
 
 // ─────────────────────────────────────────────────────────────
 // HEADER MAP — normaliza nomes de colunas para chaves internas
@@ -208,6 +220,19 @@ function _publicErrorMessage(err) {
   return 'Erro interno ao processar a solicitação.';
 }
 
+/**
+ * Circuit breaker de volume agregado — ver comentário de THROTTLE_* no topo do arquivo.
+ * Retorna true quando o limite da janela atual foi atingido (requisição deve ser
+ * recusada); incrementa o contador a cada chamada que não estava throttled.
+ */
+function _isThrottled() {
+  const cache = CacheService.getScriptCache();
+  const current = Number(cache.get(THROTTLE_WINDOW_KEY) || 0);
+  if (current >= THROTTLE_MAX_REQUESTS) return true;
+  try { cache.put(THROTTLE_WINDOW_KEY, String(current + 1), THROTTLE_WINDOW_SECONDS); } catch (_) {}
+  return false;
+}
+
 // ─────────────────────────────────────────────────────────────
 // FORMULA HELPERS
 // ─────────────────────────────────────────────────────────────
@@ -256,6 +281,17 @@ function doGet(e) {
   const callback = e.parameter?.callback;
   const useJsonp = callback && isValidJsonpCallback(callback);
   const hasInvalidJsonpCallback = callback && !useJsonp;
+
+  if (_isThrottled()) {
+    const data = { error: 'Muitas solicitações — tente novamente em instantes.' };
+    if (hasInvalidJsonpCallback) return jsonResponse({ error: 'Callback JSONP inválido' });
+    if (useJsonp) {
+      return ContentService.createTextOutput(callback + '(' + JSON.stringify(data) + ')')
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+    return jsonResponse(data);
+  }
+
   try {
     const action = (e.parameter?.action || 'list');
     let data;

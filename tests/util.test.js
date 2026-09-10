@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import util from '../js/util.js';
 
-const { parseDateFlexible, normalizeStatus, computeStatusClientSide, esc, sanitizeCell, csvEscape, nextTabTarget } = util;
+const { parseDateFlexible, normalizeStatus, computeStatusClientSide, esc, sanitizeCell, csvEscape, nextTabTarget, formatDateBR } = util;
 
 /* helper: data ISO deslocada N dias a partir de hoje */
 function isoInDays(n) {
@@ -127,5 +127,24 @@ describe('nextTabTarget (focus trap do modal)', () => {
   it('índice atual desconhecido (-1, ex. foco fora da lista) ainda produz um alvo válido', () => {
     expect(nextTabTarget(list, -1, false)).toBe(0);
     expect(nextTabTarget(list, -1, true)).toBe(2);
+  });
+});
+
+describe('formatDateBR', () => {
+  it('converte ISO (yyyy-mm-dd) para dd/mm/yyyy', () => {
+    expect(formatDateBR('2026-09-10')).toBe('10/09/2026');
+  });
+  it('devolve inalterado quando já não é ISO', () => {
+    expect(formatDateBR('10/09/2026')).toBe('10/09/2026');
+    expect(formatDateBR('texto qualquer')).toBe('texto qualquer');
+  });
+  it('devolve inalterado quando o formato é quase-ISO mas inválido', () => {
+    expect(formatDateBR('2026-9-10')).toBe('2026-9-10');   // mês sem 2 dígitos
+    expect(formatDateBR('2026-09-1')).toBe('2026-09-1');   // dia sem 2 dígitos
+  });
+  it('lida com vazio/nulo/indefinido sem lançar', () => {
+    expect(formatDateBR('')).toBe('');
+    expect(formatDateBR(null)).toBe('');
+    expect(formatDateBR(undefined)).toBe('');
   });
 });
