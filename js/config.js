@@ -1,7 +1,7 @@
 const SEMA_CONFIG = {
 
   // URL do Google Apps Script (Web App implantado) — somente leitura
-  appsScriptUrl: 'https://script.google.com/macros/s/AKfycbxj-C4lxkSpYFhWChVHkSEu4TdYyqjbj8iWaxEQd3vMj0WuEByxIlwvjWY3kiVKPdRW/exec',
+  appsScriptUrl: 'https://script.google.com/macros/s/AKfycbz1xkZKwnhpC5nEVqMTZwGx1JoslSa6c5ITZmy7VSenUofHG6xbBUMZykL27a7zZXIH/exec',
 
   // Aba da planilha de dados
   sheet: 'ACT - PAINEL PUBLICO',
