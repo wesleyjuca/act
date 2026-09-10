@@ -843,6 +843,8 @@ let _retryCount = 0;
 let _charts   = {};
 let _printAll = false;
 let _curModalIdx = -1;
+let _modalReturnFocusEl = null;   // elemento a receber o foco de volta ao fechar o modal
+const _FOCUSABLE_SEL = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 function _loadHiddenCols() {
   try {
     const v = JSON.parse(localStorage.getItem('sema_hidden_cols') || '[]');
@@ -1749,8 +1751,18 @@ function openModal(idx) {
     html += `</div></div>`;
   }
   document.getElementById('modal-body').innerHTML = html || `<p style="padding:16px;color:var(--text2)">Sem dados</p>`;
+  const wasOpen = document.getElementById('modal-overlay').classList.contains('open');
   document.getElementById('modal-overlay').classList.add('open');
   _updateModalFavBtn();
+
+  // Foco: guarda o elemento de origem (só na primeira abertura, não ao navegar ‹ ›
+  // dentro do modal já aberto) e move o foco para dentro do modal (acessibilidade —
+  // sem isso o Tab continuaria na página por trás, invisível ao usuário).
+  if (!wasOpen) _modalReturnFocusEl = document.activeElement;
+  requestAnimationFrame(() => {
+    const box = document.getElementById('modal-box');
+    (box?.querySelector('.modal-close-btn') || box?.querySelector(_FOCUSABLE_SEL))?.focus();
+  });
 
   // Atualizar URL com detail=idx
   try {
@@ -1763,6 +1775,8 @@ function openModal(idx) {
 function closeModal() {
   document.getElementById('modal-overlay').classList.remove('open');
   _curModalIdx = -1;
+  _modalReturnFocusEl?.focus();
+  _modalReturnFocusEl = null;
   try {
     const p = new URLSearchParams(location.search);
     p.delete('detail');
@@ -1792,26 +1806,62 @@ function _shareWhatsApp() {
   window.open('https://wa.me/?text=' + encodeURIComponent(lines.join('\n')), '_blank');
 }
 
+/* Copia uma URL e mostra feedback — usada tanto pelo link do modal (com ?detail=) quanto
+   pelo link do relatório geral (copyLink). Só a resolução da URL difere por contexto. */
+function _copyUrlToClipboard(url, successMsg = '🔗 Link copiado!') {
+  navigator.clipboard?.writeText(url)
+    .then(() => showToast(successMsg, 3000, 'success'))
+    .catch(() => showToast('Copie manualmente: ' + url, 6000, 'error'));
+}
+
 function _shareCopyLink() {
   const p = new URLSearchParams(location.search);
   p.delete('detail');
   if (_curModalIdx >= 0) p.set('detail', _curModalIdx);
   const str = p.toString();
   const url = location.href.split('?')[0] + (str ? '?' + str : '');
-  navigator.clipboard?.writeText(url)
-    .then(() => showToast('🔗 Link copiado!', 3000, 'success'))
-    .catch(() => showToast('Copie: ' + url, 6000, 'error'));
+  _copyUrlToClipboard(url);
+}
+
+/* Wrapper mecânico de impressão com restauração garantida (afterprint + fallback de
+   timeout, caso o navegador não dispare o evento). `prepare`/`restore` capturam o que é
+   específico de cada contexto (registro do modal vs. relatório/tabela filtrada). A flag
+   `done` evita restaurar duas vezes se afterprint disparar depois do fallback. */
+function _printWithRestore(prepare, restore) {
+  prepare();
+  let done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    restore();
+    window.removeEventListener('afterprint', onAfterPrint);
+  };
+  const onAfterPrint = () => finish();
+  window.addEventListener('afterprint', onAfterPrint);
+  window.print();
+  setTimeout(finish, 1500);
 }
 
 function _shareModalPrint() {
-  document.body.classList.add('printing-modal');
-  const restore = () => {
-    document.body.classList.remove('printing-modal');
-    window.removeEventListener('afterprint', restore);
-  };
-  window.addEventListener('afterprint', restore);
-  window.print();
-  setTimeout(() => { if (document.body.classList.contains('printing-modal')) restore(); }, 1500);
+  _printWithRestore(
+    () => document.body.classList.add('printing-modal'),
+    () => document.body.classList.remove('printing-modal')
+  );
+}
+
+/* Focus trap do modal: mantém o Tab (e Shift+Tab) circulando dentro de #modal-box
+   enquanto o modal está aberto (WCAG 2.4.3/2.1.2) — sem isso o foco escaparia para a
+   página por trás, invisível ao usuário. Recalcula a lista de focáveis a cada tecla
+   (não cacheia) porque o conteúdo do modal muda a cada registro navegado. */
+function _handleModalTabKey(e) {
+  const box = document.getElementById('modal-box');
+  const focusable = box ? Array.from(box.querySelectorAll(_FOCUSABLE_SEL)) : [];
+  if (!focusable.length) return;
+  const curIdx = focusable.indexOf(document.activeElement);
+  const targetIdx = nextTabTarget(focusable, curIdx, e.shiftKey);
+  if (targetIdx < 0) return;
+  e.preventDefault();
+  focusable[targetIdx].focus();
 }
 
 document.addEventListener('keydown', e => {
@@ -1820,6 +1870,7 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Escape')      { e.preventDefault(); closeModal(); }
     else if (e.key === 'ArrowRight') { e.preventDefault(); _modalNext(); }
     else if (e.key === 'ArrowLeft')  { e.preventDefault(); _modalPrev(); }
+    else if (e.key === 'Tab')        { _handleModalTabKey(e); }
   }
   if (!modalOpen && e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
     e.preventDefault();
@@ -1909,9 +1960,7 @@ function exportXLSX() {
 
 /* ─── COPY LINK ───────────────────────────────────────────────────────────── */
 function copyLink() {
-  navigator.clipboard?.writeText(location.href)
-    .then(() => showToast('🔗 Link copiado!', 3000, 'success'))
-    .catch(() => { showToast('Copie manualmente: ' + location.href, 6000, 'error'); });
+  _copyUrlToClipboard(location.href);
 }
 
 /* ─── PRINT / PDF ─────────────────────────────────────────────────────────── */
@@ -1931,12 +1980,10 @@ function printReport() {
     `Emitido em ${new Date().toLocaleString('pt-BR')} · ${_filtered.length} registro(s)` +
     (filtros.length ? ` · Filtros: ${filtros.join(', ')}` : ' · Todos os registros');
 
-  _printAll = true;
-  renderTable();
-  const restore = () => { _printAll = false; renderTable(); window.removeEventListener('afterprint', restore); };
-  window.addEventListener('afterprint', restore);
-  window.print();
-  setTimeout(() => { if (_printAll) restore(); }, 1500);
+  _printWithRestore(
+    () => { _printAll = true; renderTable(); },
+    () => { _printAll = false; renderTable(); }
+  );
 }
 
 /* ─── HELPERS ─────────────────────────────────────────────────────────────── */

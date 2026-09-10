@@ -32,6 +32,9 @@ jobs:
           done
           echo "✅ Validação concluída"
 
+      - name: Remover artefatos de ferramentas de terceiros (ecc-tools) do build público
+        run: rm -rf .claude .agents .codex
+
       - name: Configurar GitHub Pages
         uses: actions/configure-pages@v4
 
